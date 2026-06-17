@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: #F1F4ED;
+  color: #16261D;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.field-lines {
+  background-image:
+    linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+.light-field-lines {
+  background-image:
+    linear-gradient(rgba(11,74,41,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(11,74,41,.03) 1px, transparent 1px);
+  background-size: 46px 46px;
+}
+
+.field-hero {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(150deg, #0B4A29, #167D48);
+}
+
+.field-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(90deg, rgba(255,255,255,.055) 0 1px, transparent 1px 46px);
+}
+
+.field-hero::after {
+  content: "";
+  position: absolute;
+  width: 130px;
+  height: 130px;
+  right: -34px;
+  top: -28px;
+  border: 2px solid rgba(255,255,255,.1);
+  border-radius: 999px;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .35; }
+}
+
+@keyframes growBar {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.animate-card {
+  animation: fadeUp .45s ease-out both;
+}
+
+.pulse-dot {
+  animation: pulseDot 1.6s ease-in-out infinite;
+}
+
+.grow-bar {
+  animation: growBar .8s ease-out both;
+  transform-origin: left;
+}

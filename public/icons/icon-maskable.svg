@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Dono da Pelada">
+  <defs>
+    <linearGradient id="field" x1="80" y1="20" x2="436" y2="510" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0B4A29"/>
+      <stop offset=".62" stop-color="#147A45"/>
+      <stop offset="1" stop-color="#1B9E4B"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#062414" flood-opacity=".28"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" fill="url(#field)"/>
+  <path d="M80 0v512M176 0v512M272 0v512M368 0v512M464 0v512" stroke="#fff" stroke-opacity=".055" stroke-width="2"/>
+  <path d="M0 256h512" stroke="#fff" stroke-opacity=".12" stroke-width="3"/>
+  <circle cx="256" cy="256" r="116" fill="none" stroke="#fff" stroke-opacity=".12" stroke-width="4"/>
+  <g filter="url(#shadow)">
+    <rect x="150" y="118" width="212" height="212" rx="54" fill="#F4A11A"/>
+    <circle cx="256" cy="224" r="68" fill="none" stroke="#0B4A29" stroke-width="17"/>
+    <path d="M188 224h136" stroke="#0B4A29" stroke-width="17" stroke-linecap="round"/>
+  </g>
+  <path d="M156 383h200" stroke="#fff" stroke-opacity=".84" stroke-width="17" stroke-linecap="round"/>
+  <path d="M190 418h132" stroke="#9FE3B8" stroke-opacity=".94" stroke-width="12" stroke-linecap="round"/>
+</svg>

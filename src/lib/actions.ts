@@ -1,0 +1,895 @@
+"use server";
+
+import bcrypt from "bcryptjs";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { MatchStatus, PollStatus, UserRole } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { requireAdmin, requireMaster, requireUser } from "@/lib/session";
+import { adminSchema, drawSchema, matchSchema, playerSchema } from "@/lib/validations";
+import { balanceTeams } from "@/lib/balanceTeams";
+import { sendPushToAll, sendPushToUsers } from "@/lib/push";
+
+function value(formData: FormData, key: string) {
+  const raw = formData.get(key);
+  return typeof raw === "string" ? raw : "";
+}
+
+const LINE_CAPACITY = 18;
+const GOALKEEPER_CAPACITY = 2;
+const TOTAL_CAPACITY = LINE_CAPACITY + GOALKEEPER_CAPACITY;
+const VOTING_WINDOW_HOURS = 6;
+
+function getSaoPauloParts(date = new Date()) {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  });
+
+  const parts = Object.fromEntries(formatter.formatToParts(date).map((part) => [part.type, part.value]));
+  return {
+    year: Number(parts.year),
+    month: Number(parts.month),
+    day: Number(parts.day),
+    hour: Number(parts.hour),
+    minute: Number(parts.minute)
+  };
+}
+
+function isSameSaoPauloDate(a: Date, b: Date) {
+  const left = getSaoPauloParts(a);
+  const right = getSaoPauloParts(b);
+  return left.year === right.year && left.month === right.month && left.day === right.day;
+}
+
+function areGoalkeeperSlotsReleased(matchDate: Date) {
+  const now = getSaoPauloParts();
+  return isSameSaoPauloDate(new Date(), matchDate) && (now.hour > 16 || (now.hour === 16 && now.minute >= 30));
+}
+
+async function getConfirmedCounts(matchId: string) {
+  const confirmed = await prisma.attendance.findMany({
+    where: { matchId, status: "CONFIRMED" },
+    include: { player: true }
+  });
+
+  const goalkeepers = confirmed.filter((attendance) => attendance.player.position === "GOLEIRO").length;
+  return {
+    total: confirmed.length,
+    goalkeepers,
+    line: confirmed.length - goalkeepers
+  };
+}
+
+function canConfirmPlayer(position: string, counts: { total: number; goalkeepers: number; line: number }, released: boolean) {
+  if (!released) {
+    if (counts.total >= TOTAL_CAPACITY) return false;
+    if (position === "GOLEIRO") return counts.goalkeepers < GOALKEEPER_CAPACITY;
+    return counts.line < LINE_CAPACITY;
+  }
+
+  if (position === "GOLEIRO") {
+    if (counts.goalkeepers >= GOALKEEPER_CAPACITY) return false;
+    if (counts.goalkeepers === 1) return counts.line <= LINE_CAPACITY;
+    return counts.line <= 20;
+  }
+
+  if (counts.goalkeepers >= 2) return counts.line < LINE_CAPACITY;
+  if (counts.goalkeepers === 1) return counts.line < 20;
+  return counts.line < 21;
+}
+
+function isWithinVotingWindow(openedAt: Date) {
+  return Date.now() - openedAt.getTime() <= VOTING_WINDOW_HOURS * 60 * 60 * 1000;
+}
+
+async function canUserVoteInMatch(userId: string, matchId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { player: true }
+  });
+  if (!user?.player) return false;
+  const isAdmin = user.role === "MASTER" || user.role === "ADMIN";
+  if (!isAdmin && user.player.membershipStatus !== "MENSALISTA") return false;
+
+  const attendance = await prisma.attendance.findUnique({
+    where: { matchId_playerId: { matchId, playerId: user.player.id } }
+  });
+
+  return attendance?.status === "CONFIRMED";
+}
+
+async function getAttendanceStatusForPlayer(matchId: string, position: string, matchDate: Date) {
+  const counts = await getConfirmedCounts(matchId);
+  return canConfirmPlayer(position, counts, areGoalkeeperSlotsReleased(matchDate)) ? "CONFIRMED" : "WAITLIST";
+}
+
+async function promoteNextFromWaitlist(matchId: string) {
+  const match = await prisma.match.findUnique({ where: { id: matchId } });
+  if (!match) return;
+
+  const waitlist = await prisma.attendance.findMany({
+    where: { matchId, status: "WAITLIST" },
+    include: { player: { include: { user: true } } },
+    orderBy: { createdAt: "asc" }
+  });
+
+  for (const attendance of waitlist) {
+    const status = await getAttendanceStatusForPlayer(matchId, attendance.player.position, match.date);
+    if (status !== "CONFIRMED") continue;
+
+    await prisma.attendance.update({
+      where: { id: attendance.id },
+      data: { status: "CONFIRMED", present: true, confirmedAt: new Date() }
+    });
+
+    if (attendance.player.userId) {
+      await sendPushToUsers([attendance.player.userId], {
+        title: "Voce entrou na pelada",
+        body: `Abriu uma vaga na ${match.title}. Voce saiu da lista de espera.`,
+        url: `/matches/${matchId}/attendance`
+      });
+    }
+
+    return;
+  }
+}
+
+function averageLatestMatchRatings(
+  ratings: { value: number; match: { date: Date } }[],
+  limit = 10
+) {
+  const grouped = new Map<number, number[]>();
+  for (const rating of ratings) {
+    grouped.set(rating.match.date.getTime(), [...(grouped.get(rating.match.date.getTime()) ?? []), rating.value]);
+  }
+
+  const averages = [...grouped.entries()]
+    .sort(([left], [right]) => right - left)
+    .slice(0, limit)
+    .map(([, values]) => values.reduce((sum, value) => sum + value, 0) / values.length);
+
+  return averages.length ? averages.reduce((sum, value) => sum + value, 0) / averages.length : null;
+}
+
+function playerBalanceRating(player: { rating: number; ratings: { value: number; match: { date: Date } }[] }) {
+  return averageLatestMatchRatings(player.ratings, 10) ?? player.rating * 2;
+}
+
+export async function saveOnboarding(formData: FormData) {
+  const user = await requireUser();
+  const currentPlayer = await prisma.player.findUnique({ where: { userId: user.id } });
+  const parsed = playerSchema.parse({
+    name: value(formData, "name"),
+    nickname: value(formData, "nickname"),
+    photoUrl: value(formData, "photoUrl"),
+    position: value(formData, "position"),
+    membershipStatus: currentPlayer?.membershipStatus || "CONVIDADO",
+    rating: Number(value(formData, "rating") || 0)
+  });
+
+  await prisma.player.upsert({
+    where: { userId: user.id },
+    update: parsed,
+    create: { ...parsed, userId: user.id }
+  });
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      name: parsed.nickname || parsed.name,
+      image: parsed.photoUrl || undefined,
+      onboarded: true
+    }
+  });
+
+  redirect("/dashboard");
+}
+
+export async function createAdmin(formData: FormData) {
+  await requireMaster();
+  const parsed = adminSchema.parse({
+    name: value(formData, "name"),
+    email: value(formData, "email").toLowerCase(),
+    password: value(formData, "password"),
+    active: formData.get("active") === "on"
+  });
+
+  await prisma.user.create({
+    data: {
+      name: parsed.name,
+      email: parsed.email,
+      passwordHash: await bcrypt.hash(parsed.password || "pelada123", 12),
+      role: UserRole.ADMIN,
+      active: parsed.active ?? true,
+      onboarded: true
+    }
+  });
+
+  revalidatePath("/admins");
+}
+
+export async function createPlayerAccount(formData: FormData) {
+  const name = value(formData, "name").trim();
+  const email = value(formData, "email").trim().toLowerCase();
+  const password = value(formData, "password");
+
+  if (name.length < 2) {
+    return { ok: false, error: "Informe seu nome." };
+  }
+
+  if (!email.includes("@")) {
+    return { ok: false, error: "Informe um e-mail valido." };
+  }
+
+  if (password.length < 6) {
+    return { ok: false, error: "A senha precisa ter pelo menos 6 caracteres." };
+  }
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) {
+    return { ok: false, error: "Ja existe uma conta com este e-mail." };
+  }
+
+  await prisma.user.create({
+    data: {
+      name,
+      email,
+      passwordHash: await bcrypt.hash(password, 12),
+      role: UserRole.PLAYER,
+      active: true,
+      onboarded: false
+    }
+  });
+
+  return { ok: true };
+}
+
+export async function toggleAdmin(userId: string) {
+  const current = await requireMaster();
+  if (current.id === userId) return;
+  const admin = await prisma.user.findUnique({ where: { id: userId } });
+  if (!admin || admin.role === "MASTER") return;
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { active: !admin.active }
+  });
+
+  revalidatePath("/admins");
+}
+
+export async function createPlayer(formData: FormData) {
+  await requireAdmin();
+  const parsed = playerSchema.parse({
+    name: value(formData, "name"),
+    nickname: value(formData, "nickname"),
+    photoUrl: value(formData, "photoUrl"),
+    position: value(formData, "position"),
+    membershipStatus: value(formData, "membershipStatus") || "MENSALISTA",
+    rating: Number(value(formData, "rating"))
+  });
+
+  await prisma.player.create({ data: parsed });
+  redirect("/players");
+}
+
+export async function updatePlayer(playerId: string, formData: FormData) {
+  await requireAdmin();
+  const parsed = playerSchema.parse({
+    name: value(formData, "name"),
+    nickname: value(formData, "nickname"),
+    photoUrl: value(formData, "photoUrl"),
+    position: value(formData, "position"),
+    membershipStatus: value(formData, "membershipStatus") || "MENSALISTA",
+    rating: Number(value(formData, "rating"))
+  });
+
+  await prisma.player.update({ where: { id: playerId }, data: parsed });
+  redirect("/players");
+}
+
+export async function togglePlayer(playerId: string) {
+  await requireAdmin();
+  const player = await prisma.player.findUnique({ where: { id: playerId } });
+  if (!player) return;
+  await prisma.player.update({ where: { id: playerId }, data: { active: !player.active } });
+  revalidatePath("/players");
+}
+
+export async function createMatch(formData: FormData) {
+  await requireAdmin();
+  const parsed = matchSchema.parse({
+    title: value(formData, "title"),
+    date: value(formData, "date")
+  });
+
+  const match = await prisma.match.create({
+    data: {
+      title: parsed.title,
+      date: parsed.date
+    }
+  });
+
+  await sendPushToAll({
+    title: "Nova pelada criada",
+    body: `${match.title} ja esta aberta para confirmacao.`,
+    url: `/matches/${match.id}/attendance`
+  });
+
+  redirect(`/matches/${match.id}/attendance`);
+}
+
+export async function updateMatch(matchId: string, formData: FormData) {
+  await requireAdmin();
+  const parsed = matchSchema.parse({
+    title: value(formData, "title"),
+    date: value(formData, "date")
+  });
+
+  await prisma.match.update({
+    where: { id: matchId },
+    data: {
+      title: parsed.title,
+      date: parsed.date
+    }
+  });
+
+  revalidatePath("/matches");
+  revalidatePath(`/matches/${matchId}/attendance`);
+  redirect("/matches");
+}
+
+export async function deleteMatch(matchId: string) {
+  await requireAdmin();
+  await prisma.match.delete({ where: { id: matchId } });
+  revalidatePath("/matches");
+  revalidatePath("/dashboard");
+  redirect("/matches");
+}
+
+export async function closeMatch(matchId: string) {
+  await requireAdmin();
+  const match = await prisma.match.update({
+    where: { id: matchId },
+    data: { status: MatchStatus.CLOSED },
+    include: { polls: { where: { title: "Craque da pelada", status: PollStatus.OPEN } } }
+  });
+
+  if (!match.polls.length) {
+    await prisma.poll.create({
+      data: {
+        matchId,
+        title: "Craque da pelada"
+      }
+    });
+  }
+
+  await sendPushToAll({
+    title: "Pelada encerrada",
+    body: `Informe seus gols, notas e vote no craque da ${match.title}. A janela fica aberta por 6 horas.`,
+    url: `/matches/${matchId}/stats`
+  });
+
+  revalidatePath("/matches");
+  revalidatePath(`/matches/${matchId}/attendance`);
+  revalidatePath(`/matches/${matchId}/stats`);
+  redirect(`/matches/${matchId}/stats`);
+}
+
+export async function toggleAttendance(matchId: string, playerId: string, present: boolean) {
+  await requireAdmin();
+  const match = await prisma.match.findUnique({ where: { id: matchId } });
+  const player = await prisma.player.findUnique({ where: { id: playerId } });
+  if (!match || !player) return;
+
+  if (!present) {
+    await prisma.attendance.upsert({
+      where: { matchId_playerId: { matchId, playerId } },
+      update: { present: false, status: "OUT", confirmedAt: null },
+      create: { matchId, playerId, present: false, status: "OUT" }
+    });
+    await promoteNextFromWaitlist(matchId);
+    revalidatePath(`/matches/${matchId}/attendance`);
+    return;
+  }
+
+  const status = await getAttendanceStatusForPlayer(matchId, player.position, match.date);
+  await prisma.attendance.upsert({
+    where: { matchId_playerId: { matchId, playerId } },
+    update: { present: status === "CONFIRMED", status, confirmedAt: status === "CONFIRMED" ? new Date() : null },
+    create: { matchId, playerId, present: status === "CONFIRMED", status, confirmedAt: status === "CONFIRMED" ? new Date() : null }
+  });
+  revalidatePath(`/matches/${matchId}/attendance`);
+}
+
+export async function toggleOwnAttendance(matchId: string, present: boolean) {
+  const user = await requireUser();
+  const match = await prisma.match.findUnique({ where: { id: matchId } });
+  const player = await prisma.player.findUnique({ where: { userId: user.id } });
+  if (!match || !player) return;
+
+  const isAdmin = user.role === "MASTER" || user.role === "ADMIN";
+  if (!isAdmin && player.membershipStatus !== "MENSALISTA") return;
+
+  if (!present) {
+    await prisma.attendance.upsert({
+      where: { matchId_playerId: { matchId, playerId: player.id } },
+      update: { present: false, status: "OUT", confirmedAt: null },
+      create: { matchId, playerId: player.id, present: false, status: "OUT" }
+    });
+    await promoteNextFromWaitlist(matchId);
+    revalidatePath(`/matches/${matchId}/attendance`);
+    return;
+  }
+
+  const status = await getAttendanceStatusForPlayer(matchId, player.position, match.date);
+  await prisma.attendance.upsert({
+    where: { matchId_playerId: { matchId, playerId: player.id } },
+    update: { present: status === "CONFIRMED", status, confirmedAt: status === "CONFIRMED" ? new Date() : null },
+    create: { matchId, playerId: player.id, present: status === "CONFIRMED", status, confirmedAt: status === "CONFIRMED" ? new Date() : null }
+  });
+  revalidatePath(`/matches/${matchId}/attendance`);
+}
+
+export async function createGuestForMatch(matchId: string, formData: FormData) {
+  const user = await requireUser();
+  const match = await prisma.match.findUnique({ where: { id: matchId } });
+
+  if (!match) {
+    return { ok: false, error: "Pelada nao encontrada." };
+  }
+
+  const isAdmin = user.role === "MASTER" || user.role === "ADMIN";
+  const linkedPlayer = await prisma.player.findUnique({ where: { userId: user.id } });
+  const isMonthlyPlayer = linkedPlayer?.membershipStatus === "MENSALISTA";
+  const saoPauloNow = getSaoPauloParts();
+  const canInviteByTime =
+    isSameSaoPauloDate(new Date(), match.date) && saoPauloNow.hour >= 14;
+
+  if (!isAdmin && (!isMonthlyPlayer || !canInviteByTime)) {
+    return {
+      ok: false,
+      error: "Mensalistas so podem chamar convidados apos as 14h do dia da pelada."
+    };
+  }
+
+  const parsed = playerSchema.parse({
+    name: value(formData, "name"),
+    nickname: "",
+    photoUrl: "",
+    position: value(formData, "position"),
+    membershipStatus: "CONVIDADO",
+    rating: Number(value(formData, "rating"))
+  });
+
+  const player = await prisma.player.create({
+    data: parsed
+  });
+
+  const status = await getAttendanceStatusForPlayer(matchId, player.position, match.date);
+  await prisma.attendance.create({
+    data: {
+      matchId,
+      playerId: player.id,
+      present: status === "CONFIRMED",
+      status,
+      confirmedAt: status === "CONFIRMED" ? new Date() : null,
+      invitedByUserId: user.id
+    }
+  });
+
+  revalidatePath(`/matches/${matchId}/attendance`);
+  revalidatePath(`/matches/${matchId}/draw`);
+  return { ok: true };
+}
+
+export async function removeGuestFromMatch(matchId: string, attendanceId: string) {
+  const user = await requireUser();
+  const attendance = await prisma.attendance.findUnique({
+    where: { id: attendanceId },
+    include: { player: true }
+  });
+
+  if (!attendance || attendance.matchId !== matchId || attendance.player.membershipStatus !== "CONVIDADO") {
+    return;
+  }
+
+  const isAdmin = user.role === "MASTER" || user.role === "ADMIN";
+  const isInviter = attendance.invitedByUserId === user.id;
+  if (!isAdmin && !isInviter) return;
+
+  await prisma.attendance.delete({ where: { id: attendanceId } });
+  await prisma.player.update({
+    where: { id: attendance.playerId },
+    data: { active: false }
+  });
+
+  await promoteNextFromWaitlist(matchId);
+  revalidatePath(`/matches/${matchId}/attendance`);
+  revalidatePath(`/matches/${matchId}/draw`);
+}
+
+export async function drawTeams(matchId: string, formData: FormData) {
+  await requireAdmin();
+  const parsed = drawSchema.parse({
+    numberOfTeams: value(formData, "numberOfTeams"),
+    desiredPlayersPerTeam: value(formData, "desiredPlayersPerTeam")
+  });
+
+  const presentPlayers = await prisma.player.findMany({
+    where: {
+      active: true,
+      attendances: { some: { matchId, status: "CONFIRMED" } }
+    },
+    select: {
+      id: true,
+      name: true,
+      position: true,
+      rating: true,
+      membershipStatus: true,
+      ratings: { include: { match: true } }
+    }
+  });
+
+  if (presentPlayers.length < parsed.numberOfTeams) {
+    redirect(
+      `/matches/${matchId}/draw?error=${encodeURIComponent(
+        `Marque pelo menos ${parsed.numberOfTeams} jogadores como presentes antes de sortear. Presentes agora: ${presentPlayers.length}.`
+      )}`
+    );
+  }
+
+  const totalCapacity = parsed.numberOfTeams * parsed.desiredPlayersPerTeam;
+  const monthlyPlayers = presentPlayers.filter((player) => player.membershipStatus === "MENSALISTA");
+  const guestPlayers = presentPlayers.filter((player) => player.membershipStatus === "CONVIDADO");
+  const selectedPlayers = [...monthlyPlayers, ...guestPlayers]
+    .slice(0, totalCapacity)
+    .map(({ membershipStatus: _membershipStatus, ratings: _ratings, ...player }) => ({
+      ...player,
+      rating: playerBalanceRating({ rating: player.rating, ratings: _ratings })
+    }));
+
+  const teams = balanceTeams(selectedPlayers, parsed.numberOfTeams, parsed.desiredPlayersPerTeam);
+
+  await prisma.team.deleteMany({ where: { matchId } });
+  for (const team of teams) {
+    await prisma.team.create({
+      data: {
+        matchId,
+        name: team.name,
+        totalRating: team.totalRating,
+        players: {
+          create: team.players.map((player) => ({
+            playerId: player.id
+          }))
+        }
+      }
+    });
+  }
+
+  redirect(`/matches/${matchId}/teams`);
+}
+
+export async function drawTeamsForClient(matchId: string, formData: FormData) {
+  try {
+    await requireAdmin();
+    const parsed = drawSchema.parse({
+      numberOfTeams: value(formData, "numberOfTeams"),
+      desiredPlayersPerTeam: value(formData, "desiredPlayersPerTeam")
+    });
+
+    const selectedPlayerIds = formData
+      .getAll("playerId")
+      .filter((id): id is string => typeof id === "string");
+
+    if (selectedPlayerIds.length) {
+      const presentPlayerIds = new Set(
+        formData
+          .getAll("presentPlayerId")
+          .filter((id): id is string => typeof id === "string")
+      );
+
+      for (const playerId of selectedPlayerIds) {
+        const membershipStatus = value(formData, `membershipStatus-${playerId}`) || "MENSALISTA";
+        await prisma.player.update({
+          where: { id: playerId },
+          data: { membershipStatus: membershipStatus === "CONVIDADO" ? "CONVIDADO" : "MENSALISTA" }
+        });
+        await prisma.attendance.upsert({
+          where: { matchId_playerId: { matchId, playerId } },
+          update: { present: false, status: "OUT", confirmedAt: null },
+          create: { matchId, playerId, present: false, status: "OUT" }
+        });
+      }
+
+      const match = await prisma.match.findUnique({ where: { id: matchId } });
+      if (match) {
+        for (const playerId of selectedPlayerIds.filter((id) => presentPlayerIds.has(id))) {
+          const player = await prisma.player.findUnique({ where: { id: playerId } });
+          if (!player) continue;
+          const status = await getAttendanceStatusForPlayer(matchId, player.position, match.date);
+          await prisma.attendance.update({
+            where: { matchId_playerId: { matchId, playerId } },
+            data: {
+              present: status === "CONFIRMED",
+              status,
+              confirmedAt: status === "CONFIRMED" ? new Date() : null
+            }
+          });
+        }
+      }
+    }
+
+    const presentPlayers = await prisma.player.findMany({
+      where: {
+        active: true,
+        attendances: { some: { matchId, status: "CONFIRMED" } }
+      },
+      select: {
+        id: true,
+        name: true,
+        position: true,
+        rating: true,
+        membershipStatus: true,
+        ratings: { include: { match: true } }
+      }
+    });
+
+    if (presentPlayers.length < parsed.numberOfTeams) {
+      return {
+        ok: false,
+        error: `Marque pelo menos ${parsed.numberOfTeams} jogadores como presentes antes de sortear. Presentes agora: ${presentPlayers.length}.`
+      };
+    }
+
+    const totalCapacity = parsed.numberOfTeams * parsed.desiredPlayersPerTeam;
+    const monthlyPlayers = presentPlayers.filter((player) => player.membershipStatus === "MENSALISTA");
+    const guestPlayers = presentPlayers.filter((player) => player.membershipStatus === "CONVIDADO");
+    const selectedPlayers = [...monthlyPlayers, ...guestPlayers]
+      .slice(0, totalCapacity)
+      .map(({ membershipStatus: _membershipStatus, ratings: _ratings, ...player }) => ({
+        ...player,
+        rating: playerBalanceRating({ rating: player.rating, ratings: _ratings })
+      }));
+
+    const teams = balanceTeams(selectedPlayers, parsed.numberOfTeams, parsed.desiredPlayersPerTeam);
+
+    await prisma.team.deleteMany({ where: { matchId } });
+    for (const team of teams) {
+      await prisma.team.create({
+        data: {
+          matchId,
+          name: team.name,
+          totalRating: team.totalRating,
+          players: {
+            create: team.players.map((player) => ({
+              playerId: player.id
+            }))
+          }
+        }
+      });
+    }
+
+    revalidatePath(`/matches/${matchId}/teams`);
+    return { ok: true, url: `/matches/${matchId}/teams` };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Nao foi possivel sortear os times.";
+    return { ok: false, error: message };
+  }
+}
+
+export async function updateStats(matchId: string, formData: FormData) {
+  await requireAdmin();
+  const playerIds = formData.getAll("playerId").filter((id): id is string => typeof id === "string");
+
+  for (const playerId of playerIds) {
+    const goals = Number(value(formData, `goals-${playerId}`) || 0);
+    const assists = Number(value(formData, `assists-${playerId}`) || 0);
+    const defenses = Number(value(formData, `defenses-${playerId}`) || 0);
+
+    await prisma.goal.upsert({
+      where: { matchId_playerId: { matchId, playerId } },
+      update: { quantity: goals },
+      create: { matchId, playerId, quantity: goals }
+    });
+    await prisma.assist.upsert({
+      where: { matchId_playerId: { matchId, playerId } },
+      update: { quantity: assists },
+      create: { matchId, playerId, quantity: assists }
+    });
+    await prisma.difficultSave.upsert({
+      where: { matchId_playerId: { matchId, playerId } },
+      update: { quantity: defenses },
+      create: { matchId, playerId, quantity: defenses }
+    });
+  }
+
+  revalidatePath(`/matches/${matchId}/stats`);
+  revalidatePath("/rankings");
+  revalidatePath("/dashboard");
+}
+
+export async function submitOwnMatchStats(matchId: string, formData: FormData) {
+  const user = await requireUser();
+  const poll = await prisma.poll.findFirst({
+    where: { matchId, title: "Craque da pelada", status: PollStatus.OPEN },
+    orderBy: { createdAt: "desc" }
+  });
+
+  if (!poll || !isWithinVotingWindow(poll.createdAt)) return;
+
+  const linkedPlayer = await prisma.player.findUnique({ where: { userId: user.id } });
+  if (!linkedPlayer) return;
+  const isAdmin = user.role === "MASTER" || user.role === "ADMIN";
+  if (!isAdmin && linkedPlayer.membershipStatus !== "MENSALISTA") return;
+
+  const attendance = await prisma.attendance.findUnique({
+    where: { matchId_playerId: { matchId, playerId: linkedPlayer.id } }
+  });
+  if (attendance?.status !== "CONFIRMED") return;
+
+  const existingSubmission = await prisma.playerMatchSubmission.findUnique({
+    where: { matchId_playerId_userId: { matchId, playerId: linkedPlayer.id, userId: user.id } }
+  });
+  if (existingSubmission) return;
+
+  const goals = Math.max(0, Number(value(formData, "goals") || 0));
+  const assists = Math.max(0, Number(value(formData, "assists") || 0));
+  const defenses = Math.max(0, Number(value(formData, "defenses") || 0));
+
+  await prisma.$transaction([
+    prisma.goal.upsert({
+      where: { matchId_playerId: { matchId, playerId: linkedPlayer.id } },
+      update: { quantity: goals },
+      create: { matchId, playerId: linkedPlayer.id, quantity: goals }
+    }),
+    prisma.assist.upsert({
+      where: { matchId_playerId: { matchId, playerId: linkedPlayer.id } },
+      update: { quantity: assists },
+      create: { matchId, playerId: linkedPlayer.id, quantity: assists }
+    }),
+    prisma.difficultSave.upsert({
+      where: { matchId_playerId: { matchId, playerId: linkedPlayer.id } },
+      update: { quantity: defenses },
+      create: { matchId, playerId: linkedPlayer.id, quantity: defenses }
+    }),
+    prisma.playerMatchSubmission.create({
+      data: { matchId, playerId: linkedPlayer.id, userId: user.id }
+    })
+  ]);
+
+  revalidatePath(`/matches/${matchId}/stats`);
+  revalidatePath("/rankings");
+  revalidatePath(`/players/${linkedPlayer.id}`);
+}
+
+export async function createCraquePoll(matchId: string) {
+  await requireAdmin();
+  const existing = await prisma.poll.findFirst({
+    where: { matchId, title: "Craque da pelada", status: PollStatus.OPEN }
+  });
+
+  if (existing) {
+    revalidatePath(`/matches/${matchId}/stats`);
+    return;
+  }
+
+  const poll = await prisma.poll.create({
+    data: {
+      matchId,
+      title: "Craque da pelada"
+    },
+    include: { match: true }
+  });
+
+  await sendPushToAll({
+    title: "Votacao aberta",
+    body: `Vote no craque da ${poll.match.title}.`,
+    url: `/matches/${matchId}/stats`
+  });
+
+  revalidatePath(`/matches/${matchId}/stats`);
+}
+
+export async function notifyStatsEntryOpen(matchId: string) {
+  await requireAdmin();
+  const match = await prisma.match.findUnique({ where: { id: matchId } });
+  if (!match) return;
+
+  await sendPushToAll({
+    title: "Lancamento de stats aberto",
+    body: `Hora de conferir gols, participacoes e defesas da ${match.title}.`,
+    url: `/matches/${matchId}/stats`
+  });
+
+  revalidatePath(`/matches/${matchId}/stats`);
+}
+
+export async function voteCraque(pollId: string, playerId: string) {
+  const user = await requireUser();
+  const poll = await prisma.poll.findUnique({
+    where: { id: pollId },
+    include: { match: true }
+  });
+
+  if (!poll || poll.status !== PollStatus.OPEN || !isWithinVotingWindow(poll.createdAt)) {
+    return;
+  }
+
+  const canVote = await canUserVoteInMatch(user.id, poll.matchId);
+  if (!canVote) return;
+  const linkedPlayer = await prisma.player.findUnique({ where: { userId: user.id } });
+  if (linkedPlayer?.id === playerId) return;
+  const existingVote = await prisma.pollVote.findUnique({
+    where: { pollId_userId: { pollId, userId: user.id } }
+  });
+  if (existingVote) return;
+
+  await prisma.pollVote.create({
+    data: { pollId, userId: user.id, playerId }
+  });
+  revalidatePath(`/matches/${poll.matchId}/stats`);
+  revalidatePath("/dashboard");
+}
+
+export async function ratePlayerPerformance(matchId: string, playerId: string, formData: FormData) {
+  const user = await requireUser();
+  const poll = await prisma.poll.findFirst({
+    where: { matchId, title: "Craque da pelada", status: PollStatus.OPEN }
+  });
+
+  if (!poll || !isWithinVotingWindow(poll.createdAt)) {
+    return;
+  }
+
+  const canVote = await canUserVoteInMatch(user.id, matchId);
+  if (!canVote) return;
+
+  const linkedPlayer = await prisma.player.findUnique({ where: { userId: user.id } });
+  if (linkedPlayer?.id === playerId) return;
+
+  const raw = Number(value(formData, "rating"));
+  if (!Number.isFinite(raw)) return;
+
+  const rating = Math.max(1, Math.min(10, raw));
+  await prisma.playerRating.upsert({
+    where: { matchId_playerId_userId: { matchId, playerId, userId: user.id } },
+    update: { value: rating },
+    create: { matchId, playerId, userId: user.id, value: rating }
+  });
+
+  revalidatePath(`/matches/${matchId}/stats`);
+  revalidatePath(`/players/${playerId}`);
+}
+
+export async function closeCraquePoll(pollId: string) {
+  await requireAdmin();
+  const poll = await prisma.poll.findUnique({ where: { id: pollId } });
+  const votes = await prisma.pollVote.groupBy({
+    by: ["playerId"],
+    where: { pollId },
+    _count: { playerId: true },
+    orderBy: { _count: { playerId: "desc" } },
+    take: 1
+  });
+
+  await prisma.poll.update({
+    where: { id: pollId },
+    data: {
+      status: PollStatus.CLOSED,
+      winnerId: votes[0]?.playerId
+    }
+  });
+
+  if (poll) {
+    revalidatePath(`/matches/${poll.matchId}/stats`);
+  }
+  revalidatePath("/rankings");
+  revalidatePath("/dashboard");
+}

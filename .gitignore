@@ -1,0 +1,14 @@
+.env
+.env*.local
+.next
+node_modules
+public/sw.js
+public/workbox-*.js
+public/worker-*.js
+*.tsbuildinfo
+
+.vscode/
+
+Design do aplicativo de peladinhas/
+
+instructions.md
