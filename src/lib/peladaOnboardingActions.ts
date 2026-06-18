@@ -63,9 +63,15 @@ export async function createPeladaAction(formData: FormData) {
   }
 
   const slug = await uniqueSlug(name);
-  const pelada = await createPeladaWithTrial({ name, slug, createdByUserId: user.id, maxLinePlayers, maxGoalkeepers });
-  await prisma.peladaMembership.create({
-    data: { userId: user.id, peladaId: pelada.id, role: PeladaRole.PRESIDENTE }
+  const pelada = await prisma.$transaction(async (tx) => {
+    const created = await createPeladaWithTrial(
+      { name, slug, createdByUserId: user.id, maxLinePlayers, maxGoalkeepers },
+      tx
+    );
+    await tx.peladaMembership.create({
+      data: { userId: user.id, peladaId: created.id, role: PeladaRole.PRESIDENTE }
+    });
+    return created;
   });
   await setActivePeladaCookie(pelada.id);
   redirect("/perfil/onboarding");

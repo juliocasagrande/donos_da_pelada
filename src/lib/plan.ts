@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 
 export const MENSALISTA_FREE_LIMIT = 20;
 
@@ -68,14 +69,17 @@ export async function enforceFreeTierMensalistaLimit(peladaId: string) {
   return { changed: result.count };
 }
 
-export async function createPeladaWithTrial(data: {
-  name: string;
-  slug: string;
-  createdByUserId?: string;
-  maxLinePlayers?: number;
-  maxGoalkeepers?: number;
-}) {
-  return prisma.pelada.create({
+export async function createPeladaWithTrial(
+  data: {
+    name: string;
+    slug: string;
+    createdByUserId?: string;
+    maxLinePlayers?: number;
+    maxGoalkeepers?: number;
+  },
+  client: Prisma.TransactionClient | typeof prisma = prisma
+) {
+  return client.pelada.create({
     data: {
       ...data,
       trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
