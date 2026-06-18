@@ -77,7 +77,10 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       <main className="relative z-10 mx-auto max-w-md px-5 py-5">
-        <PushNotificationsMount />
+        <PushNotificationsMount
+          promptDismissed={Boolean(user?.pushPromptDismissed)}
+          notificationsEnabled={Boolean(user?.pushNotificationsEnabled)}
+        />
         {showProExpiryNotice ? (
           <Link
             href="/pagamento"

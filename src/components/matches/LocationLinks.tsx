@@ -17,6 +17,10 @@ export function LocationLinks({ location, className }: { location?: string | nul
 
   return (
     <div className={cn("flex flex-wrap items-center gap-2", className)}>
+      <span className="flex min-w-0 items-center gap-1.5 text-xs font-semibold">
+        <MapPin size={14} className="shrink-0" />
+        <span className="truncate">{location}</span>
+      </span>
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}

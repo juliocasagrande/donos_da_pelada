@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageCircle } from "lucide-react";
+import { WhatsappMark } from "@/components/ui/WhatsappMark";
 
 export function InviteExternalPlayerLink({
   code,
@@ -24,7 +24,7 @@ export function InviteExternalPlayerLink({
       rel="noreferrer"
       className="inline-flex min-h-10 items-center justify-center gap-2 rounded-[13px] bg-campo px-4 py-2 text-sm font-bold text-white shadow-button transition active:scale-[.98]"
     >
-      <MessageCircle size={17} /> Convidar
+      <WhatsappMark size={18} /> Convidar
     </a>
   );
 }

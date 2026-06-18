@@ -120,9 +120,23 @@ async function getEligibleMatchVoterUserIds(matchId: string) {
   return [...new Set(attendances.map((attendance) => attendance.player.userId).filter((userId): userId is string => Boolean(userId)))];
 }
 
-async function getAttendanceStatusForPlayer(matchId: string, position: string, matchDate: Date, db: DbClient = prisma) {
+async function getAttendanceStatusForPlayer(
+  matchId: string,
+  position: string,
+  matchDate: Date,
+  db: DbClient = prisma
+) {
   const counts = await getConfirmedCounts(matchId, db);
-  return canConfirmPlayer(position, counts, areGoalkeeperSlotsReleased(matchDate)) ? "CONFIRMED" : "WAITLIST";
+  const match = await db.match.findUnique({
+    where: { id: matchId },
+    select: { pelada: { select: { maxLinePlayers: true, maxGoalkeepers: true } } }
+  });
+  const capacity = {
+    line: match?.pelada.maxLinePlayers ?? 18,
+    goalkeepers: match?.pelada.maxGoalkeepers ?? 2
+  };
+
+  return canConfirmPlayer(position, counts, areGoalkeeperSlotsReleased(matchDate), capacity) ? "CONFIRMED" : "WAITLIST";
 }
 
 async function promoteNextFromWaitlist(matchId: string) {
@@ -206,7 +220,9 @@ export async function saveOnboarding(formData: FormData) {
     data: {
       name: parsed.nickname || parsed.name,
       image: parsed.photoUrl || undefined,
-      onboarded: true
+      onboarded: true,
+      whatsapp: normalizeWhatsapp(value(formData, "whatsapp")),
+      whatsappChatEnabled: value(formData, "whatsappChatEnabled") === "yes"
     }
   });
 
@@ -237,7 +253,7 @@ export async function updateOwnProfile(formData: FormData) {
       name: parsed.nickname || parsed.name,
       image: parsed.photoUrl || undefined,
       whatsapp: normalizeWhatsapp(value(formData, "whatsapp")),
-      whatsappChatEnabled: value(formData, "whatsappChatEnabled") === "on"
+      whatsappChatEnabled: value(formData, "whatsappChatEnabled") === "yes"
     }
   });
 
@@ -469,12 +485,22 @@ function combineDateAndTime(date: string, time: string) {
 function combineLocation(street: string, number: string) {
   const trimmedStreet = street.trim();
   const trimmedNumber = number.trim();
-  if (!trimmedNumber) return trimmedStreet;
   if (!trimmedStreet) return trimmedNumber;
 
-  const commaIndex = trimmedStreet.indexOf(",");
-  if (commaIndex === -1) return `${trimmedStreet}, ${trimmedNumber}`;
-  return `${trimmedStreet.slice(0, commaIndex)}, ${trimmedNumber}${trimmedStreet.slice(commaIndex)}`;
+  const parts = trimmedStreet
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (!trimmedNumber) return parts.join(", ");
+  if (parts.length === 0) return trimmedNumber;
+  if (parts.length === 1) return `${parts[0]}, ${trimmedNumber}`;
+
+  const [streetPart, districtPart, ...rest] = parts;
+  const cityPart = rest.at(-1);
+  const remainingParts = rest.slice(0, -1);
+
+  return [streetPart, districtPart, trimmedNumber, ...remainingParts, cityPart].filter(Boolean).join(", ");
 }
 
 function optionalInt(value: string) {
@@ -1168,7 +1194,7 @@ export async function ratePlayerPerformance(matchId: string, playerId: string, f
     return { ok: false, error: "Escolha uma nota valida." };
   }
 
-  const rating = Math.max(1, Math.min(10, raw));
+  const rating = Math.max(0, Math.min(10, raw));
   await prisma.playerRating.upsert({
     where: { matchId_playerId_userId: { matchId, playerId, userId: user.id } },
     update: { value: rating },

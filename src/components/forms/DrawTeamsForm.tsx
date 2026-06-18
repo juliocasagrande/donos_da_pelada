@@ -1,11 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import type { FormEvent } from "react";
 import { CircleDot, Footprints, Hand, Shield } from "lucide-react";
 import { SubmitButton } from "@/components/forms/SubmitButton";
-import { Input, Label } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Input";
 import { drawTeamsForClient } from "@/lib/actions";
 import { cn } from "@/lib/utils";
 
@@ -26,7 +26,13 @@ function getPositionMeta(position: string) {
   return { label: "Atacante", icon: CircleDot, color: "text-craque" };
 }
 
-function PlayerSelectionCard({ player }: { player: DrawPlayer }) {
+function PlayerSelectionCard({
+  player,
+  onPresenceChange
+}: {
+  player: DrawPlayer;
+  onPresenceChange: (playerId: string, present: boolean) => void;
+}) {
   const [present, setPresent] = useState(player.present);
   const [membershipStatus, setMembershipStatus] = useState(player.membershipStatus);
   const position = getPositionMeta(player.position);
@@ -41,7 +47,13 @@ function PlayerSelectionCard({ player }: { player: DrawPlayer }) {
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={() => setPresent((current) => !current)}
+          onClick={() => {
+            setPresent((current) => {
+              const next = !current;
+              onPresenceChange(player.id, next);
+              return next;
+            });
+          }}
           className={cn(
             "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-[1.5px] transition active:scale-90",
             present ? "pop-scale border-campo bg-campo text-white" : "border-linha bg-white text-transparent"
@@ -96,11 +108,47 @@ function PlayerSelectionCard({ player }: { player: DrawPlayer }) {
 export function DrawTeamsForm({ matchId, players }: { matchId: string; players: DrawPlayer[] }) {
   const router = useRouter();
   const [error, setError] = useState("");
+  const [numberOfTeams, setNumberOfTeams] = useState(2);
+  const [desiredPlayersPerTeam, setDesiredPlayersPerTeam] = useState(2);
+  const [presentPlayerIds, setPresentPlayerIds] = useState(() => new Set(players.filter((player) => player.present).map((player) => player.id)));
   const [isPending, startTransition] = useTransition();
+  const presentCount = presentPlayerIds.size;
+  const maxTeams = Math.max(2, presentCount);
+  const effectiveNumberOfTeams = Math.min(numberOfTeams, maxTeams);
+  const remainingTeamsAfterPriority = Math.max(0, effectiveNumberOfTeams - 2);
+  const maxPlayersPerTeam = Math.max(1, Math.floor((presentCount - remainingTeamsAfterPriority) / Math.min(2, effectiveNumberOfTeams)));
+  const effectivePlayersPerTeam = Math.min(desiredPlayersPerTeam, maxPlayersPerTeam);
+  const requestedPlayers = effectiveNumberOfTeams * effectivePlayersPerTeam;
+  const hasEnoughPlayers = presentCount >= effectiveNumberOfTeams;
+
+  function handlePresenceChange(playerId: string, present: boolean) {
+    setPresentPlayerIds((current) => {
+      const next = new Set(current);
+      if (present) {
+        next.add(playerId);
+      } else {
+        next.delete(playerId);
+      }
+      return next;
+    });
+  }
+
+  useEffect(() => {
+    setNumberOfTeams((current) => Math.min(current, maxTeams));
+  }, [maxTeams]);
+
+  useEffect(() => {
+    setDesiredPlayersPerTeam((current) => Math.min(current, maxPlayersPerTeam));
+  }, [maxPlayersPerTeam]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    if (!hasEnoughPlayers) {
+      setError(`Voce marcou ${presentCount} jogadores presentes, mas precisa de pelo menos ${effectiveNumberOfTeams}.`);
+      return;
+    }
+
     const formData = new FormData(event.currentTarget);
     startTransition(async () => {
       const result = await drawTeamsForClient(matchId, formData);
@@ -122,13 +170,57 @@ export function DrawTeamsForm({ matchId, players }: { matchId: string; players: 
           {error}
         </div>
       ) : null}
-      <div>
-        <Label>Quantidade de times</Label>
-        <Input name="numberOfTeams" type="number" min={2} defaultValue={2} required />
+      <div className="rounded-[13px] border-[1.5px] border-linha bg-areia p-3">
+        <p className="font-jersey text-xs font-semibold uppercase tracking-[.14em] text-musgo">Jogadores presentes</p>
+        <div className="mt-1 flex items-end justify-between gap-3">
+          <span className="font-display text-3xl font-extrabold text-campo">{presentCount}</span>
+          <span className={cn("text-right text-xs font-bold", hasEnoughPlayers ? "text-musgo" : "text-ausente")}>
+            {requestedPlayers} vagas alvo
+          </span>
+        </div>
+        {!hasEnoughPlayers ? (
+          <p className="mt-2 text-xs font-semibold text-ausente">
+            Reduza a quantidade de times ou marque mais presentes.
+          </p>
+        ) : null}
       </div>
       <div>
-        <Label>Jogadores por time</Label>
-        <Input name="desiredPlayersPerTeam" type="number" min={1} defaultValue={2} required />
+        <div className="mb-1 flex items-center justify-between gap-3">
+          <Label>Quantidade de times</Label>
+          <span className="font-jersey text-2xl font-bold text-campo">{effectiveNumberOfTeams}</span>
+        </div>
+        <input
+          name="numberOfTeams"
+          type="range"
+          min={2}
+          max={maxTeams}
+          step={1}
+          value={effectiveNumberOfTeams}
+          onChange={(event) => setNumberOfTeams(Number(event.target.value))}
+          disabled={presentCount < 2}
+          className="h-2 w-full cursor-pointer accent-campo disabled:cursor-not-allowed disabled:opacity-50"
+        />
+        <p className="mt-1 text-xs text-musgo">Maximo conforme presentes: {maxTeams} times.</p>
+      </div>
+      <div>
+        <div className="mb-1 flex items-center justify-between gap-3">
+          <Label>Jogadores por time</Label>
+          <span className="font-jersey text-2xl font-bold text-campo">{effectivePlayersPerTeam}</span>
+        </div>
+        <input
+          name="desiredPlayersPerTeam"
+          type="range"
+          min={1}
+          max={maxPlayersPerTeam}
+          step={1}
+          value={effectivePlayersPerTeam}
+          onChange={(event) => setDesiredPlayersPerTeam(Number(event.target.value))}
+          disabled={presentCount < 2}
+          className="h-2 w-full cursor-pointer accent-campo disabled:cursor-not-allowed disabled:opacity-50"
+        />
+        <p className="mt-1 text-xs text-musgo">
+          Maximo para tentar completar os 2 primeiros times: {maxPlayersPerTeam}.
+        </p>
       </div>
       <div className="space-y-2">
         <div>
@@ -137,11 +229,11 @@ export function DrawTeamsForm({ matchId, players }: { matchId: string; players: 
         </div>
         <div className="stagger space-y-2">
           {players.map((player) => (
-            <PlayerSelectionCard key={player.id} player={player} />
+            <PlayerSelectionCard key={player.id} player={player} onPresenceChange={handlePresenceChange} />
           ))}
         </div>
       </div>
-      <SubmitButton className="w-full" pendingLabel="Gerando times...">
+      <SubmitButton className="w-full" pendingLabel="Gerando times..." disabled={!hasEnoughPlayers}>
         {isPending ? "Gerando times..." : "Gerar times"}
       </SubmitButton>
     </form>

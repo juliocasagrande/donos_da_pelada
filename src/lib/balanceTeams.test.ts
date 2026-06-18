@@ -70,4 +70,12 @@ describe("balanceTeams", () => {
     const [first, second] = teams;
     expect(Math.abs(first.totalRating - second.totalRating)).toBeLessThanOrEqual(6);
   });
+
+  it("prioritizes completing the first two teams when there are leftovers", () => {
+    const teams = balanceTeams(makePlayers(10, "MEIA", 3), 3, 4);
+
+    expect(teams[0].players).toHaveLength(4);
+    expect(teams[1].players).toHaveLength(4);
+    expect(teams[2].players).toHaveLength(2);
+  });
 });

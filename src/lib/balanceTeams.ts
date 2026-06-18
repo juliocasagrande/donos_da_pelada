@@ -89,6 +89,36 @@ function calculateTeamCost(
   );
 }
 
+function getTeamTargetSizes(playerCount: number, numberOfTeams: number, desiredPlayersPerTeam: number) {
+  const targetSizes = Array.from({ length: numberOfTeams }, () => 0);
+  let remainingPlayers = playerCount;
+
+  for (let index = 0; index < numberOfTeams; index += 1) {
+    const teamsLeftAfterThis = numberOfTeams - index - 1;
+    const reservedForLaterTeams = teamsLeftAfterThis;
+    const isPriorityTeam = index < 2;
+    const target = isPriorityTeam ? desiredPlayersPerTeam : Math.min(desiredPlayersPerTeam, remainingPlayers);
+    const size = Math.max(1, Math.min(target, remainingPlayers - reservedForLaterTeams));
+
+    targetSizes[index] = size;
+    remainingPlayers -= size;
+  }
+
+  let index = 2;
+  while (remainingPlayers > 0) {
+    const targetIndex = index < numberOfTeams ? index : numberOfTeams - 1;
+    if (targetSizes[targetIndex] < desiredPlayersPerTeam) {
+      targetSizes[targetIndex] += 1;
+      remainingPlayers -= 1;
+    } else if (targetSizes.every((size) => size >= desiredPlayersPerTeam)) {
+      break;
+    }
+    index += 1;
+  }
+
+  return targetSizes;
+}
+
 function recalculate(team: BalancedTeam) {
   team.totalRating = team.players.reduce((sum, player) => sum + player.rating, 0);
   team.averageRating = team.players.length ? team.totalRating / team.players.length : 0;
@@ -118,6 +148,7 @@ export function balanceTeams(
   const totalCapacity = numberOfTeams * desiredPlayersPerTeam;
   const selectedPlayers = shuffle(players).slice(0, totalCapacity);
   const totalByPosition = countPlayersByPosition(selectedPlayers);
+  const targetSizes = getTeamTargetSizes(selectedPlayers.length, numberOfTeams, desiredPlayersPerTeam);
   const teams: BalancedTeam[] = Array.from({ length: numberOfTeams }, (_, index) => ({
     name: `Time ${index + 1}`,
     players: [],
@@ -134,12 +165,14 @@ export function balanceTeams(
 
   for (const player of grouped) {
     const bestTeam = [...teams].sort((a, b) => {
+      const leftTargetSize = targetSizes[teams.indexOf(a)] ?? desiredPlayersPerTeam;
+      const rightTargetSize = targetSizes[teams.indexOf(b)] ?? desiredPlayersPerTeam;
       const costDiff =
-        calculateTeamCost(a, player, desiredPlayersPerTeam, teams, totalByPosition, numberOfTeams) -
-        calculateTeamCost(b, player, desiredPlayersPerTeam, teams, totalByPosition, numberOfTeams);
+        calculateTeamCost(a, player, leftTargetSize, teams, totalByPosition, numberOfTeams) -
+        calculateTeamCost(b, player, rightTargetSize, teams, totalByPosition, numberOfTeams);
 
       if (costDiff !== 0) return costDiff;
-      return a.players.length - b.players.length;
+      return teams.indexOf(a) - teams.indexOf(b);
     })[0];
 
     bestTeam.players.push(player);

@@ -45,7 +45,15 @@ export async function createPeladaAction(formData: FormData) {
   if (!user || !user.active) redirect("/login");
 
   const name = String(formData.get("name") || "").trim();
+  const maxLinePlayers = Number(formData.get("maxLinePlayers") || 18);
+  const maxGoalkeepers = Number(formData.get("maxGoalkeepers") || 2);
   if (!name) redirect("/peladas/criar?error=Informe%20um%20nome");
+  if (!Number.isInteger(maxLinePlayers) || maxLinePlayers < 1) {
+    redirect(`/peladas/criar?error=${encodeURIComponent("Informe pelo menos 1 jogador de linha.")}`);
+  }
+  if (!Number.isInteger(maxGoalkeepers) || maxGoalkeepers < 0) {
+    redirect(`/peladas/criar?error=${encodeURIComponent("Informe uma quantidade valida de goleiros.")}`);
+  }
   const existingName = await prisma.pelada.findFirst({
     where: { name: { equals: name, mode: "insensitive" } },
     select: { id: true }
@@ -55,7 +63,7 @@ export async function createPeladaAction(formData: FormData) {
   }
 
   const slug = await uniqueSlug(name);
-  const pelada = await createPeladaWithTrial({ name, slug, createdByUserId: user.id });
+  const pelada = await createPeladaWithTrial({ name, slug, createdByUserId: user.id, maxLinePlayers, maxGoalkeepers });
   await prisma.peladaMembership.create({
     data: { userId: user.id, peladaId: pelada.id, role: PeladaRole.PRESIDENTE }
   });

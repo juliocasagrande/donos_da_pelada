@@ -2,6 +2,7 @@ import Link from "next/link";
 import { LogOut, Shield, Users } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PlayerForm } from "@/components/forms/PlayerForm";
+import { PushPreferenceSettings } from "@/components/profile/PushPreferenceSettings";
 import { Card } from "@/components/ui/Card";
 import { updateOwnProfile } from "@/lib/actions";
 import { prisma } from "@/lib/prisma";
@@ -17,7 +18,7 @@ export default async function ProfilePage({
   const player = await prisma.player.findFirst({ where: { userId: user.id, peladaId: user.peladaId! } });
   const profile = await prisma.user.findUnique({
     where: { id: user.id },
-    select: { whatsapp: true, whatsappChatEnabled: true }
+    select: { whatsapp: true, whatsappChatEnabled: true, pushNotificationsEnabled: true }
   });
 
   return (
@@ -32,17 +33,6 @@ export default async function ProfilePage({
           </span>
         ) : null}
       </div>
-
-      <Card className="mb-4 divide-y divide-linha p-0">
-        <Link href="/peladas" className="flex items-center gap-3 p-3.5">
-          <Users className="text-campo" size={18} />
-          <span className="flex-1 font-semibold">Gerenciar peladas</span>
-        </Link>
-        <Link href="/logout" className="flex items-center gap-3 p-3.5 text-ausente">
-          <LogOut size={18} />
-          <span className="flex-1 font-semibold">Sair da conta</span>
-        </Link>
-      </Card>
 
       {salvo ? (
         <div className="animate-card mb-4 rounded-[13px] border border-campo/30 bg-[#EAF5EC] p-3 text-sm font-semibold text-campo">
@@ -66,6 +56,21 @@ export default async function ProfilePage({
           canEditRating={false}
           showWhatsapp
         />
+      </Card>
+
+      <Card className="mx-auto mt-4 max-w-md divide-y divide-linha p-0">
+        <Link href="/peladas" className="flex items-center gap-3 p-3.5">
+          <Users className="text-campo" size={18} />
+          <span className="flex-1 font-semibold">Gerenciar peladas</span>
+        </Link>
+        <Link href="/logout" className="flex items-center gap-3 p-3.5 text-ausente">
+          <LogOut size={18} />
+          <span className="flex-1 font-semibold">Sair da conta</span>
+        </Link>
+      </Card>
+
+      <Card className="mx-auto mt-4 max-w-md">
+        <PushPreferenceSettings initialEnabled={Boolean(profile?.pushNotificationsEnabled)} />
       </Card>
     </AppShell>
   );

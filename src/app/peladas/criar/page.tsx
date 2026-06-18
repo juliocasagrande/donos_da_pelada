@@ -29,6 +29,19 @@ export default async function CriarPeladaPage({
             <Label>Nome da pelada</Label>
             <Input name="name" placeholder="Pelada do Zico" required />
           </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label>Jogadores de linha</Label>
+              <Input name="maxLinePlayers" type="number" min={1} defaultValue={18} required />
+            </div>
+            <div>
+              <Label>Goleiros</Label>
+              <Input name="maxGoalkeepers" type="number" min={0} defaultValue={2} required />
+            </div>
+          </div>
+          <p className="text-xs text-musgo">
+            Esse limite define quantos jogadores entram como confirmados antes da lista de espera.
+          </p>
           <Button type="submit" className="w-full">Criar pelada</Button>
         </form>
       </Card>

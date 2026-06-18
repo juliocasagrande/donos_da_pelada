@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import { PushNotifications } from "@/components/layout/PushNotifications";
 
-export function PushNotificationsMount() {
+export function PushNotificationsMount({
+  promptDismissed,
+  notificationsEnabled
+}: {
+  promptDismissed: boolean;
+  notificationsEnabled: boolean;
+}) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -12,5 +18,5 @@ export function PushNotificationsMount() {
 
   if (!mounted) return null;
 
-  return <PushNotifications />;
+  return <PushNotifications promptDismissed={promptDismissed} notificationsEnabled={notificationsEnabled} />;
 }

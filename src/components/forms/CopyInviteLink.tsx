@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, MessageCircle } from "lucide-react";
+import { Check, Copy } from "lucide-react";
+import { WhatsappMark } from "@/components/ui/WhatsappMark";
 
 export function CopyInviteLink({ code, peladaName }: { code: string; peladaName: string }) {
   const [copied, setCopied] = useState(false);
@@ -30,7 +31,7 @@ export function CopyInviteLink({ code, peladaName }: { code: string; peladaName:
         rel="noreferrer"
         className="flex w-full items-center justify-center gap-2 rounded-[13px] bg-campo px-3 py-2.5 text-sm font-bold text-white shadow-button transition active:scale-[.98]"
       >
-        <MessageCircle size={17} /> Enviar convite no WhatsApp
+        <WhatsappMark size={18} /> Enviar convite no WhatsApp
       </a>
     </div>
   );

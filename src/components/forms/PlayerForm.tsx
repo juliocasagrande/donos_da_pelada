@@ -1,6 +1,7 @@
 import { PhotoUpload } from "@/components/forms/PhotoUpload";
 import { Button } from "@/components/ui/Button";
 import { Input, Label, Select } from "@/components/ui/Input";
+import { WhatsappMark } from "@/components/ui/WhatsappMark";
 
 type PlayerFormProps = {
   action: (formData: FormData) => void | Promise<void>;
@@ -65,19 +66,37 @@ export function PlayerForm({
       ) : null}
       {showWhatsapp ? (
         <div className="space-y-2 rounded-[13px] border-[1.5px] border-linha bg-white p-3">
+          <div className="flex items-center gap-2 text-campo">
+            <WhatsappMark size={20} />
+            <h2 className="font-display text-base font-extrabold text-tinta">WhatsApp</h2>
+          </div>
           <div>
-            <Label>WhatsApp</Label>
+            <Label>Numero</Label>
             <Input name="whatsapp" type="tel" inputMode="tel" defaultValue={player?.whatsapp || ""} placeholder="Ex: 11999999999" />
           </div>
-          <label className="flex items-start gap-2 text-sm font-semibold text-tinta">
-            <input
-              name="whatsappChatEnabled"
-              type="checkbox"
-              defaultChecked={Boolean(player?.whatsappChatEnabled)}
-              className="mt-1 h-4 w-4 rounded border-linha text-campo"
-            />
-            <span>Permitir que jogadores das minhas peladas abram conversa pelo WhatsApp</span>
-          </label>
+          <div>
+            <Label>Permitir convites e conversas?</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="flex items-center justify-center gap-2 rounded-[13px] border-[1.5px] border-linha bg-[#F6F8F3] px-3 py-2 text-sm font-bold text-tinta">
+                <input
+                  name="whatsappChatEnabled"
+                  type="radio"
+                  value="yes"
+                  defaultChecked={Boolean(player?.whatsappChatEnabled)}
+                />
+                Sim
+              </label>
+              <label className="flex items-center justify-center gap-2 rounded-[13px] border-[1.5px] border-linha bg-[#F6F8F3] px-3 py-2 text-sm font-bold text-tinta">
+                <input
+                  name="whatsappChatEnabled"
+                  type="radio"
+                  value="no"
+                  defaultChecked={!player?.whatsappChatEnabled}
+                />
+                Nao
+              </label>
+            </div>
+          </div>
         </div>
       ) : null}
       <Button className="w-full" type="submit">{submitLabel}</Button>

@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ChevronRight, MessageCircle, Pencil, Search } from "lucide-react";
+import { ChevronRight, Pencil, Search } from "lucide-react";
 import { PlayerAvatar } from "@/components/players/PlayerAvatar";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
+import { WhatsappMark } from "@/components/ui/WhatsappMark";
 
 function positionLabel(position: string) {
   const labels: Record<string, string> = {
@@ -132,7 +133,7 @@ export function PlayerList({ players, isAdmin }: { players: PlayerListItem[]; is
                     className="rounded-[10px] bg-[#EAF5EC] p-2 text-campo"
                     aria-label={`Conversar com ${player.nickname || player.name} no WhatsApp`}
                   >
-                    <MessageCircle size={16} />
+                    <WhatsappMark size={16} />
                   </a>
                 ) : null}
               </div>

@@ -4,23 +4,30 @@ export const TOTAL_CAPACITY = LINE_CAPACITY + GOALKEEPER_CAPACITY;
 export const VOTING_WINDOW_HOURS = 1;
 
 export type ConfirmedCounts = { total: number; goalkeepers: number; line: number };
+export type AttendanceCapacity = { line: number; goalkeepers: number };
 
-export function canConfirmPlayer(position: string, counts: ConfirmedCounts, released: boolean) {
+export function canConfirmPlayer(
+  position: string,
+  counts: ConfirmedCounts,
+  released: boolean,
+  capacity: AttendanceCapacity = { line: LINE_CAPACITY, goalkeepers: GOALKEEPER_CAPACITY }
+) {
+  const lineCapacity = Math.max(1, capacity.line);
+  const goalkeeperCapacity = Math.max(0, capacity.goalkeepers);
+  const totalCapacity = lineCapacity + goalkeeperCapacity;
+
   if (!released) {
-    if (counts.total >= TOTAL_CAPACITY) return false;
-    if (position === "GOLEIRO") return counts.goalkeepers < GOALKEEPER_CAPACITY;
-    return counts.line < LINE_CAPACITY;
+    if (counts.total >= totalCapacity) return false;
+    if (position === "GOLEIRO") return counts.goalkeepers < goalkeeperCapacity;
+    return counts.line < lineCapacity;
   }
 
   if (position === "GOLEIRO") {
-    if (counts.goalkeepers >= GOALKEEPER_CAPACITY) return false;
-    if (counts.goalkeepers === 1) return counts.line <= LINE_CAPACITY;
-    return counts.line <= 20;
+    return counts.goalkeepers < goalkeeperCapacity && counts.total < totalCapacity;
   }
 
-  if (counts.goalkeepers >= 2) return counts.line < LINE_CAPACITY;
-  if (counts.goalkeepers === 1) return counts.line < 20;
-  return counts.line < 21;
+  const unusedGoalkeeperSlots = Math.max(0, goalkeeperCapacity - counts.goalkeepers);
+  return counts.line < lineCapacity + unusedGoalkeeperSlots;
 }
 
 export function isWithinVotingWindow(openedAt: Date, now = new Date()) {

@@ -30,8 +30,14 @@ export default async function PerfilOnboardingPage() {
             </div>
           </div>
         </Card>
+        <Card className="mb-4 border border-campo/15 bg-white">
+          <h2 className="font-display text-lg font-bold">Convites pelo WhatsApp</h2>
+          <p className="mt-1 text-sm text-musgo">
+            Voce pode permitir que jogadores das suas peladas abram conversa com voce e enviem convites por WhatsApp.
+          </p>
+        </Card>
         <Card>
-          <PlayerForm action={saveOnboarding} submitLabel="Entrar na pelada" canEditRating={false} />
+          <PlayerForm action={saveOnboarding} submitLabel="Entrar na pelada" canEditRating={false} showWhatsapp />
         </Card>
       </div>
     </main>

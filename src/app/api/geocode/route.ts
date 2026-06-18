@@ -15,7 +15,7 @@ export async function GET(request: Request) {
       q: query,
       limit: "5",
       countrycodes: "br",
-      addressdetails: "0"
+      addressdetails: "1"
     });
 
     const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
@@ -28,8 +28,40 @@ export async function GET(request: Request) {
       return NextResponse.json({ results: [] });
     }
 
-    const data: Array<{ display_name: string }> = await response.json();
-    const results = data.map((item) => item.display_name);
+    const data: Array<{
+      display_name: string;
+      address?: {
+        road?: string;
+        pedestrian?: string;
+        footway?: string;
+        cycleway?: string;
+        neighbourhood?: string;
+        suburb?: string;
+        city_district?: string;
+        borough?: string;
+        city?: string;
+        town?: string;
+        village?: string;
+        municipality?: string;
+      };
+    }> = await response.json();
+    const results = [
+      ...new Set(
+        data
+          .map((item) => {
+            const address = item.address;
+            if (!address) return item.display_name;
+
+            const street = address.road || address.pedestrian || address.footway || address.cycleway;
+            const district = address.suburb || address.neighbourhood || address.city_district || address.borough;
+            const city = address.city || address.town || address.village || address.municipality;
+            const formatted = [street, district, city].filter(Boolean).join(", ");
+
+            return formatted || item.display_name;
+          })
+          .filter(Boolean)
+      )
+    ];
 
     return NextResponse.json({ results });
   } catch (error) {

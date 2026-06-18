@@ -113,6 +113,8 @@ model User {
   careerStats   UserCareerStats?
   whatsapp      String?
   whatsappChatEnabled Boolean @default(false)
+  pushNotificationsEnabled Boolean @default(false)
+  pushPromptDismissed Boolean @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -137,6 +139,8 @@ model Pelada {
   proCancelRollbackUntil DateTime?
   proCaptureAt    DateTime?
   proRenewsAt     DateTime?
+  maxLinePlayers   Int                @default(18)
+  maxGoalkeepers   Int                @default(2)
   memberships     PeladaMembership[]
   invites         PeladaInvite[]
   joinRequests    PeladaJoinRequest[]

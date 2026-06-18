@@ -17,9 +17,16 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
-export function PushNotifications() {
+export function PushNotifications({
+  promptDismissed,
+  notificationsEnabled
+}: {
+  promptDismissed: boolean;
+  notificationsEnabled: boolean;
+}) {
   const [available, setAvailable] = useState(false);
   const [enabled, setEnabled] = useState(false);
+  const [dismissed, setDismissed] = useState(promptDismissed);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -27,9 +34,9 @@ export function PushNotifications() {
 
     navigator.serviceWorker?.ready
       .then((registration) => registration.pushManager.getSubscription())
-      .then((subscription) => setEnabled(Boolean(subscription)))
+      .then((subscription) => setEnabled(Boolean(subscription) || notificationsEnabled))
       .catch(() => setEnabled(false));
-  }, []);
+  }, [notificationsEnabled]);
 
   async function enableNotifications() {
     setMessage("");
@@ -65,10 +72,33 @@ export function PushNotifications() {
     }
 
     setEnabled(true);
+    setDismissed(true);
     setMessage("Notificacoes ativadas.");
   }
 
-  if (!available || enabled) return null;
+  async function disableNotifications() {
+    setMessage("");
+
+    const registration = await navigator.serviceWorker?.ready.catch(() => null);
+    const subscription = await registration?.pushManager.getSubscription();
+    await subscription?.unsubscribe().catch(() => null);
+
+    const response = await fetch("/api/push/preference", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled: false })
+    });
+
+    if (!response.ok) {
+      setMessage("Nao foi possivel salvar sua preferencia.");
+      return;
+    }
+
+    setEnabled(false);
+    setDismissed(true);
+  }
+
+  if (!available || enabled || dismissed) return null;
 
   return (
     <div className="mx-auto mb-3 max-w-md rounded-card bg-white p-3 shadow-card">
@@ -80,9 +110,14 @@ export function PushNotifications() {
           <p className="text-sm font-bold text-tinta">Receber avisos da pelada</p>
           {message ? <p className="text-xs text-musgo">{message}</p> : null}
         </div>
-        <Button type="button" className="px-3 py-2 text-xs" onClick={enableNotifications}>
-          Ativar
-        </Button>
+        <div className="flex shrink-0 gap-2">
+          <Button type="button" variant="secondary" className="px-3 py-2 text-xs" onClick={disableNotifications}>
+            Nao receber
+          </Button>
+          <Button type="button" className="px-3 py-2 text-xs" onClick={enableNotifications}>
+            Ativar
+          </Button>
+        </div>
       </div>
     </div>
   );

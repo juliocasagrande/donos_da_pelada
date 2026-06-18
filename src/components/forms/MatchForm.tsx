@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Input";
@@ -43,6 +46,7 @@ type MatchFormProps = {
 
 export function MatchForm({ action, match, submitLabel = "Criar pelada", allowAmistoso = true }: MatchFormProps) {
   const today = new Date().toISOString().slice(0, 10);
+  const [selectedKind, setSelectedKind] = useState(match?.kind ?? "PELADA");
 
   return (
     <form action={action} className="space-y-3">
@@ -59,6 +63,7 @@ export function MatchForm({ action, match, submitLabel = "Criar pelada", allowAm
                   value={option}
                   defaultChecked={(match?.kind ?? "PELADA") === option}
                   disabled={locked}
+                  onChange={() => setSelectedKind(option)}
                   className="peer sr-only"
                 />
                 <span className="flex items-center justify-center gap-1 rounded-[11px] border-[1.5px] border-linha bg-white px-3 py-3 text-center text-sm font-semibold text-musgo transition peer-checked:border-campo peer-checked:bg-campo peer-checked:text-white">
@@ -77,11 +82,13 @@ export function MatchForm({ action, match, submitLabel = "Criar pelada", allowAm
         <Label>Nome da pelada</Label>
         <Input name="title" defaultValue={match?.title ?? "Pelada da semana"} required />
       </div>
-      <div className="rounded-[13px] border-[1.5px] border-linha bg-areia p-3">
-        <Label>Adversario do amistoso</Label>
-        <Input name="opponentName" defaultValue={match?.opponentName ?? ""} placeholder="Ex.: Unidos da Quadra" />
-        <p className="mt-1 text-xs text-musgo">Use quando o tipo for Amistoso.</p>
-      </div>
+      {selectedKind === "AMISTOSO" ? (
+        <div className="rounded-[13px] border-[1.5px] border-linha bg-areia p-3">
+          <Label>Adversario do amistoso</Label>
+          <Input name="opponentName" defaultValue={match?.opponentName ?? ""} placeholder="Ex.: Unidos da Quadra" />
+          <p className="mt-1 text-xs text-musgo">Use quando o tipo for Amistoso.</p>
+        </div>
+      ) : null}
       <div className="grid grid-cols-2 gap-2">
         <div>
           <Label>Data</Label>

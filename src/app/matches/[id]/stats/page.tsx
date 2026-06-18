@@ -208,7 +208,35 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
           </Card>
         ) : null}
 
-        {!poll && isAdmin ? (
+        {isAdmin ? (
+          <div>
+            <div className="mb-2">
+              <p className="font-jersey text-sm font-semibold uppercase tracking-[.14em] text-musgo">Admins</p>
+              <h2 className="font-display text-2xl font-extrabold tracking-[-.02em]">Controle da votacao</h2>
+            </div>
+            <Card className="border-2 border-craque p-4">
+              {!poll ? (
+                <>
+                  <p className="mb-3 text-sm text-musgo">Abre craque da pelada, gols/defesas e notas dos presentes por 1 hora.</p>
+                  <form action={createCraquePoll.bind(null, id)}>
+                    <Button className="w-full">Criar votacao</Button>
+                  </form>
+                </>
+              ) : poll.status === "OPEN" ? (
+                <>
+                  <p className="mb-3 text-sm text-musgo">A votacao esta aberta. Encerre para publicar o craque.</p>
+                  <form action={closeCraquePoll.bind(null, poll.id)}>
+                    <Button className="w-full">Encerrar e publicar craque</Button>
+                  </form>
+                </>
+              ) : (
+                <p className="text-sm font-semibold text-musgo">Votacao encerrada e publicada.</p>
+              )}
+            </Card>
+          </div>
+        ) : null}
+
+        {false && !poll && isAdmin ? (
           <Card className="border-2 border-craque p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
@@ -223,6 +251,11 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
             </form>
           </Card>
         ) : null}
+
+        <div className="mb-2">
+          <p className="font-jersey text-sm font-semibold uppercase tracking-[.14em] text-musgo">Craque</p>
+          <h2 className="font-display text-2xl font-extrabold tracking-[-.02em]">Votacao de craque</h2>
+        </div>
 
         {poll && leader ? (
           <>
@@ -266,37 +299,56 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
                       <span className="rounded-[10px] bg-campo px-3 py-2 text-xs font-bold text-white">Seu voto</span>
                     ) : null}
                   </div>
-                  {canVote && votingOpen && linkedPlayer?.id !== player.id && player.viewerRating == null ? (
-                    <RatePlayerForm matchId={id} playerId={player.id} defaultValue={player.viewerRating ?? 7} />
-                  ) : null}
-                  {canVote && player.viewerRating != null ? (
-                    <p className="mt-3 rounded-[10px] bg-areia px-3 py-2 text-xs font-bold text-musgo">
-                      Sua nota: {player.viewerRating.toFixed(1)}
-                    </p>
-                  ) : null}
-                  {isAdmin && player.ratings.length ? (
-                    <div className="mt-3 rounded-[10px] bg-areia px-3 py-2 text-xs text-musgo">
-                      <p className="mb-1 font-bold text-tinta">Notas recebidas</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {player.ratings.map((rating) => (
-                          <span key={rating.id} className="rounded-full bg-white px-2 py-1 font-semibold">
-                            {rating.user.name || rating.user.email || "Jogador"}: {rating.value.toFixed(1)}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
                 </Card>
               );
             })}
-
-            {isAdmin && poll.status === "OPEN" ? (
-              <form action={closeCraquePoll.bind(null, poll.id)}>
-                <Button className="w-full">Encerrar e publicar craque</Button>
-              </form>
-            ) : null}
           </>
         ) : null}
+
+        <div className="mb-2">
+          <p className="font-jersey text-sm font-semibold uppercase tracking-[.14em] text-musgo">Notas</p>
+          <h2 className="font-display text-2xl font-extrabold tracking-[-.02em]">Avaliar jogadores</h2>
+        </div>
+
+        {poll ? (
+          <div className="space-y-2.5">
+            {candidates.map((player) => (
+              <Card key={player.id} className="p-3">
+                <div className="flex items-center gap-3">
+                  <PlayerAvatar src={player.photoUrl} name={player.name} position={player.position} />
+                  <div className="min-w-0 flex-1">
+                    <h2 className="truncate font-extrabold">{player.nickname || player.name}</h2>
+                    <p className="text-xs text-musgo">Nota media {player.averageRating?.toFixed(1) ?? "-"}</p>
+                  </div>
+                </div>
+                {canVote && votingOpen && linkedPlayer?.id !== player.id && player.viewerRating == null ? (
+                  <RatePlayerForm matchId={id} playerId={player.id} defaultValue={7} />
+                ) : null}
+                {canVote && player.viewerRating != null ? (
+                  <p className="mt-3 rounded-[10px] bg-areia px-3 py-2 text-xs font-bold text-musgo">
+                    Sua nota: {player.viewerRating.toFixed(1)}
+                  </p>
+                ) : null}
+                {isAdmin && player.ratings.length ? (
+                  <div className="mt-3 rounded-[10px] bg-areia px-3 py-2 text-xs text-musgo">
+                    <p className="mb-1 font-bold text-tinta">Notas recebidas</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {player.ratings.map((rating) => (
+                        <span key={rating.id} className="rounded-full bg-white px-2 py-1 font-semibold">
+                          {rating.user.name || rating.user.email || "Jogador"}: {rating.value.toFixed(1)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <p className="text-sm text-musgo">As notas ficam disponiveis quando a votacao for aberta.</p>
+          </Card>
+        )}
       </section>
 
       {isAdmin ? (

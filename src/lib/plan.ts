@@ -68,7 +68,13 @@ export async function enforceFreeTierMensalistaLimit(peladaId: string) {
   return { changed: result.count };
 }
 
-export async function createPeladaWithTrial(data: { name: string; slug: string; createdByUserId?: string }) {
+export async function createPeladaWithTrial(data: {
+  name: string;
+  slug: string;
+  createdByUserId?: string;
+  maxLinePlayers?: number;
+  maxGoalkeepers?: number;
+}) {
   return prisma.pelada.create({
     data: {
       ...data,

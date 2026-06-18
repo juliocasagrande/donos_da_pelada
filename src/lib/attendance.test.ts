@@ -23,6 +23,15 @@ describe("canConfirmPlayer", () => {
   it("still blocks a third goalkeeper after release", () => {
     expect(canConfirmPlayer("GOLEIRO", { total: 20, goalkeepers: 2, line: 18 }, true)).toBe(false);
   });
+
+  it("uses custom pelada capacity", () => {
+    const capacity = { line: 10, goalkeepers: 1 };
+
+    expect(canConfirmPlayer("MEIA", { total: 10, goalkeepers: 0, line: 10 }, false, capacity)).toBe(false);
+    expect(canConfirmPlayer("GOLEIRO", { total: 10, goalkeepers: 0, line: 10 }, false, capacity)).toBe(true);
+    expect(canConfirmPlayer("MEIA", { total: 10, goalkeepers: 0, line: 10 }, true, capacity)).toBe(true);
+    expect(canConfirmPlayer("MEIA", { total: 11, goalkeepers: 0, line: 11 }, true, capacity)).toBe(false);
+  });
 });
 
 describe("isWithinVotingWindow", () => {

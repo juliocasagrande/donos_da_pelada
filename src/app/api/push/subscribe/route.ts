@@ -36,6 +36,11 @@ export async function POST(request: Request) {
       }
     });
 
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { pushNotificationsEnabled: true, pushPromptDismissed: true }
+    });
+
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (error instanceof ApiAuthError) {
