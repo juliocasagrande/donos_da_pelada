@@ -1,10 +1,19 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export async function getCurrentUser() {
   const session = await getServerSession(authOptions);
-  return session?.user ?? null;
+  if (!session?.user) return null;
+
+  const dbUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { role: true, active: true, onboarded: true }
+  });
+  if (!dbUser) return null;
+
+  return { ...session.user, ...dbUser };
 }
 
 export async function requireUser() {

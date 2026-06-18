@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { MatchStatus, PollStatus, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin, requireMaster, requireUser } from "@/lib/session";
+import { getCurrentUser, requireAdmin, requireMaster, requireUser } from "@/lib/session";
 import { adminSchema, drawSchema, matchSchema, playerSchema } from "@/lib/validations";
 import { balanceTeams } from "@/lib/balanceTeams";
 import { sendPushToAll, sendPushToUsers } from "@/lib/push";
@@ -162,7 +162,8 @@ function playerBalanceRating(player: { rating: number; ratings: { value: number;
 }
 
 export async function saveOnboarding(formData: FormData) {
-  const user = await requireUser();
+  const user = await getCurrentUser();
+  if (!user || !user.active) redirect("/login");
   const currentPlayer = await prisma.player.findUnique({ where: { userId: user.id } });
   const parsed = playerSchema.parse({
     name: value(formData, "name"),
@@ -170,13 +171,13 @@ export async function saveOnboarding(formData: FormData) {
     photoUrl: value(formData, "photoUrl"),
     position: value(formData, "position"),
     membershipStatus: currentPlayer?.membershipStatus || "CONVIDADO",
-    rating: Number(value(formData, "rating") || 0)
+    rating: currentPlayer?.rating ?? 0
   });
 
   await prisma.player.upsert({
     where: { userId: user.id },
     update: parsed,
-    create: { ...parsed, userId: user.id }
+    create: { ...parsed, userId: user.id, ratingAssigned: false }
   });
 
   await prisma.user.update({
@@ -305,7 +306,7 @@ export async function createPlayer(formData: FormData) {
     rating: Number(value(formData, "rating"))
   });
 
-  await prisma.player.create({ data: parsed });
+  await prisma.player.create({ data: { ...parsed, ratingAssigned: true } });
   redirect("/players");
 }
 
@@ -320,7 +321,7 @@ export async function updatePlayer(playerId: string, formData: FormData) {
     rating: Number(value(formData, "rating"))
   });
 
-  await prisma.player.update({ where: { id: playerId }, data: parsed });
+  await prisma.player.update({ where: { id: playerId }, data: { ...parsed, ratingAssigned: true } });
   redirect("/players");
 }
 
@@ -522,7 +523,7 @@ export async function createGuestForMatch(matchId: string, formData: FormData) {
   });
 
   const player = await prisma.player.create({
-    data: parsed
+    data: { ...parsed, ratingAssigned: true }
   });
 
   const status = await getAttendanceStatusForPlayer(matchId, player.position, match.date);

@@ -32,7 +32,7 @@ export default async function OnboardingPage() {
           </div>
         </Card>
         <Card>
-          <PlayerForm action={saveOnboarding} submitLabel="Entrar na pelada" />
+          <PlayerForm action={saveOnboarding} submitLabel="Entrar na pelada" canEditRating={false} />
         </Card>
       </div>
     </main>

@@ -75,6 +75,11 @@ export default async function PlayersPage() {
                       {positionLabel(player.position)}
                       {player.membershipStatus === "MENSALISTA" ? " · Mensalista" : " · Convidado"}
                     </p>
+                    {isAdmin && !player.ratingAssigned ? (
+                      <span className="mt-1 inline-flex rounded-[6px] bg-craque/20 px-1.5 py-0.5 text-[10px] font-bold uppercase text-[#8a5a06]">
+                        Sem nota
+                      </span>
+                    ) : null}
                   </div>
                   <div className="w-10 text-right">
                     <div className="font-jersey text-xl font-bold leading-none">{stat}</div>

@@ -125,6 +125,7 @@ model Player {
   position    PlayerPosition
   membershipStatus MembershipStatus @default(MENSALISTA)
   rating      Float             @default(0)
+  ratingAssigned Boolean        @default(false)
   active      Boolean           @default(true)
   attendances Attendance[]
   teamPlayers TeamPlayer[]

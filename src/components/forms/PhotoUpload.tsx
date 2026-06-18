@@ -6,6 +6,34 @@ import { Camera, Upload } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
+const MAX_DIMENSION = 1280;
+const JPEG_QUALITY = 0.82;
+
+async function compressImage(file: File): Promise<File> {
+  if (!file.type.startsWith("image/")) return file;
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, MAX_DIMENSION / Math.max(bitmap.width, bitmap.height));
+    const width = Math.round(bitmap.width * scale);
+    const height = Math.round(bitmap.height * scale);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, width, height);
+
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", JPEG_QUALITY));
+    if (!blob) return file;
+
+    return new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" });
+  } catch {
+    return file;
+  }
+}
+
 export function PhotoUpload({ defaultUrl = "" }: { defaultUrl?: string | null }) {
   const [url, setUrl] = useState(defaultUrl || "");
   const [error, setError] = useState("");
@@ -15,15 +43,22 @@ export function PhotoUpload({ defaultUrl = "" }: { defaultUrl?: string | null })
     if (!file) return;
     setError("");
     startTransition(async () => {
-      const formData = new FormData();
-      formData.append("file", file);
-      const response = await fetch("/api/upload", { method: "POST", body: formData });
-      const data = await response.json();
-      if (!response.ok) {
-        setError(data.error || "Nao foi possivel enviar a foto.");
-        return;
+      try {
+        const compressed = await compressImage(file);
+        const formData = new FormData();
+        formData.append("file", compressed);
+        const response = await fetch("/api/upload", { method: "POST", body: formData });
+        const data = await response.json().catch(() => null);
+
+        if (!response.ok || !data) {
+          setError(data?.error || "Nao foi possivel enviar a foto. Tente uma foto menor.");
+          return;
+        }
+
+        setUrl(data.url);
+      } catch {
+        setError("Nao foi possivel enviar a foto. Verifique sua conexao e tente novamente.");
       }
-      setUrl(data.url);
     });
   }
 

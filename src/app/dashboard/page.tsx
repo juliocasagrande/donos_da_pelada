@@ -12,24 +12,29 @@ import { formatDate, formatTime } from "@/lib/utils";
 
 export default async function DashboardPage() {
   const user = await requireUser();
-  const [linkedPlayer, players, lastMatch, nextMatch, goals, defenses, craque, monthMatches] = await Promise.all([
-    prisma.player.findUnique({ where: { userId: user.id } }),
-    prisma.player.count({ where: { active: true, membershipStatus: "MENSALISTA" } }),
-    prisma.match.findFirst({ orderBy: { date: "desc" } }),
-    prisma.match.findFirst({
-      where: { status: "OPEN" },
-      include: { attendances: { where: { present: true }, take: 3 } },
-      orderBy: { date: "asc" }
-    }),
-    prisma.goal.aggregate({ where: { player: { membershipStatus: "MENSALISTA" } }, _sum: { quantity: true } }),
-    prisma.difficultSave.aggregate({ where: { player: { membershipStatus: "MENSALISTA" } }, _sum: { quantity: true } }),
-    prisma.poll.findFirst({
-      where: { status: "CLOSED", winnerId: { not: null }, winner: { membershipStatus: "MENSALISTA" } },
-      include: { winner: true },
-      orderBy: { updatedAt: "desc" }
-    }),
-    prisma.match.count()
-  ]);
+  const isAdmin = user.role === "MASTER" || user.role === "ADMIN";
+  const [linkedPlayer, players, lastMatch, nextMatch, goals, defenses, craque, monthMatches, pendingRatingPlayers] =
+    await Promise.all([
+      prisma.player.findUnique({ where: { userId: user.id } }),
+      prisma.player.count({ where: { active: true, membershipStatus: "MENSALISTA" } }),
+      prisma.match.findFirst({ orderBy: { date: "desc" } }),
+      prisma.match.findFirst({
+        where: { status: "OPEN" },
+        include: { attendances: { where: { present: true }, take: 3 } },
+        orderBy: { date: "asc" }
+      }),
+      prisma.goal.aggregate({ where: { player: { membershipStatus: "MENSALISTA" } }, _sum: { quantity: true } }),
+      prisma.difficultSave.aggregate({ where: { player: { membershipStatus: "MENSALISTA" } }, _sum: { quantity: true } }),
+      prisma.poll.findFirst({
+        where: { status: "CLOSED", winnerId: { not: null }, winner: { membershipStatus: "MENSALISTA" } },
+        include: { winner: true },
+        orderBy: { updatedAt: "desc" }
+      }),
+      prisma.match.count(),
+      isAdmin
+        ? prisma.player.findMany({ where: { active: true, ratingAssigned: false }, orderBy: { createdAt: "asc" } })
+        : Promise.resolve([])
+    ]);
   const isGuest = linkedPlayer?.membershipStatus === "CONVIDADO";
 
   const shortcuts = [
@@ -60,6 +65,28 @@ export default async function DashboardPage() {
           </Link>
         </div>
       </section>
+
+      {isAdmin && pendingRatingPlayers.length ? (
+        <Card className="animate-card mb-4 border border-craque/40 bg-[#FFF7E6]">
+          <p className="flex items-center gap-1.5 text-xs font-bold uppercase text-[#8a5a06]">
+            <Star size={14} fill="#F4A11A" /> Nota pendente
+          </p>
+          <h2 className="mt-1 font-display text-lg font-extrabold">
+            {pendingRatingPlayers.length === 1
+              ? "1 jogador novo aguardando nota"
+              : `${pendingRatingPlayers.length} jogadores novos aguardando nota`}
+          </h2>
+          <p className="mt-1 truncate text-sm text-musgo">
+            {pendingRatingPlayers.map((player) => player.nickname || player.name).join(", ")}
+          </p>
+          <Link
+            href="/players"
+            className="mt-3 inline-flex rounded-[11px] bg-craque px-4 py-2 text-sm font-bold text-tinta"
+          >
+            Atribuir notas
+          </Link>
+        </Card>
+      ) : null}
 
       {craque?.winner ? (
         <Card className="shine-sweep animate-card mb-4 border border-craque/30 bg-[#FCEFD6]">
