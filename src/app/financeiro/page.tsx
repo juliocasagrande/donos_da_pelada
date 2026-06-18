@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, TrendingDown, TrendingUp, Wallet } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
+import { CashFlowAreaChart } from "@/components/finance/CashFlowAreaChart";
 import { DeleteTransactionForm } from "@/components/finance/DeleteTransactionForm";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -77,12 +78,27 @@ export default async function FinancePage({
     .sort(([left], [right]) => (left < right ? 1 : -1))
     .slice(0, 6);
 
+  const chronologicalKeys = [...history.keys()].sort();
+  let runningBalance = 0;
+  const cashFlowData = chronologicalKeys
+    .map((key) => {
+      const entry = history.get(key)!;
+      runningBalance += entry.received - entry.spent;
+      return { key, label: entry.label.slice(0, 3), balance: runningBalance };
+    })
+    .slice(-6);
+
   return (
     <AppShell>
       <div className="mb-5">
         <p className="font-jersey text-sm font-semibold uppercase tracking-[.14em] text-musgo">Acesso restrito</p>
         <h1 className="font-display text-3xl font-extrabold tracking-[-.02em]">Financeiro</h1>
       </div>
+
+      <Card className="mb-4">
+        <h2 className="mb-2 font-display text-lg font-extrabold">Evolucao do caixa</h2>
+        <CashFlowAreaChart data={cashFlowData} />
+      </Card>
 
       <div className="mb-4 flex items-center justify-between gap-2 rounded-[13px] bg-white px-2 py-2 shadow-card">
         <Link
