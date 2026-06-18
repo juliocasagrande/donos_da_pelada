@@ -1,7 +1,10 @@
-import { PrismaClient, UserRole, PlayerPosition } from "@prisma/client";
+import { PrismaClient, UserRole, PlayerPosition, PeladaRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
+
+const DEFAULT_PELADA_NAME = "Minha Pelada";
+const DEFAULT_PELADA_SLUG = "minha-pelada";
 
 async function main() {
   const name = process.env.MASTER_ADMIN_NAME || "Administrador Master";
@@ -16,7 +19,7 @@ async function main() {
 
   const passwordHash = await bcrypt.hash(password, 12);
 
-  await prisma.user.upsert({
+  const masterUser = await prisma.user.upsert({
     where: { email },
     update: {
       name,
@@ -35,6 +38,18 @@ async function main() {
     }
   });
 
+  const pelada = await prisma.pelada.upsert({
+    where: { slug: DEFAULT_PELADA_SLUG },
+    update: {},
+    create: { name: DEFAULT_PELADA_NAME, slug: DEFAULT_PELADA_SLUG, createdByUserId: masterUser.id }
+  });
+
+  await prisma.peladaMembership.upsert({
+    where: { userId_peladaId: { userId: masterUser.id, peladaId: pelada.id } },
+    update: {},
+    create: { userId: masterUser.id, peladaId: pelada.id, role: PeladaRole.PRESIDENTE }
+  });
+
   if (process.env.SEED_SAMPLE_PLAYERS === "true") {
     const samples = [
       ["Carlos", PlayerPosition.GOLEIRO, 4],
@@ -51,10 +66,10 @@ async function main() {
     ] as const;
 
     for (const [playerName, position, rating] of samples) {
-      const existing = await prisma.player.findFirst({ where: { name: playerName } });
+      const existing = await prisma.player.findFirst({ where: { name: playerName, peladaId: pelada.id } });
       if (!existing) {
         await prisma.player.create({
-          data: { name: playerName, position, rating }
+          data: { name: playerName, position, rating, peladaId: pelada.id }
         });
       }
     }

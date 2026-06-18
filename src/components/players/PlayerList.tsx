@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ChevronRight, Pencil, Search } from "lucide-react";
+import { ChevronRight, MessageCircle, Pencil, Search } from "lucide-react";
 import { PlayerAvatar } from "@/components/players/PlayerAvatar";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
@@ -25,6 +25,7 @@ export type PlayerListItem = {
   position: string;
   membershipStatus: string;
   ratingAssigned: boolean;
+  whatsapp: string | null;
   goals: number;
   saves: number;
 };
@@ -122,6 +123,17 @@ export function PlayerList({ players, isAdmin }: { players: PlayerListItem[]; is
                   >
                     <Pencil size={16} />
                   </Link>
+                ) : null}
+                {player.whatsapp ? (
+                  <a
+                    href={`https://wa.me/${player.whatsapp}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-[10px] bg-[#EAF5EC] p-2 text-campo"
+                    aria-label={`Conversar com ${player.nickname || player.name} no WhatsApp`}
+                  >
+                    <MessageCircle size={16} />
+                  </a>
                 ) : null}
               </div>
             </Card>

@@ -2,20 +2,20 @@
 
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { deletePlayer } from "@/lib/actions";
+import { requestPlayerDeletion } from "@/lib/deletionVotingActions";
 
 export function DeletePlayerForm({ playerId, playerName }: { playerId: string; playerName: string }) {
   return (
     <form
-      action={deletePlayer.bind(null, playerId)}
+      action={requestPlayerDeletion.bind(null, playerId)}
       onSubmit={(event) => {
-        if (!window.confirm(`Excluir ${playerName}? Isso remove tambem gols, defesas, notas e votos registrados para ele. Esta acao nao pode ser desfeita.`)) {
+        if (!window.confirm(`Abrir votacao para remover ${playerName} desta pelada? A remocao acontece quando mais de 50% dos admins votarem SIM.`)) {
           event.preventDefault();
         }
       }}
     >
       <Button type="submit" variant="danger" className="w-full">
-        <Trash2 size={16} /> Excluir jogador
+        <Trash2 size={16} /> Solicitar remocao
       </Button>
     </form>
   );

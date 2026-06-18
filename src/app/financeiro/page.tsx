@@ -10,19 +10,35 @@ import { StatTile } from "@/components/ui/StatTile";
 import { Switch } from "@/components/ui/Switch";
 import { createTransaction, setMonthlyFee, setPlayerPaymentStatus } from "@/lib/financeActions";
 import { formatCurrencyBRL, monthKey, monthLabel, parseMonthKey, shiftMonth } from "@/lib/financeUtils";
+import { isPeladaIdPro } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/session";
 import { cn, formatDate } from "@/lib/utils";
+import { ProLockedCard } from "@/components/ui/ProLockedCard";
 
 export default async function FinancePage({
   searchParams
 }: {
   searchParams?: Promise<{ mes?: string }>;
 }) {
-  await requireAdmin();
+  const admin = await requireAdmin();
+  const peladaId = admin.peladaId!;
+  const isPro = await isPeladaIdPro(peladaId);
   const query = await searchParams;
   const now = new Date();
   const { year, month } = parseMonthKey(query?.mes, { year: now.getFullYear(), month: now.getMonth() + 1 });
+
+  if (!isPro) {
+    return (
+      <AppShell>
+        <div className="mb-5">
+          <p className="font-jersey text-sm font-semibold uppercase tracking-[.14em] text-musgo">Acesso restrito</p>
+          <h1 className="font-display text-3xl font-extrabold tracking-[-.02em]">Financeiro</h1>
+        </div>
+        <ProLockedCard feature="Financeiro" />
+      </AppShell>
+    );
+  }
 
   const prevMonth = shiftMonth(year, month, -1);
   const nextMonth = shiftMonth(year, month, 1);
@@ -31,13 +47,13 @@ export default async function FinancePage({
   const todayInput = now.toISOString().slice(0, 10);
 
   const [feeConfig, players, allPayments, allTransactions] = await Promise.all([
-    prisma.monthlyFeeConfig.findUnique({ where: { year_month: { year, month } } }),
+    prisma.monthlyFeeConfig.findUnique({ where: { peladaId_year_month: { peladaId, year, month } } }),
     prisma.player.findMany({
-      where: { active: true, membershipStatus: "MENSALISTA" },
+      where: { peladaId, active: true, membershipStatus: "MENSALISTA" },
       orderBy: { name: "asc" }
     }),
-    prisma.monthlyPayment.findMany(),
-    prisma.transaction.findMany({ orderBy: { date: "desc" } })
+    prisma.monthlyPayment.findMany({ where: { peladaId } }),
+    prisma.transaction.findMany({ where: { peladaId }, orderBy: { date: "desc" } })
   ]);
 
   const currentPayments = allPayments.filter((payment) => payment.year === year && payment.month === month);

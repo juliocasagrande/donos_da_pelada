@@ -11,13 +11,13 @@ export default async function DrawPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ error?: string }>;
 }) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const { id } = await params;
   const { error } = await searchParams;
   const [presentCount, players] = await Promise.all([
     prisma.attendance.count({ where: { matchId: id, status: "CONFIRMED" } }),
     prisma.player.findMany({
-      where: { active: true },
+      where: { peladaId: admin.peladaId!, active: true },
       include: { attendances: { where: { matchId: id } } },
       orderBy: [{ membershipStatus: "asc" }, { name: "asc" }]
     })

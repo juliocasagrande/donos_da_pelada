@@ -4,14 +4,14 @@ import { AppShell } from "@/components/layout/AppShell";
 import { PlayerList } from "@/components/players/PlayerList";
 import { Button } from "@/components/ui/Button";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { isPeladaAdmin, requireUser } from "@/lib/session";
 
 export default async function PlayersPage() {
   const user = await requireUser();
-  const isAdmin = user.role === "MASTER" || user.role === "ADMIN";
+  const isAdmin = isPeladaAdmin(user);
   const players = await prisma.player.findMany({
-    where: { active: true },
-    include: { goals: true, defenses: true },
+    where: { peladaId: user.peladaId!, active: true },
+    include: { goals: true, defenses: true, user: { select: { whatsapp: true, whatsappChatEnabled: true } } },
     orderBy: [{ name: "asc" }]
   });
 
@@ -23,6 +23,7 @@ export default async function PlayersPage() {
     position: player.position,
     membershipStatus: player.membershipStatus,
     ratingAssigned: player.ratingAssigned,
+    whatsapp: player.user?.whatsappChatEnabled ? player.user.whatsapp : null,
     goals: player.goals.reduce((sum, item) => sum + item.quantity, 0),
     saves: player.defenses.reduce((sum, item) => sum + item.quantity, 0)
   }));

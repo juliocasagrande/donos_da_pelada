@@ -1,7 +1,7 @@
 export const LINE_CAPACITY = 18;
 export const GOALKEEPER_CAPACITY = 2;
 export const TOTAL_CAPACITY = LINE_CAPACITY + GOALKEEPER_CAPACITY;
-export const VOTING_WINDOW_HOURS = 6;
+export const VOTING_WINDOW_HOURS = 1;
 
 export type ConfirmedCounts = { total: number; goalkeepers: number; line: number };
 

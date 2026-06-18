@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { LogOut, Shield, Users } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PlayerForm } from "@/components/forms/PlayerForm";
 import { Card } from "@/components/ui/Card";
@@ -12,7 +14,11 @@ export default async function ProfilePage({
 }) {
   const user = await requireUser();
   const { salvo } = await searchParams;
-  const player = await prisma.player.findUnique({ where: { userId: user.id } });
+  const player = await prisma.player.findFirst({ where: { userId: user.id, peladaId: user.peladaId! } });
+  const profile = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { whatsapp: true, whatsappChatEnabled: true }
+  });
 
   return (
     <AppShell>
@@ -20,7 +26,23 @@ export default async function ProfilePage({
         <p className="font-jersey text-sm font-semibold uppercase tracking-[.14em] text-musgo">Minha conta</p>
         <h1 className="font-display text-3xl font-extrabold tracking-[-.02em]">Meu perfil</h1>
         <p className="text-musgo">{user.email}</p>
+        {user.role === "MASTER" ? (
+          <span className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-[#FCEFD6] px-2.5 py-1.5 text-xs font-bold text-[#8a5a06]">
+            <Shield size={14} /> Administrador master
+          </span>
+        ) : null}
       </div>
+
+      <Card className="mb-4 divide-y divide-linha p-0">
+        <Link href="/peladas" className="flex items-center gap-3 p-3.5">
+          <Users className="text-campo" size={18} />
+          <span className="flex-1 font-semibold">Gerenciar peladas</span>
+        </Link>
+        <Link href="/logout" className="flex items-center gap-3 p-3.5 text-ausente">
+          <LogOut size={18} />
+          <span className="flex-1 font-semibold">Sair da conta</span>
+        </Link>
+      </Card>
 
       {salvo ? (
         <div className="animate-card mb-4 rounded-[13px] border border-campo/30 bg-[#EAF5EC] p-3 text-sm font-semibold text-campo">
@@ -31,9 +53,18 @@ export default async function ProfilePage({
       <Card className="mx-auto max-w-md">
         <PlayerForm
           action={updateOwnProfile}
-          player={player ?? undefined}
+          player={player ? { ...player, ...profile } : profile ? {
+            name: user.name || "",
+            nickname: null,
+            photoUrl: user.image || null,
+            position: "MEIA",
+            rating: 0,
+            whatsapp: profile.whatsapp,
+            whatsappChatEnabled: profile.whatsappChatEnabled
+          } : undefined}
           submitLabel="Salvar alteracoes"
           canEditRating={false}
+          showWhatsapp
         />
       </Card>
     </AppShell>

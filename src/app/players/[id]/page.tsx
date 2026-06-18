@@ -4,7 +4,7 @@ import { ArrowLeft, Flame, MoreHorizontal, Star, Trophy } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PlayerAvatar } from "@/components/players/PlayerAvatar";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { isPeladaAdmin, requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 function positionLabel(position: string) {
@@ -35,11 +35,11 @@ function average(values: number[]) {
 
 export default async function PlayerProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser();
-  const isAdmin = user.role === "MASTER" || user.role === "ADMIN";
+  const isAdmin = isPeladaAdmin(user);
   const { id } = await params;
   const [player, activePlayers] = await Promise.all([
-    prisma.player.findUnique({
-      where: { id },
+    prisma.player.findFirst({
+      where: { id, peladaId: user.peladaId! },
       include: {
         goals: true,
         defenses: true,
@@ -49,7 +49,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
       }
     }),
     prisma.player.findMany({
-      where: { active: true },
+      where: { peladaId: user.peladaId!, active: true },
       include: { ratings: { include: { match: true } } }
     })
   ]);

@@ -1,7 +1,15 @@
 import { getServerSession } from "next-auth";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+
+export const ACTIVE_PELADA_COOKIE = "pelada_id";
+
+export function isPeladaAdmin(user: { role: string; peladaRole?: string | null } | null | undefined) {
+  if (!user) return false;
+  return user.role === "MASTER" || user.peladaRole === "PRESIDENTE" || user.peladaRole === "ADMIN";
+}
 
 export async function getCurrentUser() {
   const session = await getServerSession(authOptions);
@@ -13,19 +21,50 @@ export async function getCurrentUser() {
   });
   if (!dbUser) return null;
 
-  return { ...session.user, ...dbUser };
+  const cookieStore = await cookies();
+  const requestedPeladaId = cookieStore.get(ACTIVE_PELADA_COOKIE)?.value;
+  let membership =
+    (requestedPeladaId &&
+      (await prisma.peladaMembership.findUnique({
+        where: { userId_peladaId: { userId: session.user.id, peladaId: requestedPeladaId } }
+      }))) ||
+    (await prisma.peladaMembership.findFirst({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "asc" }
+    }));
+
+  const linkedPlayer = membership
+    ? await prisma.player.findFirst({
+        where: { userId: session.user.id, peladaId: membership.peladaId },
+        select: { id: true, active: true, membershipStatus: true }
+      })
+    : null;
+  const hasPlayerProfile = Boolean(linkedPlayer);
+  const effectivePeladaRole =
+    membership?.role === "ADMIN" && (!linkedPlayer?.active || linkedPlayer.membershipStatus !== "MENSALISTA")
+      ? "JOGADOR"
+      : membership?.role ?? null;
+
+  return {
+    ...session.user,
+    ...dbUser,
+    peladaId: membership?.peladaId ?? null,
+    peladaRole: effectivePeladaRole,
+    hasPlayerProfile
+  };
 }
 
 export async function requireUser() {
   const user = await getCurrentUser();
   if (!user || !user.active) redirect("/login");
-  if (!user.onboarded && user.role === "PLAYER") redirect("/onboarding");
+  if (!user.peladaId) redirect("/peladas");
+  if (!user.hasPlayerProfile && !isPeladaAdmin(user)) redirect("/perfil/onboarding");
   return user;
 }
 
 export async function requireAdmin() {
   const user = await requireUser();
-  if (user.role !== "MASTER" && user.role !== "ADMIN") redirect("/dashboard");
+  if (!isPeladaAdmin(user)) redirect("/dashboard");
   return user;
 }
 
@@ -33,6 +72,15 @@ export async function requireMaster() {
   const user = await requireUser();
   if (user.role !== "MASTER") redirect("/dashboard");
   return user;
+}
+
+export async function requirePeladaMembership(peladaId: string) {
+  const user = await requireUser();
+  const membership = await prisma.peladaMembership.findUnique({
+    where: { userId_peladaId: { userId: user.id, peladaId } }
+  });
+  if (!membership) redirect("/dashboard");
+  return { user, membership };
 }
 
 export class ApiAuthError extends Error {
@@ -58,7 +106,7 @@ export async function requireApiUser() {
 
 export async function requireApiAdmin() {
   const user = await requireApiUser();
-  if (user.role !== "MASTER" && user.role !== "ADMIN") {
+  if (!isPeladaAdmin(user)) {
     throw new ApiAuthError("Acesso restrito a administradores.", 403);
   }
   return user;

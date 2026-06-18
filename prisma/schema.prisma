@@ -52,6 +52,39 @@ enum TransactionType {
   EXPENSE
 }
 
+enum PeladaRole {
+  PRESIDENTE
+  ADMIN
+  JOGADOR
+}
+
+enum MatchKind {
+  PELADA
+  AMISTOSO
+}
+
+enum PeladaPlan {
+  FREE
+  PRO_IN_PROGRESS
+  PRO
+}
+
+enum JoinRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum DeletionRequestTarget {
+  PELADA
+  PLAYER
+}
+
+enum DeletionVoteValue {
+  YES
+  NO
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -62,7 +95,7 @@ model User {
   role          UserRole  @default(PLAYER)
   active        Boolean   @default(true)
   onboarded     Boolean   @default(false)
-  player        Player?
+  players       Player[]
   accounts      Account[]
   sessions      Session[]
   votes         PollVote[]
@@ -72,23 +105,158 @@ model User {
   guestInvites Attendance[] @relation("GuestInvites")
   auditLogs    AuditLog[]
   transactions Transaction[]
+  peladaMemberships PeladaMembership[]
+  createdPeladaInvites PeladaInvite[]
+  createdDeletionRequests DeletionRequest[] @relation("CreatedDeletionRequests")
+  deletionVotes DeletionVote[]
+  peladaJoinRequests PeladaJoinRequest[]
+  careerStats   UserCareerStats?
+  whatsapp      String?
+  whatsappChatEnabled Boolean @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
 
+model Pelada {
+  id              String             @id @default(cuid())
+  name            String
+  slug            String             @unique
+  createdByUserId String?
+  plan            PeladaPlan         @default(FREE)
+  trialEndsAt     DateTime?
+  mpSubscriptionId String?           @unique
+  mpSubscriptionInterval String?
+  subscriptionCancelledAt DateTime?
+  mpPaymentPreferenceId String?
+  mpPaymentId     String?
+  mpPaymentStatus String?
+  mpPaymentStatusDetail String?
+  mpPaymentError  String?
+  mpAuthorizedAmount Float?
+  proCancelUntil  DateTime?
+  proCancelRollbackUntil DateTime?
+  proCaptureAt    DateTime?
+  proRenewsAt     DateTime?
+  memberships     PeladaMembership[]
+  invites         PeladaInvite[]
+  joinRequests    PeladaJoinRequest[]
+  players         Player[]
+  matches         Match[]
+  transactions    Transaction[]
+  feeConfigs      MonthlyFeeConfig[]
+  payments        MonthlyPayment[]
+  deletionRequests DeletionRequest[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+}
+
+model DeletionRequest {
+  id              String                @id @default(cuid())
+  peladaId        String
+  target          DeletionRequestTarget
+  targetId        String
+  targetName      String
+  reason          String?
+  status          PollStatus             @default(OPEN)
+  createdByUserId String?
+  createdByUser   User?                 @relation("CreatedDeletionRequests", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  pelada          Pelada                @relation(fields: [peladaId], references: [id], onDelete: Cascade)
+  votes           DeletionVote[]
+  executedAt      DateTime?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@index([peladaId, status])
+  @@index([target, targetId, status])
+}
+
+model DeletionVote {
+  id        String              @id @default(cuid())
+  requestId String
+  userId    String
+  vote      DeletionVoteValue
+  request   DeletionRequest     @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  @@unique([requestId, userId])
+  @@index([userId])
+}
+
+model UserCareerStats {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  goalsTotal    Int      @default(0)
+  presenceTotal Int      @default(0)
+  craqueTotal   Int      @default(0)
+  ratingSum     Float    @default(0)
+  ratingCount   Int      @default(0)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt     DateTime @updatedAt
+}
+
+model PeladaJoinRequest {
+  id        String            @id @default(cuid())
+  peladaId  String
+  userId    String
+  status    JoinRequestStatus @default(PENDING)
+  pelada    Pelada            @relation(fields: [peladaId], references: [id], onDelete: Cascade)
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@unique([peladaId, userId])
+  @@index([peladaId, status])
+}
+
+model PeladaMembership {
+  id        String     @id @default(cuid())
+  userId    String
+  peladaId  String
+  role      PeladaRole @default(JOGADOR)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pelada    Pelada     @relation(fields: [peladaId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+
+  @@unique([userId, peladaId])
+  @@index([peladaId])
+}
+
+model PeladaInvite {
+  id              String     @id @default(cuid())
+  peladaId        String
+  code            String     @unique @default(cuid())
+  role            PeladaRole @default(JOGADOR)
+  createdByUserId String?
+  maxUses         Int?
+  usedCount       Int        @default(0)
+  expiresAt       DateTime?
+  revokedAt       DateTime?
+  pelada          Pelada     @relation(fields: [peladaId], references: [id], onDelete: Cascade)
+  createdByUser   User?      @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  createdAt       DateTime   @default(now())
+
+  @@index([peladaId])
+}
+
 model MonthlyFeeConfig {
   id        String   @id @default(cuid())
+  peladaId  String
+  pelada    Pelada   @relation(fields: [peladaId], references: [id], onDelete: Cascade)
   year      Int
   month     Int
   amount    Float
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([year, month])
+  @@unique([peladaId, year, month])
 }
 
 model MonthlyPayment {
   id        String   @id @default(cuid())
+  peladaId  String
+  pelada    Pelada   @relation(fields: [peladaId], references: [id], onDelete: Cascade)
   playerId  String
   year      Int
   month     Int
@@ -97,11 +265,13 @@ model MonthlyPayment {
   player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
-  @@unique([playerId, year, month])
+  @@unique([peladaId, playerId, year, month])
 }
 
 model Transaction {
   id              String          @id @default(cuid())
+  peladaId        String
+  pelada          Pelada          @relation(fields: [peladaId], references: [id], onDelete: Cascade)
   type            TransactionType
   description     String
   amount          Float
@@ -110,7 +280,7 @@ model Transaction {
   createdByUser   User?           @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
   createdAt       DateTime        @default(now())
 
-  @@index([date])
+  @@index([peladaId, date])
 }
 
 model AuditLog {
@@ -176,8 +346,10 @@ model VerificationToken {
 
 model Player {
   id          String            @id @default(cuid())
-  userId      String?           @unique
+  userId      String?
   user        User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  peladaId    String
+  pelada      Pelada            @relation(fields: [peladaId], references: [id], onDelete: Cascade)
   name        String
   nickname    String?
   photoUrl    String?
@@ -198,15 +370,25 @@ model Player {
   payments    MonthlyPayment[]
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
+
+  @@unique([userId, peladaId])
+  @@index([peladaId])
 }
 
 model Match {
   id          String            @id @default(cuid())
+  peladaId    String
+  pelada      Pelada            @relation(fields: [peladaId], references: [id], onDelete: Cascade)
   date        DateTime
   title       String
   status      MatchStatus       @default(OPEN)
+  kind        MatchKind         @default(PELADA)
   surface     MatchSurface      @default(SOCIETY)
   location    String?
+  opponentName String?
+  homeScore   Int?
+  awayScore   Int?
+  closeReminderSentAt DateTime?
   attendances Attendance[]
   teams       Team[]
   goals       Goal[]
@@ -217,6 +399,8 @@ model Match {
   polls       Poll[]
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
+
+  @@index([peladaId])
 }
 
 model Attendance {

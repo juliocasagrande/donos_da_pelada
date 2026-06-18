@@ -5,13 +5,13 @@ import { signOut } from "next-auth/react";
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
-export function LogoutActions() {
+export function LogoutActions({ callbackUrl = "/login" }: { callbackUrl?: string }) {
   return (
     <div className="grid gap-3">
       <Button
         type="button"
         className="w-full"
-        onClick={() => signOut({ callbackUrl: "/login" })}
+        onClick={() => signOut({ callbackUrl })}
       >
         <LogOut size={18} />
         Sair da conta

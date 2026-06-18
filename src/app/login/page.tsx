@@ -4,9 +4,15 @@ import { LoginPanel } from "@/components/forms/LoginPanel";
 import { DeveloperCredit } from "@/components/layout/DeveloperCredit";
 import { getCurrentUser } from "@/lib/session";
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams
+}: {
+  searchParams?: Promise<{ callbackUrl?: string }>;
+}) {
   const user = await getCurrentUser();
   if (user) redirect("/dashboard");
+  const query = await searchParams;
+  const callbackUrl = query?.callbackUrl?.startsWith("/") ? query.callbackUrl : "/dashboard";
 
   const socialProviders = [
     process.env.GOOGLE_CLIENT_ID ? "google" : "",
@@ -16,7 +22,7 @@ export default async function LoginPage() {
 
   return (
     <main className="min-h-screen overflow-hidden bg-areia text-tinta">
-      <section className="field-hero h-[185px] px-6 pt-5 text-center text-white">
+      <section className="field-hero h-[300px] px-6 pt-10 text-center text-white">
         <span className="soccer-ball soccer-ball-float absolute right-8 top-7 h-11 w-11 opacity-95" aria-hidden="true" />
         <span className="soccer-ball soccer-ball-roll absolute bottom-4 left-1/2 h-7 w-7 opacity-90" aria-hidden="true" />
         <div className="relative z-10 mx-auto flex h-16 w-16 items-center justify-center rounded-[18px] bg-craque shadow-[0_10px_24px_rgba(244,161,26,.32)]">
@@ -29,10 +35,10 @@ export default async function LoginPage() {
           Futebol sem planilha
         </p>
       </section>
-      <section className="relative z-10 flex min-h-[calc(100vh-185px)] items-center px-5 py-4">
+      <section className="relative z-10 -mt-[70px] px-5 pb-6">
         <div className="mx-auto w-full max-w-md">
-          <Card className="rounded-[22px] p-4 shadow-[0_12px_40px_rgba(17,40,28,.10)]">
-            <LoginPanel socialProviders={socialProviders} />
+          <Card className="rounded-t-[30px] p-5 shadow-[0_-10px_40px_rgba(17,40,28,.12)]">
+            <LoginPanel socialProviders={socialProviders} callbackUrl={callbackUrl} />
           </Card>
           <DeveloperCredit className="mt-4" />
         </div>

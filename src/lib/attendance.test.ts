@@ -31,9 +31,9 @@ describe("isWithinVotingWindow", () => {
     expect(isWithinVotingWindow(new Date("2026-06-18T11:59:00Z"), now)).toBe(true);
   });
 
-  it("is false after the 6 hour window elapses", () => {
+  it("is false after the 1 hour window elapses", () => {
     const openedAt = new Date("2026-06-18T00:00:00Z");
-    const now = new Date("2026-06-18T06:00:01Z");
+    const now = new Date("2026-06-18T01:00:01Z");
     expect(isWithinVotingWindow(openedAt, now)).toBe(false);
   });
 });

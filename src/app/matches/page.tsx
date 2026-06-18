@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { LocationLinks } from "@/components/matches/LocationLinks";
 import { closeMatch, deleteMatch } from "@/lib/actions";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { isPeladaAdmin, requireUser } from "@/lib/session";
 import { cn, formatDate, surfaceLabel } from "@/lib/utils";
 
 function dateParts(date: Date) {
@@ -24,17 +24,28 @@ function dateParts(date: Date) {
   return { day, month, time };
 }
 
+const kindTabs = [
+  { key: "todos", label: "Todos" },
+  { key: "PELADA", label: "Peladinha" },
+  { key: "AMISTOSO", label: "Amistoso" }
+] as const;
+
 export default async function MatchesPage({
   searchParams
 }: {
-  searchParams?: Promise<{ aba?: string }>;
+  searchParams?: Promise<{ aba?: string; tipo?: string }>;
 }) {
   const user = await requireUser();
-  const isAdmin = user.role === "MASTER" || user.role === "ADMIN";
+  const isAdmin = isPeladaAdmin(user);
   const query = await searchParams;
   const activeTab = query?.aba === "anteriores" ? "anteriores" : "proximas";
+  const activeKind = kindTabs.find((tab) => tab.key === query?.tipo) ?? kindTabs[0];
   const matches = await prisma.match.findMany({
-    where: { status: activeTab === "proximas" ? "OPEN" : "CLOSED" },
+    where: {
+      peladaId: user.peladaId!,
+      status: activeTab === "proximas" ? "OPEN" : "CLOSED",
+      ...(activeKind.key === "todos" ? {} : { kind: activeKind.key })
+    },
     include: {
       attendances: { where: { status: "CONFIRMED" } },
       _count: { select: { teams: true } }
@@ -58,9 +69,24 @@ export default async function MatchesPage({
         ) : null}
       </div>
 
+      <div className="mb-3 grid grid-cols-3 gap-1.5">
+        {kindTabs.map((tab) => (
+          <Link
+            key={tab.key}
+            href={`/matches?aba=${activeTab}&tipo=${tab.key}`}
+            className={cn(
+              "rounded-[10px] px-2 py-2 text-center text-xs font-bold shadow-sm",
+              activeKind.key === tab.key ? "bg-campo text-white" : "bg-white text-musgo"
+            )}
+          >
+            {tab.label}
+          </Link>
+        ))}
+      </div>
+
       <div className="mb-4 grid grid-cols-2 rounded-[13px] bg-white p-1 shadow-card">
         <Link
-          href="/matches?aba=proximas"
+          href={`/matches?aba=proximas&tipo=${activeKind.key}`}
           className={cn(
             "rounded-[10px] px-3 py-2 text-center text-sm font-bold",
             activeTab === "proximas" ? "bg-campo text-white" : "text-musgo"
@@ -69,7 +95,7 @@ export default async function MatchesPage({
           Proximas
         </Link>
         <Link
-          href="/matches?aba=anteriores"
+          href={`/matches?aba=anteriores&tipo=${activeKind.key}`}
           className={cn(
             "rounded-[10px] px-3 py-2 text-center text-sm font-bold",
             activeTab === "anteriores" ? "bg-campo text-white" : "text-musgo"
@@ -100,6 +126,9 @@ export default async function MatchesPage({
               <span className="flex items-center gap-1"><Clock size={15} /> {dateParts(featured.date).time}</span>
               <LocationLinks location={featured.location} />
               <span className="rounded-[7px] bg-areia px-2 py-0.5 text-xs font-bold text-mata">{surfaceLabel(featured.surface)}</span>
+              {featured.kind === "AMISTOSO" ? (
+                <span className="rounded-[7px] bg-craque/20 px-2 py-0.5 text-xs font-bold text-mata">Amistoso</span>
+              ) : null}
             </div>
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center -space-x-1">
@@ -158,7 +187,12 @@ export default async function MatchesPage({
                   <div className="mt-1 text-[10px] uppercase leading-none">{parts.month}</div>
                 </div>
                 <Link href={`/matches/${match.id}/attendance`} className="min-w-0 flex-1">
-                  <h2 className="truncate font-display text-lg font-bold">{match.title}</h2>
+                  <h2 className="truncate font-display text-lg font-bold">
+                    {match.title}
+                    {match.kind === "AMISTOSO" ? (
+                      <span className="ml-1.5 rounded-[6px] bg-craque/20 px-1.5 py-0.5 text-[10px] font-bold text-mata">Amistoso</span>
+                    ) : null}
+                  </h2>
                   <p className="truncate text-xs text-musgo">
                     {parts.time} · {match.location || "Local a definir"} · {formatDate(match.date)}
                   </p>

@@ -14,6 +14,9 @@ export const config = {
     "/matches/:path*",
     "/rankings/:path*",
     "/onboarding/:path*",
-    "/perfil/:path*"
+    "/perfil/:path*",
+    "/peladas/:path*",
+    "/convite/:path*",
+    "/pagamento/:path*"
   ]
 };

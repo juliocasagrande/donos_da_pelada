@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { PlayerAvatar } from "@/components/players/PlayerAvatar";
 import { Button } from "@/components/ui/Button";
@@ -8,8 +9,10 @@ import { requireAdmin } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 export default async function TeamsPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const { id } = await params;
+  const match = await prisma.match.findFirst({ where: { id, peladaId: admin.peladaId! }, select: { id: true } });
+  if (!match) notFound();
   const teams = await prisma.team.findMany({
     where: { matchId: id },
     include: { players: { include: { player: true } } },

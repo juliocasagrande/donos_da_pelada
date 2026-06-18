@@ -9,7 +9,7 @@ import { GuestRemoveForm } from "@/components/matches/GuestRemoveForm";
 import { LocationLinks } from "@/components/matches/LocationLinks";
 import { toggleAttendance, toggleOwnAttendance } from "@/lib/actions";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { isPeladaAdmin, requireUser } from "@/lib/session";
 import { cn, formatDate, formatTime, surfaceLabel } from "@/lib/utils";
 
 function getSaoPauloDate(date: Date) {
@@ -32,16 +32,16 @@ export default async function AttendancePage({ params }: { params: Promise<{ id:
   const user = await requireUser();
   const { id } = await params;
   const [match, players] = await Promise.all([
-    prisma.match.findUnique({ where: { id } }),
+    prisma.match.findFirst({ where: { id, peladaId: user.peladaId! } }),
     prisma.player.findMany({
-      where: { active: true },
+      where: { peladaId: user.peladaId!, active: true },
       include: { attendances: { where: { matchId: id }, include: { invitedByUser: true } } },
       orderBy: { name: "asc" }
     })
   ]);
 
-  const isAdmin = user.role === "MASTER" || user.role === "ADMIN";
-  const linkedPlayer = await prisma.player.findUnique({ where: { userId: user.id } });
+  const isAdmin = isPeladaAdmin(user);
+  const linkedPlayer = await prisma.player.findFirst({ where: { userId: user.id, peladaId: user.peladaId! } });
   const canInviteGuest =
     isAdmin ||
     Boolean(

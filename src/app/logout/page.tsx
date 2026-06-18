@@ -4,9 +4,15 @@ import { Card } from "@/components/ui/Card";
 import { LogoutActions } from "@/components/forms/LogoutActions";
 import { getCurrentUser } from "@/lib/session";
 
-export default async function LogoutPage() {
+export default async function LogoutPage({
+  searchParams
+}: {
+  searchParams?: Promise<{ callbackUrl?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  const query = await searchParams;
+  const callbackUrl = query?.callbackUrl?.startsWith("/") ? query.callbackUrl : "/login";
 
   return (
     <main className="light-field-lines flex min-h-screen items-center bg-areia px-5 py-8 text-tinta">
@@ -27,7 +33,7 @@ export default async function LogoutPage() {
             </p>
           ) : null}
         </div>
-        <LogoutActions />
+        <LogoutActions callbackUrl={callbackUrl} />
       </Card>
     </main>
   );

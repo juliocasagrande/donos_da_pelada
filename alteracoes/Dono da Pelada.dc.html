@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="__bundler_thumbnail">
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="#0B4A29"/><circle cx="50" cy="50" r="20" fill="none" stroke="#F4A11A" stroke-width="4"/><line x1="30" y1="50" x2="70" y2="50" stroke="#F4A11A" stroke-width="4"/></svg>
+</template>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Hanken+Grotesk:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  @keyframes pulseDot { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+  @keyframes growBar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+</style>
+</helmet>
+
+<div style="min-width:100%; min-height:100vh; width:max-content; box-sizing:border-box; padding:48px; background:#e7e5df; font-family:'Hanken Grotesk',sans-serif;">
+
+  <div style="margin-bottom:40px;">
+    <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:30px; color:#16261D; letter-spacing:-.02em;">Dono da Pelada — Redesign</div>
+    <div style="font-size:15px; color:#6b675e; margin-top:4px;">App claro & raiz de várzea · Next.js + Tailwind · refatoração multi-pelada (login + dashboard)</div>
+  </div>
+
+  <!-- ============ SEÇÃO: MULTI-PELADA · ONBOARDING ============ -->
+  <div style="font-family:'Saira Condensed',sans-serif; font-weight:600; font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:#8a857a; margin-bottom:6px;">Multi-pelada · Onboarding</div>
+  <div style="font-size:14px; color:#6b675e; max-width:760px; margin-bottom:18px; line-height:1.5;">Login segue enxuto. As 3 opções (criar / buscar / convite) aparecem num <strong style="color:#16261D;">passo logo após criar a conta</strong> — não dentro do formulário. Quem tem convite também entra direto pelo rodapé do login.</div>
+  <div style="display:flex; gap:40px; align-items:flex-start; margin-bottom:56px;">
+
+    <!-- LOGIN REFINADO -->
+    <div style="flex:none; width:390px;">
+      <div style="font-size:13px; font-weight:600; color:#6b675e; margin-bottom:12px;">N1 · Login (enxuto + atalho de convite)</div>
+      <div style="position:relative; width:390px; height:844px; background:#F1F4ED; border-radius:44px; overflow:hidden; box-shadow:0 24px 60px -14px rgba(17,40,28,.32), 0 0 0 1px rgba(17,40,28,.06);">
+        <div style="position:absolute; top:0; left:0; right:0; height:300px; background:linear-gradient(165deg,#0B4A29 0%,#11643A 60%,#1B9E4B 130%); overflow:hidden;">
+          <div style="position:absolute; inset:0; background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,transparent 1px 46px);"></div>
+          <div style="position:absolute; width:200px; height:200px; border:2px solid rgba(255,255,255,.14); border-radius:50%; top:110px; left:50%; transform:translateX(-50%);"></div>
+          <div style="position:absolute; left:0; right:0; top:210px; height:2px; background:rgba(255,255,255,.14);"></div>
+        </div>
+        <div style="position:relative; display:flex; justify-content:space-between; align-items:center; padding:16px 28px 0; color:#fff;"><span style="font-weight:700; font-size:15px; font-family:'Saira Condensed';">20:45</span><span style="display:flex; gap:6px; align-items:center;"><svg width="17" height="12" viewBox="0 0 18 12" fill="#fff"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="8" rx="1"/><rect x="10" y="1" width="3" height="11" rx="1" opacity=".5"/></svg><svg width="22" height="12" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="19" height="10" rx="2.5" stroke="#fff" opacity=".6"/><rect x="3" y="3" width="13" height="6" rx="1" fill="#fff"/></svg></span></div>
+        <div style="position:relative; text-align:center; margin-top:30px;">
+          <div style="width:72px; height:72px; margin:0 auto; border-radius:20px; background:#F4A11A; box-shadow:0 10px 24px rgba(244,161,26,.4); display:flex; align-items:center; justify-content:center;"><div style="width:38px; height:38px; border-radius:50%; border:3px solid #0B4A29; position:relative;"><div style="position:absolute; top:50%; left:-3px; right:-3px; height:3px; background:#0B4A29; transform:translateY(-50%);"></div></div></div>
+          <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:24px; color:#fff; margin-top:13px; letter-spacing:-.02em;">Dono da Pelada</div>
+          <div style="font-family:'Saira Condensed'; font-weight:600; font-size:13px; letter-spacing:.16em; color:#9fe3b8; text-transform:uppercase; margin-top:2px;">Futebol sem planilha</div>
+        </div>
+        <div style="position:absolute; top:350px; left:20px; right:20px; bottom:0; background:#fff; border-radius:30px 30px 0 0; box-shadow:0 -10px 40px rgba(17,40,28,.12); padding:24px;">
+          <div style="font-size:13px; font-weight:600; color:#16261D; margin-bottom:7px;">E-mail</div>
+          <div style="display:flex; align-items:center; gap:10px; background:#F6F8F3; border:1.5px solid #E6EADF; border-radius:13px; padding:13px 14px; margin-bottom:14px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8a857a" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg><span style="font-size:15px; color:#16261D;">joao@pelada.com</span></div>
+          <div style="font-size:13px; font-weight:600; color:#16261D; margin-bottom:7px;">Senha</div>
+          <div style="display:flex; align-items:center; gap:10px; background:#F6F8F3; border:1.5px solid #E6EADF; border-radius:13px; padding:13px 14px; margin-bottom:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8a857a" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span style="font-size:15px; color:#16261D; letter-spacing:3px;">••••••••</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8a857a" stroke-width="2" style="margin-left:auto;"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></div>
+          <div style="text-align:right; font-size:13px; font-weight:600; color:#1B9E4B; margin-bottom:16px;">Esqueci a senha</div>
+          <button style="width:100%; border:none; background:#1B9E4B; color:#fff; font-family:'Hanken Grotesk'; font-weight:700; font-size:16px; padding:15px; border-radius:14px; box-shadow:0 10px 22px rgba(27,158,75,.32); cursor:pointer;">Entrar</button>
+          <div style="text-align:center; font-size:14px; color:#6b675e; margin-top:16px;">Novo na pelada? <span style="color:#0B4A29; font-weight:700;">Criar conta</span></div>
+          <div style="display:flex; align-items:center; gap:10px; margin:18px 0;"><div style="flex:1; height:1px; background:#E6EADF;"></div><span style="font-size:12px; color:#A7AFA1;">ou</span><div style="flex:1; height:1px; background:#E6EADF;"></div></div>
+          <button style="width:100%; border:1.5px solid #E6EADF; background:#fff; color:#16261D; font-weight:600; font-size:15px; padding:13px; border-radius:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1B9E4B" stroke-width="2"><path d="M2 9a3 3 0 0 1 3-3h14a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3z"/><path d="M13 5v4M13 15v4"/></svg>Entrar com código de convite</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ESCOLHA DO CAMINHO (PÓS-CADASTRO) -->
+    <div style="flex:none; width:390px;">
+      <div style="font-size:13px; font-weight:600; color:#1B9E4B; margin-bottom:12px;">N2 · Pós-cadastro — como começar ★</div>
+      <div style="position:relative; width:390px; height:844px; background:#F1F4ED; border-radius:44px; overflow:hidden; box-shadow:0 24px 60px -14px rgba(17,40,28,.32), 0 0 0 1px rgba(17,40,28,.06);">
+        <div style="position:absolute; top:0; left:0; right:0; height:200px; background:linear-gradient(160deg,#0B4A29,#15824A); overflow:hidden;"><div style="position:absolute; inset:0; background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,transparent 1px 44px);"></div><div style="position:absolute; width:120px; height:120px; border:2px solid rgba(255,255,255,.1); border-radius:50%; top:50px; right:-20px;"></div></div>
+        <div style="position:relative; display:flex; justify-content:space-between; align-items:center; padding:16px 28px 0; color:#fff;"><span style="font-weight:700; font-size:15px; font-family:'Saira Condensed';">20:45</span><span style="display:flex; gap:6px; align-items:center;"><svg width="17" height="12" viewBox="0 0 18 12" fill="#fff"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="8" rx="1"/><rect x="10" y="1" width="3" height="11" rx="1" opacity=".5"/></svg><svg width="22" height="12" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="19" height="10" rx="2.5" stroke="#fff" opacity=".6"/><rect x="3" y="3" width="13" height="6" rx="1" fill="#fff"/></svg></span></div>
+        <div style="position:relative; padding:22px 24px 0; color:#fff;">
+          <div style="display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,.16); padding:5px 11px; border-radius:20px; font-size:12px; font-weight:600;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9fe3b8" stroke-width="2.5"><path d="M20 6 9 17l-4-4"/></svg>Conta criada</div>
+          <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:25px; margin-top:12px; line-height:1.15;">Salve, João!<br>Como você quer começar?</div>
+        </div>
+        <div style="position:absolute; top:218px; left:20px; right:20px; bottom:0; background:#fff; border-radius:26px 26px 0 0; box-shadow:0 -10px 40px rgba(17,40,28,.12); padding:22px 18px;">
+          <!-- opção 1 -->
+          <div style="border:2px solid #1B9E4B; background:#F6FBF7; border-radius:18px; padding:15px; display:flex; align-items:center; gap:14px; position:relative;">
+            <div style="position:absolute; top:-9px; right:14px; background:#1B9E4B; color:#fff; font-size:10px; font-weight:700; padding:3px 9px; border-radius:6px;">SEU PRÓPRIO GRUPO</div>
+            <div style="width:48px; height:48px; border-radius:14px; background:#1B9E4B; display:flex; align-items:center; justify-content:center; flex:none;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2 4 5v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V5z"/><path d="M12 8v6M9 11h6"/></svg></div>
+            <div style="flex:1;"><div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:16px; color:#16261D;">Criar minha pelada</div><div style="font-size:12.5px; color:#69786D; margin-top:2px; line-height:1.35;">Você vira presidente e organiza o grupo</div></div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1B9E4B" stroke-width="2.4"><path d="m9 18 6-6-6-6"/></svg>
+          </div>
+          <!-- opção 2 -->
+          <div style="border:1.5px solid #E6EADF; background:#fff; border-radius:18px; padding:15px; display:flex; align-items:center; gap:14px; margin-top:12px;">
+            <div style="width:48px; height:48px; border-radius:14px; background:#EAF5EC; display:flex; align-items:center; justify-content:center; flex:none;"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#0B4A29" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div>
+            <div style="flex:1;"><div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:16px; color:#16261D;">Entrar numa pelada</div><div style="font-size:12.5px; color:#69786D; margin-top:2px; line-height:1.35;">Busque pelo nome e peça pra entrar</div></div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C7CDC0" stroke-width="2.4"><path d="m9 18 6-6-6-6"/></svg>
+          </div>
+          <!-- opção 3 -->
+          <div style="border:1.5px solid #E6EADF; background:#fff; border-radius:18px; padding:15px; display:flex; align-items:center; gap:14px; margin-top:12px;">
+            <div style="width:48px; height:48px; border-radius:14px; background:#FCEFD6; display:flex; align-items:center; justify-content:center; flex:none;"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#C58207" stroke-width="2"><path d="M2 9a3 3 0 0 1 3-3h14a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3z"/><path d="M13 5v4M13 15v4"/></svg></div>
+            <div style="flex:1;"><div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:16px; color:#16261D;">Tenho um convite</div><div style="font-size:12.5px; color:#69786D; margin-top:2px; line-height:1.35;">Use o código ou link que te mandaram</div></div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C7CDC0" stroke-width="2.4"><path d="m9 18 6-6-6-6"/></svg>
+          </div>
+          <div style="text-align:center; font-size:12.5px; color:#A7AFA1; margin-top:20px; line-height:1.4;">Pode mudar depois — dá pra participar<br>de várias peladas ao mesmo tempo.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BUSCAR PELADA -->
+    <div style="flex:none; width:390px;">
+      <div style="font-size:13px; font-weight:600; color:#6b675e; margin-bottom:12px;">N3 · Entrar numa pelada (buscar)</div>
+      <div style="position:relative; width:390px; height:844px; background:#F1F4ED; border-radius:44px; overflow:hidden; box-shadow:0 24px 60px -14px rgba(17,40,28,.32), 0 0 0 1px rgba(17,40,28,.06);">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 28px 0; color:#16261D;"><span style="font-weight:700; font-size:15px; font-family:'Saira Condensed';">20:45</span><span style="display:flex; gap:6px; align-items:center;"><svg width="17" height="12" viewBox="0 0 18 12" fill="#16261D"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="8" rx="1"/><rect x="10" y="1" width="3" height="11" rx="1"/></svg><svg width="22" height="12" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="19" height="10" rx="2.5" stroke="#16261D" opacity=".5"/><rect x="3" y="3" width="13" height="6" rx="1" fill="#16261D"/></svg></span></div>
+        <div style="display:flex; align-items:center; gap:12px; padding:12px 22px 14px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16261D" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg><div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:23px; color:#16261D; letter-spacing:-.02em;">Entrar numa pelada</div></div>
+        <div style="padding:0 22px;">
+          <div style="display:flex; align-items:center; gap:10px; background:#fff; border:1.5px solid #1B9E4B; border-radius:13px; padding:12px 14px; box-shadow:0 4px 12px rgba(27,158,75,.1);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1B9E4B" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><span style="font-size:15px; color:#16261D;">Society do Zé</span></div>
+          <div style="font-size:12.5px; color:#69786D; margin:14px 2px 10px;">3 peladas encontradas</div>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div style="background:#fff; border-radius:16px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.05); display:flex; align-items:center; gap:13px;">
+              <div style="width:46px; height:46px; border-radius:13px; background:linear-gradient(150deg,#0B4A29,#1B9E4B); display:flex; align-items:center; justify-content:center; flex:none;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2 4 5v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V5z"/></svg></div>
+              <div style="flex:1;"><div style="font-weight:700; font-size:15px; color:#16261D;">Pelada de quinta</div><div style="font-size:12px; color:#69786D; margin-top:2px;">Society do Zé · 24 jogadores</div></div>
+              <button style="border:none; background:#1B9E4B; color:#fff; font-weight:700; font-size:13px; padding:9px 14px; border-radius:10px; cursor:pointer;">Pedir entrada</button>
+            </div>
+            <div style="background:#fff; border-radius:16px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.05); display:flex; align-items:center; gap:13px;">
+              <div style="width:46px; height:46px; border-radius:13px; background:linear-gradient(150deg,#C58207,#F4A11A); display:flex; align-items:center; justify-content:center; flex:none;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2 4 5v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V5z"/></svg></div>
+              <div style="flex:1;"><div style="font-weight:700; font-size:15px; color:#16261D;">Society Zé · Sábado</div><div style="font-size:12px; color:#69786D; margin-top:2px;">Society do Zé · 18 jogadores</div></div>
+              <span style="display:flex; align-items:center; gap:5px; color:#C58207; font-weight:700; font-size:12px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C58207" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Pendente</span>
+            </div>
+            <div style="background:#fff; border-radius:16px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.05); display:flex; align-items:center; gap:13px;">
+              <div style="width:46px; height:46px; border-radius:13px; background:linear-gradient(150deg,#2C6E49,#54B97A); display:flex; align-items:center; justify-content:center; flex:none;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2 4 5v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V5z"/></svg></div>
+              <div style="flex:1;"><div style="font-weight:700; font-size:15px; color:#16261D;">Veteranos do Zé</div><div style="font-size:12px; color:#69786D; margin-top:2px;">Society do Zé · 30 jogadores</div></div>
+              <button style="border:none; background:#1B9E4B; color:#fff; font-weight:700; font-size:13px; padding:9px 14px; border-radius:10px; cursor:pointer;">Pedir entrada</button>
+            </div>
+          </div>
+          <div style="background:#F6F8F3; border:1px dashed #C7CDC0; border-radius:14px; padding:14px; margin-top:16px; text-align:center;"><div style="font-size:13px; color:#69786D;">Não achou seu grupo?</div><div style="font-size:14px; color:#0B4A29; font-weight:700; margin-top:3px;">Criar uma pelada nova</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRAR COM CONVITE -->
+    <div style="flex:none; width:390px;">
+      <div style="font-size:13px; font-weight:600; color:#6b675e; margin-bottom:12px;">N4 · Entrar com convite (código)</div>
+      <div style="position:relative; width:390px; height:844px; background:#F1F4ED; border-radius:44px; overflow:hidden; box-shadow:0 24px 60px -14px rgba(17,40,28,.32), 0 0 0 1px rgba(17,40,28,.06);">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 28px 0; color:#16261D;"><span style="font-weight:700; font-size:15px; font-family:'Saira Condensed';">20:45</span><span style="display:flex; gap:6px; align-items:center;"><svg width="17" height="12" viewBox="0 0 18 12" fill="#16261D"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="8" rx="1"/><rect x="10" y="1" width="3" height="11" rx="1"/></svg><svg width="22" height="12" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="19" height="10" rx="2.5" stroke="#16261D" opacity=".5"/><rect x="3" y="3" width="13" height="6" rx="1" fill="#16261D"/></svg></span></div>
+        <div style="display:flex; align-items:center; gap:12px; padding:12px 22px 18px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16261D" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg><div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:23px; color:#16261D; letter-spacing:-.02em;">Tenho um convite</div></div>
+        <div style="padding:0 22px;">
+          <div style="text-align:center; margin-bottom:8px;"><div style="width:60px; height:60px; margin:0 auto; border-radius:18px; background:#FCEFD6; display:flex; align-items:center; justify-content:center;"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#C58207" stroke-width="2"><path d="M2 9a3 3 0 0 1 3-3h14a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3z"/><path d="M13 5v4M13 15v4"/></svg></div><div style="font-size:14px; color:#69786D; margin-top:12px;">Digite o código que te mandaram</div></div>
+          <div style="display:flex; gap:8px; justify-content:center; margin-top:14px;">
+            <div style="width:42px; height:54px; border-radius:11px; border:1.5px solid #1B9E4B; background:#fff; display:flex; align-items:center; justify-content:center; font-family:'Saira Condensed'; font-weight:700; font-size:26px; color:#16261D;">P</div>
+            <div style="width:42px; height:54px; border-radius:11px; border:1.5px solid #1B9E4B; background:#fff; display:flex; align-items:center; justify-content:center; font-family:'Saira Condensed'; font-weight:700; font-size:26px; color:#16261D;">E</div>
+            <div style="width:42px; height:54px; border-radius:11px; border:1.5px solid #1B9E4B; background:#fff; display:flex; align-items:center; justify-content:center; font-family:'Saira Condensed'; font-weight:700; font-size:26px; color:#16261D;">L</div>
+            <div style="width:14px;"></div>
+            <div style="width:42px; height:54px; border-radius:11px; border:1.5px solid #1B9E4B; background:#fff; display:flex; align-items:center; justify-content:center; font-family:'Saira Condensed'; font-weight:700; font-size:26px; color:#16261D;">7</div>
+            <div style="width:42px; height:54px; border-radius:11px; border:1.5px solid #1B9E4B; background:#fff; display:flex; align-items:center; justify-content:center; font-family:'Saira Condensed'; font-weight:700; font-size:26px; color:#16261D;">K</div>
+            <div style="width:42px; height:54px; border-radius:11px; border:2px solid #16261D; background:#fff; display:flex; align-items:center; justify-content:center; font-family:'Saira Condensed'; font-weight:700; font-size:26px; color:#16261D;">2</div>
+          </div>
+          <!-- preview pelada encontrada -->
+          <div style="background:#fff; border-radius:18px; padding:16px; box-shadow:0 4px 14px rgba(0,0,0,.07); margin-top:22px;">
+            <div style="display:flex; align-items:center; gap:7px; font-size:11px; font-family:'Saira Condensed'; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:#1B9E4B;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1B9E4B" stroke-width="2.5"><path d="M20 6 9 17l-4-4"/></svg>Convite válido</div>
+            <div style="display:flex; align-items:center; gap:13px; margin-top:12px;">
+              <div style="width:52px; height:52px; border-radius:14px; background:linear-gradient(150deg,#0B4A29,#1B9E4B); display:flex; align-items:center; justify-content:center; flex:none;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2 4 5v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V5z"/></svg></div>
+              <div style="flex:1;"><div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:17px; color:#16261D;">Pelada de quinta</div><div style="font-size:12.5px; color:#69786D; margin-top:2px;">24 jogadores · Presidente: Marcos</div></div>
+            </div>
+            <button style="width:100%; border:none; background:#1B9E4B; color:#fff; font-weight:700; font-size:15px; padding:14px; border-radius:13px; margin-top:14px; box-shadow:0 8px 18px rgba(27,158,75,.28); cursor:pointer;">Entrar nesta pelada</button>
+          </div>
+          <div style="text-align:center; font-size:12.5px; color:#A7AFA1; margin-top:18px; line-height:1.4;">Recebeu um link? Toque nele que<br>preenchemos o código automaticamente.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============ SEÇÃO: MULTI-PELADA · DASHBOARD ============ -->
+  <div style="font-family:'Saira Condensed',sans-serif; font-weight:600; font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:#8a857a; margin-bottom:6px;">Multi-pelada · Dashboard</div>
+  <div style="font-size:14px; color:#6b675e; max-width:760px; margin-bottom:18px; line-height:1.5;">Seletor de pelada vira o <strong style="color:#16261D;">elemento central do header</strong> (pílula com escudo + nome). Atalhos divididos em <strong style="color:#16261D;">"Jogo"</strong> (todos) e <strong style="color:#16261D;">"Gestão"</strong> (só admin, com contadores de pendências) — sem poluir o grid nem competir com os cards-herói.</div>
+  <div style="display:flex; gap:40px; align-items:flex-start; margin-bottom:24px;">
+
+    <!-- DASHBOARD REORGANIZADO -->
+    <div style="flex:none; width:390px;">
+      <div style="font-size:13px; font-weight:600; color:#1B9E4B; margin-bottom:12px;">N5 · Dashboard reorganizado (admin) ★</div>
+      <div style="position:relative; width:390px; height:844px; background:#F1F4ED; border-radius:44px; overflow:hidden; box-shadow:0 24px 60px -14px rgba(17,40,28,.32), 0 0 0 1px rgba(17,40,28,.06);">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 24px 0; color:#16261D;"><span style="font-weight:700; font-size:15px; font-family:'Saira Condensed';">20:45</span><span style="display:flex; gap:6px; align-items:center;"><svg width="17" height="12" viewBox="0 0 18 12" fill="#16261D"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="8" rx="1"/><rect x="10" y="1" width="3" height="11" rx="1"/></svg><svg width="22" height="12" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="19" height="10" rx="2.5" stroke="#16261D" opacity=".5"/><rect x="3" y="3" width="13" height="6" rx="1" fill="#16261D"/></svg></span></div>
+        <!-- header com seletor central -->
+        <div style="display:flex; align-items:center; gap:10px; padding:10px 18px 14px;">
+          <div style="width:36px; height:36px; border-radius:10px; background:#F4A11A; display:flex; align-items:center; justify-content:center; flex:none;"><div style="width:18px; height:18px; border-radius:50%; border:2.5px solid #0B4A29;"></div></div>
+          <div style="flex:1; display:flex; align-items:center; gap:9px; background:#fff; border:1.5px solid #E6EADF; border-radius:13px; padding:8px 12px; box-shadow:0 2px 8px rgba(17,40,28,.06);">
+            <div style="width:28px; height:28px; border-radius:8px; background:linear-gradient(150deg,#0B4A29,#1B9E4B); display:flex; align-items:center; justify-content:center; flex:none;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2 4 5v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V5z"/></svg></div>
+            <div style="flex:1; line-height:1.05;"><div style="font-size:10px; color:#A7AFA1; font-weight:600;">PELADA ATIVA</div><div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:15px; color:#16261D;">Pelada de quinta</div></div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1B9E4B" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+          <div style="width:36px; height:36px; border-radius:10px; background:#0B4A29; display:flex; align-items:center; justify-content:center; color:#fff; font-family:'Saira Condensed'; font-weight:700; font-size:16px; flex:none;">M</div>
+        </div>
+
+        <div style="padding:0 22px; height:670px; overflow:hidden;">
+          <div style="font-size:14px; color:#69786D;">Salve, <span style="font-weight:700; color:#16261D;">Marcos</span> 👋</div>
+          <!-- próxima pelada hero (centro de atenção) -->
+          <div style="background:linear-gradient(150deg,#0B4A29,#15824A); border-radius:20px; padding:16px 18px; color:#fff; position:relative; overflow:hidden; margin-top:10px;">
+            <div style="position:absolute; right:-30px; top:-30px; width:110px; height:110px; border:2px solid rgba(255,255,255,.1); border-radius:50%;"></div>
+            <div style="display:flex; align-items:center; gap:7px; font-family:'Saira Condensed'; font-weight:600; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:#9fe3b8;"><span style="width:7px; height:7px; border-radius:50%; background:#F4A11A; animation:pulseDot 1.6s infinite;"></span>Próxima pelada</div>
+            <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:19px; margin-top:6px;">Quinta · 22/06 · 20h</div>
+            <div style="display:flex; align-items:center; gap:10px; margin-top:13px;"><button style="flex:1; border:none; background:#F4A11A; color:#16261D; font-weight:700; font-size:14px; padding:11px; border-radius:11px; cursor:pointer;">Vou jogar</button><button style="border:1.5px solid rgba(255,255,255,.3); background:transparent; color:#fff; font-weight:600; font-size:14px; padding:11px 16px; border-radius:11px; cursor:pointer;">Não vou</button></div>
+          </div>
+          <!-- stats 2x2 compacto -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:12px;">
+            <div style="background:#fff; border-radius:14px; padding:12px; box-shadow:0 1px 3px rgba(0,0,0,.05); display:flex; align-items:center; gap:10px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1B9E4B" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><div><div style="font-family:'Saira Condensed'; font-weight:700; font-size:21px; color:#16261D; line-height:1;">24</div><div style="font-size:11px; color:#69786D;">jogadores</div></div></div>
+            <div style="background:#fff; border-radius:14px; padding:12px; box-shadow:0 1px 3px rgba(0,0,0,.05); display:flex; align-items:center; gap:10px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="#F4A11A"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><div><div style="font-family:'Saira Condensed'; font-weight:700; font-size:21px; color:#16261D; line-height:1;">7</div><div style="font-size:11px; color:#69786D;">vezes craque</div></div></div>
+          </div>
+          <!-- ATALHOS DE JOGO -->
+          <div style="display:flex; align-items:center; justify-content:space-between; margin:18px 2px 10px;"><span style="font-family:'Saira Condensed'; font-weight:600; font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:#8a857a;">Atalhos de jogo</span></div>
+          <div style="display:flex; gap:9px;">
+            <div style="flex:1; background:#fff; border-radius:14px; padding:13px 6px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.05);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1B9E4B" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M8 2v4M16 2v4M3 10h18M12 14v4M10 16h4"/></svg><div style="font-size:11px; font-weight:600; color:#16261D; margin-top:6px;">Nova pelada</div></div>
+            <div style="flex:1; background:#fff; border-radius:14px; padding:13px 6px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.05);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1B9E4B" stroke-width="2"><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg><div style="font-size:11px; font-weight:600; color:#16261D; margin-top:6px;">Escalar times</div></div>
+            <div style="flex:1; background:#fff; border-radius:14px; padding:13px 6px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.05);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1B9E4B" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><div style="font-size:11px; font-weight:600; color:#16261D; margin-top:6px;">Votar craque</div></div>
+          </div>
+          <!-- GESTÃO (admin) -->
+          <div style="display:flex; align-items:center; gap:8px; margin:18px 2px 10px;"><span style="font-family:'Saira Condensed'; font-weight:600; font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:#8a857a;">Gestão da pelada</span><span style="background:#FCEFD6; color:#8a5a06; font-size:9px; font-weight:700; padding:2px 7px; border-radius:5px;">ADMIN</span></div>
+          <div style="background:#fff; border-radius:16px; box-shadow:0 1px 3px rgba(0,0,0,.05); overflow:hidden;">
+            <div style="display:flex; align-items:center; gap:12px; padding:13px 15px; border-bottom:1px solid #F1F4ED;"><div style="width:34px; height:34px; border-radius:10px; background:#FCEFD6; display:flex; align-items:center; justify-content:center;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#C58207" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg></div><span style="flex:1; font-weight:600; font-size:14px; color:#16261D;">Solicitações de entrada</span><span style="background:#DC5B45; color:#fff; font-size:11px; font-weight:700; min-width:20px; height:20px; border-radius:10px; display:flex; align-items:center; justify-content:center; padding:0 6px;">3</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7CDC0" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></div>
+            <div style="display:flex; align-items:center; gap:12px; padding:13px 15px; border-bottom:1px solid #F1F4ED;"><div style="width:34px; height:34px; border-radius:10px; background:#EAF5EC; display:flex; align-items:center; justify-content:center;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1B9E4B" stroke-width="2"><path d="M2 9a3 3 0 0 1 3-3h14a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3z"/><path d="M13 5v4M13 15v4"/></svg></div><span style="flex:1; font-weight:600; font-size:14px; color:#16261D;">Convites</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7CDC0" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></div>
+            <div style="display:flex; align-items:center; gap:12px; padding:13px 15px;"><div style="width:34px; height:34px; border-radius:10px; background:#EAF5EC; display:flex; align-items:center; justify-content:center;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1B9E4B" stroke-width="2"><path d="M12 2 4 5v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V5z"/><path d="m9 12 2 2 4-4"/></svg></div><span style="flex:1; font-weight:600; font-size:14px; color:#16261D;">Admins & permissões</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7CDC0" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></div>
+          </div>
+        </div>
+        <div style="position:absolute; bottom:0; left:0; right:0; height:78px; background:rgba(255,255,255,.94); backdrop-filter:blur(12px); border-top:1px solid #E6EADF; display:flex; align-items:flex-start; padding:11px 12px 0;">
+          <div style="flex:1; text-align:center;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#1B9E4B" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg><div style="font-size:9.5px; font-weight:700; color:#1B9E4B; margin-top:3px;">Início</div></div>
+          <div style="flex:1; text-align:center;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#A7AFA1" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><div style="font-size:9.5px; font-weight:500; color:#A7AFA1; margin-top:3px;">Jogadores</div></div>
+          <div style="flex:1; text-align:center;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#A7AFA1" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg><div style="font-size:9.5px; font-weight:500; color:#A7AFA1; margin-top:3px;">Peladas</div></div>
+          <div style="flex:1; text-align:center;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#A7AFA1" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6m12 5h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg><div style="font-size:9.5px; font-weight:500; color:#A7AFA1; margin-top:3px;">Rankings</div></div>
+          <div style="flex:1; text-align:center;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#A7AFA1" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><div style="font-size:9.5px; font-weight:500; color:#A7AFA1; margin-top:3px;">Financeiro</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SELETOR DE PELADA -->
+    <div style="flex:none; width:390px;">
+      <div style="font-size:13px; font-weight:600; color:#6b675e; margin-bottom:12px;">N6 · Seletor de pelada (bottom sheet)</div>
+      <div style="position:relative; width:390px; height:844px; background:#F1F4ED; border-radius:44px; overflow:hidden; box-shadow:0 24px 60px -14px rgba(17,40,28,.32), 0 0 0 1px rgba(17,40,28,.06);">
+        <!-- dashboard esmaecido ao fundo -->
+        <div style="position:absolute; inset:0; filter:blur(1px); opacity:.5;">
+          <div style="display:flex; align-items:center; gap:10px; padding:50px 18px 14px;"><div style="width:36px; height:36px; border-radius:10px; background:#F4A11A;"></div><div style="flex:1; height:46px; background:#fff; border-radius:13px;"></div><div style="width:36px; height:36px; border-radius:10px; background:#0B4A29;"></div></div>
+          <div style="padding:0 22px;"><div style="height:120px; background:linear-gradient(150deg,#0B4A29,#15824A); border-radius:20px;"></div><div style="display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:12px;"><div style="height:56px; background:#fff; border-radius:14px;"></div><div style="height:56px; background:#fff; border-radius:14px;"></div></div></div>
+        </div>
+        <div style="position:absolute; inset:0; background:rgba(11,34,22,.45);"></div>
+        <!-- sheet -->
+        <div style="position:absolute; bottom:0; left:0; right:0; background:#F6F8F3; border-radius:28px 28px 0 0; padding:14px 20px 26px; box-shadow:0 -16px 40px rgba(0,0,0,.2);">
+          <div style="width:40px; height:5px; border-radius:3px; background:#D5DACE; margin:0 auto 16px;"></div>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;"><div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:20px; color:#16261D;">Suas peladas</div><span style="font-size:13px; color:#69786D;">3</span></div>
+          <div style="display:flex; flex-direction:column; gap:9px;">
+            <!-- ativa -->
+            <div style="background:#fff; border:2px solid #1B9E4B; border-radius:16px; padding:13px; display:flex; align-items:center; gap:12px;">
+              <div style="width:44px; height:44px; border-radius:13px; background:linear-gradient(150deg,#0B4A29,#1B9E4B); display:flex; align-items:center; justify-content:center; flex:none;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2 4 5v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V5z"/></svg></div>
+              <div style="flex:1;"><div style="font-weight:700; font-size:15px; color:#16261D;">Pelada de quinta</div><div style="display:flex; align-items:center; gap:7px; margin-top:3px;"><span style="background:#FCEFD6; color:#8a5a06; font-size:10px; font-weight:700; padding:2px 7px; border-radius:5px;">PRESIDENTE</span><span style="font-size:12px; color:#69786D;">24 jogadores</span></div></div>
+              <div style="width:24px; height:24px; border-radius:50%; background:#1B9E4B; display:flex; align-items:center; justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6 9 17l-4-4"/></svg></div>
+            </div>
+            <div style="background:#fff; border:1.5px solid #E6EADF; border-radius:16px; padding:13px; display:flex; align-items:center; gap:12px;">
+              <div style="width:44px; height:44px; border-radius:13px; background:linear-gradient(150deg,#C58207,#F4A11A); display:flex; align-items:center; justify-content:center; flex:none;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2 4 5v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V5z"/></svg></div>
+              <div style="flex:1;"><div style="font-weight:700; font-size:15px; color:#16261D;">Fut de domingo</div><div style="display:flex; align-items:center; gap:7px; margin-top:3px;"><span style="background:#EAF5EC; color:#0B4A29; font-size:10px; font-weight:700; padding:2px 7px; border-radius:5px;">JOGADOR</span><span style="font-size:12px; color:#69786D;">16 jogadores</span></div></div>
+            </div>
+            <div style="background:#fff; border:1.5px solid #E6EADF; border-radius:16px; padding:13px; display:flex; align-items:center; gap:12px;">
+              <div style="width:44px; height:44px; border-radius:13px; background:linear-gradient(150deg,#2C6E49,#54B97A); display:flex; align-items:center; justify-content:center; flex:none;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2 4 5v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V5z"/></svg></div>
+              <div style="flex:1;"><div style="font-weight:700; font-size:15px; color:#16261D;">Galera do trampo</div><div style="display:flex; align-items:center; gap:7px; margin-top:3px;"><span style="background:#EAF5EC; color:#0B4A29; font-size:10px; font-weight:700; padding:2px 7px; border-radius:5px;">JOGADOR</span><span style="font-size:12px; color:#69786D;">12 jogadores</span></div></div>
+            </div>
+          </div>
+          <div style="height:1px; background:#E6EADF; margin:16px 0;"></div>
+          <div style="display:flex; gap:10px;">
+            <button style="flex:1; border:none; background:#1B9E4B; color:#fff; font-weight:700; font-size:14px; padding:13px; border-radius:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>Criar nova</button>
+            <button style="flex:1; border:1.5px solid #E6EADF; background:#fff; color:#16261D; font-weight:700; font-size:14px; padding:13px; border-radius:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#16261D" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>Entrar em outra</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============ SEÇÃO: PAGAMENTO · PLANO PRO ============ -->
+  <div style="font-family:'Saira Condensed',sans-serif; font-weight:600; font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:#8a857a; margin-bottom:6px;">Pagamento · Upgrade Plano Pro</div>
+  <div style="font-size:14px; color:#6b675e; max-width:760px; margin-bottom:18px; line-height:1.5;">Upgrade da <strong style="color:#16261D;">pelada ativa</strong> para o Plano Pro via Mercado Pago. Rota <code style="background:#fff; padding:1px 6px; border-radius:5px; font-size:13px;">/pagamento</code>.</div>
+  <div style="display:flex; gap:40px; align-items:flex-start; margin-bottom:24px;">
+
+    <!-- P1 · PLANOS -->
+    <div style="flex:none; width:390px;">
+      <div style="font-size:13px; font-weight:600; color:#6b675e; margin-bottom:12px;">P1 · Página de planos</div>
+      <div style="position:relative; width:390px; height:844px; background:#F1F4ED; border-radius:44px; overflow:hidden; box-shadow:0 24px 60px -14px rgba(17,40,28,.32), 0 0 0 1px rgba(17,40,28,.06);">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 28px 0; color:#16261D;"><span style="font-weight:700; font-size:15px; font-family:'Saira Condensed';">20:45</span><span style="display:flex; gap:6px; align-items:center;"><svg width="17" height="12" viewBox="0 0 18 12" fill="#16261D"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="8" rx="1"/><rect x="10" y="1" width="3" height="11" rx="1"/></svg><svg width="22" height="12" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="19" height="10" rx="2.5" stroke="#16261D" opacity=".5"/><rect x="3" y="3" width="13" height="6" rx="1" fill="#16261D"/></svg></span></div>
+        <div style="display:flex; align-items:center; gap:12px; padding:12px 22px 14px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16261D" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg><div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:23px; color:#16261D; letter-spacing:-.02em;">Pagamento</div></div>
+        <div style="padding:0 22px; height:716px; overflow:hidden;">
+          <!-- pelada ativa + plano atual -->
+          <div style="background:#fff; border-radius:18px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.05); display:flex; align-items:center; gap:13px;">
+            <div style="width:48px; height:48px; border-radius:14px; background:linear-gradient(150deg,#0B4A29,#1B9E4B); display:flex; align-items:center; justify-content:center; flex:none;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2 4 5v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V5z"/></svg></div>
+            <div style="flex:1;"><div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:16px; color:#16261D;">Pelada de quinta</div><div style="font-size:12.5px; color:#69786D; margin-top:2px;">Plano atual: <span style="font-weight:600; color:#16261D;">Grátis</span></div></div>
+            <span style="background:#F1F4ED; color:#69786D; font-size:10px; font-weight:700; padding:4px 9px; border-radius:6px;">ATIVA</span>
+          </div>
+
+          <!-- billing toggle -->
+          <div style="display:flex; align-items:center; justify-content:space-between; margin:18px 2px 11px;"><span style="font-family:'Saira Condensed'; font-weight:600; font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:#8a857a;">Escolha o plano</span></div>
+
+          <!-- ANUAL — destaque -->
+          <div style="background:#fff; border:2px solid #1B9E4B; border-radius:18px; padding:15px; box-shadow:0 8px 22px rgba(27,158,75,.14); position:relative;">
+            <div style="position:absolute; top:-10px; left:15px; background:#F4A11A; color:#16261D; font-size:10px; font-weight:700; padding:3px 10px; border-radius:6px; display:flex; align-items:center; gap:4px; letter-spacing:.04em;"><svg width="11" height="11" viewBox="0 0 24 24" fill="#16261D"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>MELHOR VALOR</div>
+            <div style="display:flex; align-items:flex-start; justify-content:space-between;">
+              <div><div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:17px; color:#16261D;">Anual</div><div style="font-size:12px; color:#69786D; margin-top:1px;">12 meses · economize 2 meses</div></div>
+              <div style="text-align:right;"><div style="display:flex; align-items:baseline; gap:2px; justify-content:flex-end;"><span style="font-size:13px; color:#69786D; font-weight:600;">R$</span><span style="font-family:'Saira Condensed'; font-weight:700; font-size:30px; color:#16261D; line-height:1;">24</span><span style="font-family:'Saira Condensed'; font-weight:700; font-size:18px; color:#69786D;">,90</span></div><div style="font-size:11px; color:#A7AFA1;">/mês · R$ 298,80/ano</div></div>
+            </div>
+            <button style="width:100%; border:none; background:#1B9E4B; color:#fff; font-family:'Hanken Grotesk'; font-weight:700; font-size:14px; padding:13px; border-radius:12px; margin-top:13px; box-shadow:0 8px 18px rgba(27,158,75,.28); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/></svg>Pagar com Mercado Pago</button>
+          </div>
+
+          <!-- TRIMESTRAL -->
+          <div style="background:#fff; border:1.5px solid #E6EADF; border-radius:18px; padding:15px; margin-top:11px;">
+            <div style="display:flex; align-items:flex-start; justify-content:space-between;">
+              <div><div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:17px; color:#16261D;">Trimestral</div><div style="font-size:12px; color:#69786D; margin-top:1px;">3 meses · economize 10%</div></div>
+              <div style="text-align:right;"><div style="display:flex; align-items:baseline; gap:2px; justify-content:flex-end;"><span style="font-size:13px; color:#69786D; font-weight:600;">R$</span><span style="font-family:'Saira Condensed'; font-weight:700; font-size:30px; color:#16261D; line-height:1;">26</span><span style="font-family:'Saira Condensed'; font-weight:700; font-size:18px; color:#69786D;">,90</span></div><div style="font-size:11px; color:#A7AFA1;">/mês · R$ 80,70/trim.</div></div>
+            </div>
+            <button style="width:100%; border:1.5px solid #1B9E4B; background:#fff; color:#1B9E4B; font-family:'Hanken Grotesk'; font-weight:700; font-size:14px; padding:12px; border-radius:12px; margin-top:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1B9E4B" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/></svg>Pagar com Mercado Pago</button>
+          </div>
+
+          <!-- MENSAL -->
+          <div style="background:#fff; border:1.5px solid #E6EADF; border-radius:18px; padding:15px; margin-top:11px;">
+            <div style="display:flex; align-items:flex-start; justify-content:space-between;">
+              <div><div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:17px; color:#16261D;">Mensal</div><div style="font-size:12px; color:#69786D; margin-top:1px;">Cancela quando quiser</div></div>
+              <div style="text-align:right;"><div style="display:flex; align-items:baseline; gap:2px; justify-content:flex-end;"><span style="font-size:13px; color:#69786D; font-weight:600;">R$</span><span style="font-family:'Saira Condensed'; font-weight:700; font-size:30px; color:#16261D; line-height:1;">29</span><span style="font-family:'Saira Condensed'; font-weight:700; font-size:18px; color:#69786D;">,90</span></div><div style="font-size:11px; color:#A7AFA1;">/mês</div></div>
+            </div>
+            <button style="width:100%; border:1.5px solid #1B9E4B; background:#fff; color:#1B9E4B; font-family:'Hanken Grotesk'; font-weight:700; font-size:14px; padding:12px; border-radius:12px; margin-top:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1B9E4B" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/></svg>Pagar com Mercado Pago</button>
+          </div>
+
+          <!-- PRO LIBERA -->
+          <div style="background:#0B4A29; border-radius:18px; padding:16px; margin-top:14px; position:relative; overflow:hidden;">
+            <div style="position:absolute; inset:0; background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.04) 0 1px,transparent 1px 40px);"></div>
+            <div style="position:relative; display:flex; align-items:center; gap:7px; font-family:'Saira Condensed'; font-weight:600; font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:#F4A11A;"><svg width="13" height="13" viewBox="0 0 24 24" fill="#F4A11A"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>O Pro libera</div>
+            <div style="position:relative; display:flex; flex-direction:column; gap:11px; margin-top:13px;">
+              <div style="display:flex; align-items:center; gap:11px;"><div style="width:30px; height:30px; border-radius:9px; background:rgba(255,255,255,.1); display:flex; align-items:center; justify-content:center; flex:none;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9fe3b8" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div><div style="font-weight:700; font-size:14px; color:#fff;">Financeiro completo</div><div style="font-size:12px; color:#9fe3b8;">Mensalidades, caixa e relatórios</div></div></div>
+              <div style="display:flex; align-items:center; gap:11px;"><div style="width:30px; height:30px; border-radius:9px; background:rgba(255,255,255,.1); display:flex; align-items:center; justify-content:center; flex:none;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9fe3b8" stroke-width="2"><path d="M12 2 4 5v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V5z"/><path d="m9 12 2 2 4-4"/></svg></div><div><div style="font-weight:700; font-size:14px; color:#fff;">Amistosos entre peladas</div><div style="font-size:12px; color:#9fe3b8;">Marque jogos com outros grupos</div></div></div>
+              <div style="display:flex; align-items:center; gap:11px;"><div style="width:30px; height:30px; border-radius:9px; background:rgba(255,255,255,.1); display:flex; align-items:center; justify-content:center; flex:none;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9fe3b8" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div><div style="font-weight:700; font-size:14px; color:#fff;">Mais de 20 mensalistas</div><div style="font-size:12px; color:#9fe3b8;">Grupos grandes sem limite</div></div></div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:center; gap:6px; margin-top:14px; font-size:11.5px; color:#A7AFA1;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A7AFA1" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Pagamento seguro processado pelo Mercado Pago</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- P2 · PROCESSANDO -->
+    <div style="flex:none; width:390px;">
+      <div style="font-size:13px; font-weight:600; color:#6b675e; margin-bottom:12px;">P2 · Processando (redirecionando)</div>
+      <div style="position:relative; width:390px; height:844px; background:#F1F4ED; border-radius:44px; overflow:hidden; box-shadow:0 24px 60px -14px rgba(17,40,28,.32), 0 0 0 1px rgba(17,40,28,.06);">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 28px 0; color:#16261D;"><span style="font-weight:700; font-size:15px; font-family:'Saira Condensed';">20:45</span><span style="display:flex; gap:6px; align-items:center;"><svg width="17" height="12" viewBox="0 0 18 12" fill="#16261D"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="8" rx="1"/><rect x="10" y="1" width="3" height="11" rx="1"/></svg><svg width="22" height="12" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="19" height="10" rx="2.5" stroke="#16261D" opacity=".5"/><rect x="3" y="3" width="13" height="6" rx="1" fill="#16261D"/></svg></span></div>
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:760px; padding:0 30px;">
+          <!-- spinner ring with wallet -->
+          <div style="position:relative; width:120px; height:120px;">
+            <div style="position:absolute; inset:0; border-radius:50%; border:4px solid #E6EADF; border-top-color:#1B9E4B; animation:spin 1s linear infinite;"></div>
+            <div style="position:absolute; inset:18px; border-radius:50%; background:linear-gradient(150deg,#0B4A29,#1B9E4B); display:flex; align-items:center; justify-content:center;"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/><circle cx="17" cy="14.5" r="1.4" fill="#F4A11A" stroke="none"/></svg></div>
+          </div>
+          <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:22px; color:#16261D; margin-top:30px; text-align:center; letter-spacing:-.02em;">Redirecionando para<br>o Mercado Pago</div>
+          <div style="font-size:14px; color:#69786D; margin-top:8px; text-align:center; line-height:1.4;">Não feche o app. Você volta automaticamente<br>após concluir o pagamento.</div>
+          <!-- dots -->
+          <div style="display:flex; gap:7px; margin-top:18px;"><span style="width:8px; height:8px; border-radius:50%; background:#1B9E4B; animation:pulseDot 1.4s infinite;"></span><span style="width:8px; height:8px; border-radius:50%; background:#1B9E4B; animation:pulseDot 1.4s infinite .2s;"></span><span style="width:8px; height:8px; border-radius:50%; background:#1B9E4B; animation:pulseDot 1.4s infinite .4s;"></span></div>
+          <!-- resumo -->
+          <div style="width:100%; background:#fff; border-radius:18px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-top:38px;">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <div style="width:42px; height:42px; border-radius:12px; background:linear-gradient(150deg,#0B4A29,#1B9E4B); display:flex; align-items:center; justify-content:center; flex:none;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2 4 5v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V5z"/></svg></div>
+              <div style="flex:1;"><div style="font-weight:700; font-size:14px; color:#16261D;">Pelada de quinta</div><div style="font-size:12px; color:#69786D; margin-top:1px;">Plano Pro · Anual</div></div>
+              <div style="text-align:right;"><div style="display:flex; align-items:baseline; gap:1px; justify-content:flex-end;"><span style="font-size:11px; color:#69786D; font-weight:600;">R$</span><span style="font-family:'Saira Condensed'; font-weight:700; font-size:20px; color:#16261D; line-height:1;">298</span><span style="font-family:'Saira Condensed'; font-weight:700; font-size:14px; color:#69786D;">,80</span></div><div style="font-size:10px; color:#A7AFA1;">cobrança anual</div></div>
+            </div>
+          </div>
+          <div style="font-size:12px; color:#A7AFA1; margin-top:22px; text-decoration:underline;">Cancelar</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- P3 · SUCESSO -->
+    <div style="flex:none; width:390px;">
+      <div style="font-size:13px; font-weight:600; color:#6b675e; margin-bottom:12px;">P3 · Retorno / sucesso</div>
+      <div style="position:relative; width:390px; height:844px; background:#F1F4ED; border-radius:44px; overflow:hidden; box-shadow:0 24px 60px -14px rgba(17,40,28,.32), 0 0 0 1px rgba(17,40,28,.06);">
+        <div style="position:absolute; top:0; left:0; right:0; height:340px; background:linear-gradient(160deg,#0B4A29,#15824A); overflow:hidden;"><div style="position:absolute; inset:0; background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,transparent 1px 46px);"></div><div style="position:absolute; width:200px; height:200px; border:2px solid rgba(255,255,255,.1); border-radius:50%; top:90px; left:50%; transform:translateX(-50%);"></div></div>
+        <div style="position:relative; display:flex; justify-content:flex-end; align-items:center; padding:16px 28px 0; color:#fff;"><span style="font-weight:700; font-size:15px; font-family:'Saira Condensed';">20:45</span></div>
+        <div style="position:relative; text-align:center; margin-top:42px;">
+          <div style="width:90px; height:90px; margin:0 auto; border-radius:50%; background:#fff; box-shadow:0 14px 30px rgba(0,0,0,.18); display:flex; align-items:center; justify-content:center;"><div style="width:64px; height:64px; border-radius:50%; background:#1B9E4B; display:flex; align-items:center; justify-content:center;"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6 9 17l-4-4"/></svg></div></div>
+          <div style="display:inline-flex; align-items:center; gap:6px; margin-top:20px; background:rgba(244,161,26,.2); color:#F4A11A; font-family:'Saira Condensed'; font-weight:600; font-size:12px; letter-spacing:.12em; text-transform:uppercase; padding:5px 12px; border-radius:8px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="#F4A11A"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Plano Pro</div>
+          <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:27px; color:#fff; margin-top:12px; letter-spacing:-.02em;">Plano Pro ativado!</div>
+          <div style="font-size:14px; color:#cdeed9; margin-top:5px;">A pelada agora tem tudo desbloqueado.</div>
+        </div>
+        <div style="position:absolute; top:392px; left:20px; right:20px; bottom:0; padding:0;">
+          <div style="background:#fff; border-radius:20px; padding:18px; box-shadow:0 8px 24px rgba(17,40,28,.1);">
+            <div style="display:flex; align-items:center; gap:13px; padding-bottom:14px; border-bottom:1px solid #F1F4ED;">
+              <div style="width:46px; height:46px; border-radius:13px; background:linear-gradient(150deg,#0B4A29,#1B9E4B); display:flex; align-items:center; justify-content:center; flex:none;"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2 4 5v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V5z"/></svg></div>
+              <div style="flex:1;"><div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:16px; color:#16261D;">Pelada de quinta</div><div style="font-size:12.5px; color:#69786D; margin-top:1px;">Presidente: Marcos</div></div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:11px; padding-top:14px;">
+              <div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:13px; color:#69786D;">Plano</span><span style="font-size:14px; color:#16261D; font-weight:700;">Pro · Anual</span></div>
+              <div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:13px; color:#69786D;">Valor pago</span><span style="font-family:'Saira Condensed'; font-size:17px; color:#16261D; font-weight:700;">R$ 298,80</span></div>
+              <div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:13px; color:#69786D;">Próxima renovação</span><span style="font-size:14px; color:#16261D; font-weight:700;">18/06/2027</span></div>
+              <div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:13px; color:#69786D;">Pagamento</span><span style="display:flex; align-items:center; gap:5px; font-size:13px; color:#1B9E4B; font-weight:700;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1B9E4B" stroke-width="2.5"><path d="M20 6 9 17l-4-4"/></svg>Mercado Pago</span></div>
+            </div>
+          </div>
+          <button style="width:100%; border:none; background:#1B9E4B; color:#fff; font-family:'Hanken Grotesk'; font-weight:700; font-size:16px; padding:16px; border-radius:14px; margin-top:14px; box-shadow:0 10px 22px rgba(27,158,75,.3); cursor:pointer;">Voltar ao dashboard</button>
+          <button style="width:100%; border:1.5px solid #E6EADF; background:#fff; color:#16261D; font-family:'Hanken Grotesk'; font-weight:600; font-size:15px; padding:14px; border-radius:14px; margin-top:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1B9E4B" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Abrir financeiro</button>
+          <div style="text-align:center; font-size:11.5px; color:#A7AFA1; margin-top:14px;">Recibo enviado para marcos@pelada.com</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============ SEÇÃO: FUNDAMENTOS ============ -->
+  <div style="font-family:'Saira Condensed',sans-serif; font-weight:600; font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:#8a857a; margin-bottom:14px;">Fundamentos do sistema</div>
+  <div style="display:flex; gap:48px; align-items:flex-start; margin-bottom:56px;">
+    <div style="flex:none; width:880px;">
+      <div style="background:#fff; border-radius:20px; box-shadow:0 1px 3px rgba(0,0,0,.08); padding:32px; display:grid; grid-template-columns:1fr 1fr; gap:34px;">
+
+        <div>
+          <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:18px; color:#16261D; margin-bottom:16px;">Paleta</div>
+          <div style="display:flex; flex-wrap:wrap; gap:12px;">
+            <div style="width:108px;"><div style="height:64px; border-radius:12px; background:#1B9E4B;"></div><div style="font-size:12px; color:#16261D; margin-top:6px; font-weight:600;">Verde campo</div><div style="font-size:11px; color:#9a958b; font-family:'Saira Condensed';">#1B9E4B</div></div>
+            <div style="width:108px;"><div style="height:64px; border-radius:12px; background:#0B4A29;"></div><div style="font-size:12px; color:#16261D; margin-top:6px; font-weight:600;">Verde fundo</div><div style="font-size:11px; color:#9a958b; font-family:'Saira Condensed';">#0B4A29</div></div>
+            <div style="width:108px;"><div style="height:64px; border-radius:12px; background:#F4A11A;"></div><div style="font-size:12px; color:#16261D; margin-top:6px; font-weight:600;">Amarelo craque</div><div style="font-size:11px; color:#9a958b; font-family:'Saira Condensed';">#F4A11A</div></div>
+            <div style="width:108px;"><div style="height:64px; border-radius:12px; background:#16261D;"></div><div style="font-size:12px; color:#16261D; margin-top:6px; font-weight:600;">Tinta</div><div style="font-size:11px; color:#9a958b; font-family:'Saira Condensed';">#16261D</div></div>
+            <div style="width:108px;"><div style="height:64px; border-radius:12px; background:#F1F4ED; border:1px solid #E6EADF;"></div><div style="font-size:12px; color:#16261D; margin-top:6px; font-weight:600;">Fundo app</div><div style="font-size:11px; color:#9a958b; font-family:'Saira Condensed';">#F1F4ED</div></div>
+            <div style="width:108px;"><div style="height:64px; border-radius:12px; background:#DC5B45;"></div><div style="font-size:12px; color:#16261D; margin-top:6px; font-weight:600;">Ausente</div><div style="font-size:11px; color:#9a958b; font-family:'Saira Condensed';">#DC5B45</div></div>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:18px; color:#16261D; margin-bottom:16px;">Tipografia</div>
+          <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:30px; color:#16261D; letter-spacing:-.02em; line-height:1;">Bricolage Grotesque</div>
+          <div style="font-size:12px; color:#9a958b; margin:4px 0 16px;">Títulos & marca · 700/800</div>
+          <div style="font-family:'Hanken Grotesk'; font-weight:500; font-size:18px; color:#16261D;">Hanken Grotesk — corpo e interface</div>
+          <div style="font-size:12px; color:#9a958b; margin:4px 0 16px;">Textos, labels, botões · 400/500/600</div>
+          <div style="font-family:'Saira Condensed'; font-weight:700; font-size:30px; color:#16261D;">SAIRA CONDENSED · 24 · 09 · 110%</div>
+          <div style="font-size:12px; color:#9a958b; margin-top:4px;">Números, estatísticas, camisa</div>
+        </div>
+
+        <div style="grid-column:1 / -1; border-top:1px solid #eee; padding-top:24px; display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
+          <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:18px; color:#16261D; width:100%;">Componentes-base</div>
+          <button style="border:none; background:#1B9E4B; color:#fff; font-family:'Hanken Grotesk'; font-weight:600; font-size:15px; padding:13px 22px; border-radius:13px; box-shadow:0 6px 14px rgba(27,158,75,.28); cursor:pointer;">Botão primário</button>
+          <button style="border:1.5px solid #E0E5D8; background:#fff; color:#16261D; font-family:'Hanken Grotesk'; font-weight:600; font-size:15px; padding:12px 22px; border-radius:13px; cursor:pointer;">Secundário</button>
+          <span style="background:#EAF5EC; color:#0B4A29; font-weight:600; font-size:13px; padding:7px 13px; border-radius:9px;">Chip / filtro</span>
+          <span style="display:inline-flex; align-items:center; gap:6px; background:#FCEFD6; color:#8a5a06; font-weight:700; font-size:12px; padding:6px 11px; border-radius:8px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="#F4A11A"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>CRAQUE</span>
+          <div style="width:46px; height:46px; border-radius:13px; background:#1B9E4B; display:flex; align-items:center; justify-content:center; color:#fff; font-family:'Saira Condensed'; font-weight:700; font-size:22px;">10</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SEÇÃO: ENTRADA & INÍCIO ============ -->
+  <div style="font-family:'Saira Condensed',sans-serif; font-weight:600; font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:#8a857a; margin-bottom:14px;">Entrada & início</div>
+  <div style="display:flex; gap:40px; align-items:flex-start; margin-bottom:56px;">
+
+    <!-- LOGIN -->
+    <div style="flex:none; width:390px;">
+      <div style="font-size:13px; font-weight:600; color:#6b675e; margin-bottom:12px;">01 · Login</div>
+      <div style="position:relative; width:390px; height:844px; background:#F1F4ED; border-radius:44px; overflow:hidden; box-shadow:0 24px 60px -14px rgba(17,40,28,.32), 0 0 0 1px rgba(17,40,28,.06);">
+        <!-- field hero -->
+        <div style="position:absolute; top:0; left:0; right:0; height:330px; background:linear-gradient(165deg,#0B4A29 0%,#11643A 60%,#1B9E4B 130%); overflow:hidden;">
+          <div style="position:absolute; inset:0; background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,transparent 1px 46px);"></div>
+          <div style="position:absolute; width:200px; height:200px; border:2px solid rgba(255,255,255,.14); border-radius:50%; top:120px; left:50%; transform:translateX(-50%);"></div>
+          <div style="position:absolute; left:0; right:0; top:220px; height:2px; background:rgba(255,255,255,.14);"></div>
+        </div>
+        <!-- status bar -->
+        <div style="position:relative; display:flex; justify-content:space-between; align-items:center; padding:16px 28px 0; color:#fff;">
+          <span style="font-weight:700; font-size:15px; font-family:'Saira Condensed';">20:45</span>
+          <span style="display:flex; gap:6px; align-items:center;"><svg width="17" height="12" viewBox="0 0 18 12" fill="#fff"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="8" rx="1"/><rect x="10" y="1" width="3" height="11" rx="1" opacity=".5"/></svg><svg width="22" height="12" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="19" height="10" rx="2.5" stroke="#fff" opacity=".6"/><rect x="3" y="3" width="13" height="6" rx="1" fill="#fff"/><rect x="21" y="4" width="2" height="4" rx="1" fill="#fff" opacity=".6"/></svg></span>
+        </div>
+        <!-- brand -->
+        <div style="position:relative; text-align:center; margin-top:36px;">
+          <div style="width:78px; height:78px; margin:0 auto; border-radius:22px; background:#F4A11A; box-shadow:0 10px 24px rgba(244,161,26,.4); display:flex; align-items:center; justify-content:center; position:relative;">
+            <div style="width:42px; height:42px; border-radius:50%; border:3px solid #0B4A29; position:relative;"><div style="position:absolute; top:50%; left:-3px; right:-3px; height:3px; background:#0B4A29; transform:translateY(-50%);"></div></div>
+          </div>
+          <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:26px; color:#fff; margin-top:14px; letter-spacing:-.02em;">Dono da Pelada</div>
+          <div style="font-family:'Saira Condensed'; font-weight:600; font-size:13px; letter-spacing:.16em; color:#9fe3b8; text-transform:uppercase; margin-top:2px;">Futebol sem planilha</div>
+        </div>
+        <!-- card -->
+        <div style="position:absolute; top:386px; left:20px; right:20px; bottom:0; background:#fff; border-radius:30px 30px 0 0; box-shadow:0 -10px 40px rgba(17,40,28,.12); padding:26px 24px;">
+          <div style="display:flex; background:#F1F4ED; border-radius:13px; padding:4px; gap:4px; margin-bottom:22px;">
+            <div style="flex:1; text-align:center; padding:9px; border-radius:10px; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.08); font-weight:600; font-size:14px; color:#16261D;">Sou jogador</div>
+            <div style="flex:1; text-align:center; padding:9px; border-radius:10px; font-weight:600; font-size:14px; color:#8a857a;">Sou admin</div>
+          </div>
+          <div style="font-size:13px; font-weight:600; color:#16261D; margin-bottom:7px;">E-mail</div>
+          <div style="display:flex; align-items:center; gap:10px; background:#F6F8F3; border:1.5px solid #E6EADF; border-radius:13px; padding:13px 14px; margin-bottom:16px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8a857a" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
+            <span style="font-size:15px; color:#16261D;">joao@pelada.com</span>
+          </div>
+          <div style="font-size:13px; font-weight:600; color:#16261D; margin-bottom:7px;">Senha</div>
+          <div style="display:flex; align-items:center; gap:10px; background:#F6F8F3; border:1.5px solid #E6EADF; border-radius:13px; padding:13px 14px; margin-bottom:8px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8a857a" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span style="font-size:15px; color:#16261D; letter-spacing:3px;">••••••••</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8a857a" stroke-width="2" style="margin-left:auto;"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <div style="text-align:right; font-size:13px; font-weight:600; color:#1B9E4B; margin-bottom:18px;">Esqueci a senha</div>
+          <button style="width:100%; border:none; background:#1B9E4B; color:#fff; font-family:'Hanken Grotesk'; font-weight:700; font-size:16px; padding:16px; border-radius:14px; box-shadow:0 10px 22px rgba(27,158,75,.32); cursor:pointer;">Entrar</button>
+          <div style="text-align:center; font-size:14px; color:#6b675e; margin-top:18px;">Novo na pelada? <span style="color:#0B4A29; font-weight:700;">Criar conta</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INÍCIO -->
+    <div style="flex:none; width:390px;">
+      <div style="font-size:13px; font-weight:600; color:#6b675e; margin-bottom:12px;">02 · Início (dashboard)</div>
+      <div style="position:relative; width:390px; height:844px; background:#F1F4ED; border-radius:44px; overflow:hidden; box-shadow:0 24px 60px -14px rgba(17,40,28,.32), 0 0 0 1px rgba(17,40,28,.06);">
+        <!-- status bar -->
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 28px 0; color:#16261D;">
+          <span style="font-weight:700; font-size:15px; font-family:'Saira Condensed';">20:45</span>
+          <span style="display:flex; gap:6px; align-items:center;"><svg width="17" height="12" viewBox="0 0 18 12" fill="#16261D"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="8" rx="1"/><rect x="10" y="1" width="3" height="11" rx="1"/></svg><svg width="22" height="12" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="19" height="10" rx="2.5" stroke="#16261D" opacity=".5"/><rect x="3" y="3" width="13" height="6" rx="1" fill="#16261D"/><rect x="21" y="4" width="2" height="4" rx="1" fill="#16261D" opacity=".5"/></svg></span>
+        </div>
+        <!-- app bar -->
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 22px 14px;">
+          <div>
+            <div style="font-size:14px; color:#8a857a; font-weight:500;">Salve,</div>
+            <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:24px; color:#16261D; letter-spacing:-.02em; line-height:1;">Marcos</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="width:42px; height:42px; border-radius:12px; background:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,.06);">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16261D" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+              <span style="position:absolute; transform:translate(13px,-13px); width:8px; height:8px; background:#DC5B45; border-radius:50%; border:2px solid #fff;"></span>
+            </div>
+            <div style="width:42px; height:42px; border-radius:12px; background:#0B4A29; display:flex; align-items:center; justify-content:center; color:#fff; font-family:'Saira Condensed'; font-weight:700; font-size:18px;">M</div>
+          </div>
+        </div>
+
+        <div style="padding:0 22px;">
+          <!-- next pelada hero -->
+          <div style="background:linear-gradient(150deg,#0B4A29,#15824A); border-radius:22px; padding:18px 20px; color:#fff; position:relative; overflow:hidden;">
+            <div style="position:absolute; right:-30px; top:-30px; width:120px; height:120px; border:2px solid rgba(255,255,255,.1); border-radius:50%;"></div>
+            <div style="display:flex; align-items:center; gap:7px; font-family:'Saira Condensed'; font-weight:600; font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:#9fe3b8;"><span style="width:7px; height:7px; border-radius:50%; background:#F4A11A; animation:pulseDot 1.6s infinite;"></span>Próxima pelada</div>
+            <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:21px; margin-top:8px;">Pelada de quinta</div>
+            <div style="display:flex; gap:16px; margin-top:8px; font-size:13px; color:#d6f0df;">
+              <span style="display:flex; align-items:center; gap:5px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9fe3b8" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>22/06 · 20h</span>
+              <span style="display:flex; align-items:center; gap:5px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9fe3b8" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>Society do Zé</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; margin-top:16px;">
+              <button style="flex:1; border:none; background:#F4A11A; color:#16261D; font-family:'Hanken Grotesk'; font-weight:700; font-size:14px; padding:11px; border-radius:11px; cursor:pointer;">Vou jogar</button>
+              <button style="flex:none; border:1.5px solid rgba(255,255,255,.3); background:transparent; color:#fff; font-weight:600; font-size:14px; padding:11px 16px; border-radius:11px; cursor:pointer;">Não vou</button>
+            </div>
+            <div style="margin-top:12px; display:flex; align-items:center; gap:8px; font-size:12px; color:#9fe3b8;"><div style="display:flex;"><span style="width:22px; height:22px; border-radius:50%; background:#1B9E4B; border:2px solid #0f5a34;"></span><span style="width:22px; height:22px; border-radius:50%; background:#F4A11A; border:2px solid #0f5a34; margin-left:-8px;"></span><span style="width:22px; height:22px; border-radius:50%; background:#3b7; border:2px solid #0f5a34; margin-left:-8px;"></span></div>14 confirmados · 6 vagas</div>
+          </div>
+
+          <!-- stats grid -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:11px; margin-top:14px;">
+            <div style="background:#fff; border-radius:16px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+              <div style="display:flex; align-items:center; justify-content:space-between;"><div style="width:30px; height:30px; border-radius:9px; background:#EAF5EC; display:flex; align-items:center; justify-content:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B9E4B" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div></div>
+              <div style="font-family:'Saira Condensed'; font-weight:700; font-size:30px; color:#16261D; line-height:1; margin-top:10px;">24</div>
+              <div style="font-size:12px; color:#8a857a; margin-top:2px;">Jogadores</div>
+            </div>
+            <div style="background:#fff; border-radius:16px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+              <div style="display:flex; align-items:center; justify-content:space-between;"><div style="width:30px; height:30px; border-radius:9px; background:#FCEFD6; display:flex; align-items:center; justify-content:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F4A11A" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v4M21 12h-4M12 21v-4M3 12h4"/></svg></div></div>
+              <div style="font-family:'Saira Condensed'; font-weight:700; font-size:30px; color:#16261D; line-height:1; margin-top:10px;">138</div>
+              <div style="font-size:12px; color:#8a857a; margin-top:2px;">Gols na temporada</div>
+            </div>
+            <div style="background:#fff; border-radius:16px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+              <div style="display:flex; align-items:center; justify-content:space-between;"><div style="width:30px; height:30px; border-radius:9px; background:#EAF5EC; display:flex; align-items:center; justify-content:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B9E4B" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4m-7 10 2 2 4-4"/></svg></div></div>
+              <div style="font-family:'Saira Condensed'; font-weight:700; font-size:30px; color:#16261D; line-height:1; margin-top:10px;">12</div>
+              <div style="font-size:12px; color:#8a857a; margin-top:2px;">Peladas no mês</div>
+            </div>
+            <div style="background:#fff; border-radius:16px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+              <div style="display:flex; align-items:center; justify-content:space-between;"><div style="width:30px; height:30px; border-radius:9px; background:#FCEFD6; display:flex; align-items:center; justify-content:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#F4A11A"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div></div>
+              <div style="font-family:'Saira Condensed'; font-weight:700; font-size:30px; color:#16261D; line-height:1; margin-top:10px;">7</div>
+              <div style="font-size:12px; color:#8a857a; margin-top:2px;">Vezes craque</div>
+            </div>
+          </div>
+
+          <!-- quick actions -->
+          <div style="display:flex; gap:10px; margin-top:14px;">
+            <div style="flex:1; background:#fff; border-radius:14px; padding:12px 8px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.05);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1B9E4B" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M8 2v4M16 2v4M3 10h18M12 14v4M10 16h4"/></svg><div style="font-size:11px; font-weight:600; color:#16261D; margin-top:6px;">Nova pelada</div></div>
+            <div style="flex:1; background:#fff; border-radius:14px; padding:12px 8px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.05);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1B9E4B" stroke-width="2"><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg><div style="font-size:11px; font-weight:600; color:#16261D; margin-top:6px;">Escalar times</div></div>
+            <div style="flex:1; background:#fff; border-radius:14px; padding:12px 8px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.05);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1B9E4B" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><div style="font-size:11px; font-weight:600; color:#16261D; margin-top:6px;">Votar craque</div></div>
+          </div>
+        </div>
+
+        <!-- bottom nav -->
+        <div style="position:absolute; bottom:0; left:0; right:0; height:82px; background:rgba(255,255,255,.92); backdrop-filter:blur(12px); border-top:1px solid #E6EADF; display:flex; align-items:flex-start; padding:12px 14px 0;">
+          <div style="flex:1; text-align:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1B9E4B" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg><div style="font-size:10px; font-weight:700; color:#1B9E4B; margin-top:3px;">Início</div></div>
+          <div style="flex:1; text-align:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A7AFA1" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><div style="font-size:10px; font-weight:500; color:#A7AFA1; margin-top:3px;">Jogadores</div></div>
+          <div style="flex:1; text-align:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A7AFA1" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg><div style="font-size:10px; font-weight:500; color:#A7AFA1; margin-top:3px;">Peladas</div></div>
+          <div style="flex:1; text-align:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A7AFA1" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6m12 5h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22m7-7.34V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg><div style="font-size:10px; font-weight:500; color:#A7AFA1; margin-top:3px;">Rankings</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============ SEÇÃO: JOGADORES ============ -->
+  <div style="font-family:'Saira Condensed',sans-serif; font-weight:600; font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:#8a857a; margin-bottom:14px;">Jogadores</div>
+  <div style="display:flex; gap:40px; align-items:flex-start; margin-bottom:56px;">
+
+    <!-- LISTA -->
+    <div style="flex:none; width:390px;">
+      <div style="font-size:13px; font-weight:600; color:#6b675e; margin-bottom:12px;">03 · Jogadores — lista</div>
+      <div style="position:relative; width:390px; height:844px; background:#F1F4ED; border-radius:44px; overflow:hidden; box-shadow:0 24px 60px -14px rgba(17,40,28,.32), 0 0 0 1px rgba(17,40,28,.06);">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 28px 0; color:#16261D;"><span style="font-weight:700; font-size:15px; font-family:'Saira Condensed';">20:45</span><span style="display:flex; gap:6px; align-items:center;"><svg width="17" height="12" viewBox="0 0 18 12" fill="#16261D"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="8" rx="1"/><rect x="10" y="1" width="3" height="11" rx="1"/></svg><svg width="22" height="12" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="19" height="10" rx="2.5" stroke="#16261D" opacity=".5"/><rect x="3" y="3" width="13" height="6" rx="1" fill="#16261D"/></svg></span></div>
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 22px 10px;">
+          <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:26px; color:#16261D; letter-spacing:-.02em;">Jogadores</div>
+          <div style="width:40px; height:40px; border-radius:12px; background:#1B9E4B; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 14px rgba(27,158,75,.3);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></div>
+        </div>
+        <div style="padding:0 22px;">
+          <div style="display:flex; align-items:center; gap:10px; background:#fff; border-radius:13px; padding:12px 14px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A7AFA1" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><span style="font-size:15px; color:#A7AFA1;">Buscar jogador...</span>
+          </div>
+          <div style="display:flex; gap:8px; margin-top:14px;">
+            <span style="background:#1B9E4B; color:#fff; font-weight:600; font-size:13px; padding:7px 14px; border-radius:9px;">Todos · 24</span>
+            <span style="background:#fff; color:#6b675e; font-weight:600; font-size:13px; padding:7px 14px; border-radius:9px;">Linha</span>
+            <span style="background:#fff; color:#6b675e; font-weight:600; font-size:13px; padding:7px 14px; border-radius:9px;">Goleiros</span>
+          </div>
+          <div style="margin-top:14px; display:flex; flex-direction:column; gap:9px;">
+            <!-- row -->
+            <div style="background:#fff; border-radius:15px; padding:11px 13px; display:flex; align-items:center; gap:12px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+              <div style="width:46px; height:46px; border-radius:13px; background:#0B4A29; display:flex; align-items:center; justify-content:center; color:#fff; font-family:'Saira Condensed'; font-weight:700; font-size:21px; position:relative;">10<span style="position:absolute; top:-6px; right:-6px; width:18px; height:18px; background:#F4A11A; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:9px;">©</span></div>
+              <div style="flex:1;"><div style="font-weight:700; font-size:15px; color:#16261D;">Marcos Lima</div><div style="font-size:12px; color:#8a857a;">Meia · Capitão</div></div>
+              <div style="text-align:right; display:flex; gap:12px; align-items:center;"><div><div style="font-family:'Saira Condensed'; font-weight:700; font-size:17px; color:#16261D;">22</div><div style="font-size:10px; color:#A7AFA1;">GOLS</div></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7CDC0" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></div>
+            </div>
+            <div style="background:#fff; border-radius:15px; padding:11px 13px; display:flex; align-items:center; gap:12px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+              <div style="width:46px; height:46px; border-radius:13px; background:#1B9E4B; display:flex; align-items:center; justify-content:center; color:#fff; font-family:'Saira Condensed'; font-weight:700; font-size:21px;">7</div>
+              <div style="flex:1;"><div style="font-weight:700; font-size:15px; color:#16261D;">Rafa Souza</div><div style="font-size:12px; color:#8a857a;">Atacante</div></div>
+              <div style="text-align:right; display:flex; gap:12px; align-items:center;"><div><div style="font-family:'Saira Condensed'; font-weight:700; font-size:17px; color:#16261D;">31</div><div style="font-size:10px; color:#A7AFA1;">GOLS</div></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7CDC0" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></div>
+            </div>
+            <div style="background:#fff; border-radius:15px; padding:11px 13px; display:flex; align-items:center; gap:12px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+              <div style="width:46px; height:46px; border-radius:13px; background:#DC8A1A; display:flex; align-items:center; justify-content:center; color:#fff; font-family:'Saira Condensed'; font-weight:700; font-size:21px;">1</div>
+              <div style="flex:1;"><div style="font-weight:700; font-size:15px; color:#16261D;">Diego Alves</div><div style="font-size:12px; color:#8a857a;">Goleiro</div></div>
+              <div style="text-align:right; display:flex; gap:12px; align-items:center;"><div><div style="font-family:'Saira Condensed'; font-weight:700; font-size:17px; color:#16261D;">48</div><div style="font-size:10px; color:#A7AFA1;">DEF</div></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7CDC0" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></div>
+            </div>
+            <div style="background:#fff; border-radius:15px; padding:11px 13px; display:flex; align-items:center; gap:12px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+              <div style="width:46px; height:46px; border-radius:13px; background:#1B9E4B; display:flex; align-items:center; justify-content:center; color:#fff; font-family:'Saira Condensed'; font-weight:700; font-size:21px;">11</div>
+              <div style="flex:1;"><div style="font-weight:700; font-size:15px; color:#16261D;">Bruno Tavares</div><div style="font-size:12px; color:#8a857a;">Ala</div></div>
+              <div style="text-align:right; display:flex; gap:12px; align-items:center;"><div><div style="font-family:'Saira Condensed'; font-weight:700; font-size:17px; color:#16261D;">14</div><div style="font-size:10px; color:#A7AFA1;">GOLS</div></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7CDC0" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></div>
+            </div>
+            <div style="background:#fff; border-radius:15px; padding:11px 13px; display:flex; align-items:center; gap:12px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+              <div style="width:46px; height:46px; border-radius:13px; background:#2C6E49; display:flex; align-items:center; justify-content:center; color:#fff; font-family:'Saira Condensed'; font-weight:700; font-size:21px;">5</div>
+              <div style="flex:1;"><div style="font-weight:700; font-size:15px; color:#16261D;">Léo Pereira</div><div style="font-size:12px; color:#8a857a;">Zagueiro</div></div>
+              <div style="text-align:right; display:flex; gap:12px; align-items:center;"><div><div style="font-family:'Saira Condensed'; font-weight:700; font-size:17px; color:#16261D;">3</div><div style="font-size:10px; color:#A7AFA1;">GOLS</div></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7CDC0" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></div>
+            </div>
+          </div>
+        </div>
+        <div style="position:absolute; bottom:0; left:0; right:0; height:82px; background:rgba(255,255,255,.92); backdrop-filter:blur(12px); border-top:1px solid #E6EADF; display:flex; align-items:flex-start; padding:12px 14px 0;">
+          <div style="flex:1; text-align:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A7AFA1" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg><div style="font-size:10px; font-weight:500; color:#A7AFA1; margin-top:3px;">Início</div></div>
+          <div style="flex:1; text-align:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1B9E4B" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><div style="font-size:10px; font-weight:700; color:#1B9E4B; margin-top:3px;">Jogadores</div></div>
+          <div style="flex:1; text-align:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A7AFA1" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg><div style="font-size:10px; font-weight:500; color:#A7AFA1; margin-top:3px;">Peladas</div></div>
+          <div style="flex:1; text-align:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A7AFA1" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6m12 5h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22m7-7.34V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg><div style="font-size:10px; font-weight:500; color:#A7AFA1; margin-top:3px;">Rankings</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PERFIL -->
+    <div style="flex:none; width:390px;">
+      <div style="font-size:13px; font-weight:600; color:#6b675e; margin-bottom:12px;">04 · Jogador — perfil</div>
+      <div style="position:relative; width:390px; height:844px; background:#F1F4ED; border-radius:44px; overflow:hidden; box-shadow:0 24px 60px -14px rgba(17,40,28,.32), 0 0 0 1px rgba(17,40,28,.06);">
+        <div style="position:absolute; top:0; left:0; right:0; height:230px; background:linear-gradient(160deg,#0B4A29,#15824A); overflow:hidden;">
+          <div style="position:absolute; inset:0; background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,transparent 1px 44px);"></div>
+          <div style="position:absolute; width:160px; height:160px; border:2px solid rgba(255,255,255,.1); border-radius:50%; top:90px; right:-40px;"></div>
+        </div>
+        <div style="position:relative; display:flex; justify-content:space-between; align-items:center; padding:16px 24px 0; color:#fff;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+        </div>
+        <div style="position:relative; text-align:center; margin-top:18px;">
+          <div style="width:96px; height:96px; margin:0 auto; border-radius:28px; background:#F4A11A; border:4px solid #fff; box-shadow:0 8px 20px rgba(0,0,0,.2); display:flex; align-items:center; justify-content:center; color:#0B4A29; font-family:'Saira Condensed'; font-weight:700; font-size:46px;">10</div>
+          <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:24px; color:#fff; margin-top:12px;">Marcos Lima</div>
+          <div style="display:inline-flex; align-items:center; gap:6px; margin-top:6px; background:rgba(255,255,255,.15); padding:5px 12px; border-radius:20px; color:#fff; font-size:13px; font-weight:600;"><svg width="13" height="13" viewBox="0 0 24 24" fill="#F4A11A"><path d="M20 13c0 5-3.5 7.5-7.69 8.95a1 1 0 0 1-.62 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>Meia · Capitão</div>
+        </div>
+        <div style="padding:20px 22px 0;">
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+            <div style="background:#fff; border-radius:15px; padding:13px 10px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.05);"><div style="font-family:'Saira Condensed'; font-weight:700; font-size:26px; color:#16261D; line-height:1;">22</div><div style="font-size:11px; color:#8a857a; margin-top:3px;">Gols</div></div>
+            <div style="background:#fff; border-radius:15px; padding:13px 10px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.05);"><div style="font-family:'Saira Condensed'; font-weight:700; font-size:26px; color:#16261D; line-height:1;">15</div><div style="font-size:11px; color:#8a857a; margin-top:3px;">Assist.</div></div>
+            <div style="background:#fff; border-radius:15px; padding:13px 10px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.05);"><div style="font-family:'Saira Condensed'; font-weight:700; font-size:26px; color:#16261D; line-height:1;">38</div><div style="font-size:11px; color:#8a857a; margin-top:3px;">Presenças</div></div>
+          </div>
+          <!-- forma -->
+          <div style="background:#fff; border-radius:16px; padding:15px; margin-top:12px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;"><span style="font-weight:700; font-size:14px; color:#16261D;">Forma — últimas 5</span><span style="font-size:12px; color:#1B9E4B; font-weight:600;">Em alta</span></div>
+            <div style="display:flex; gap:8px;">
+              <div style="flex:1; text-align:center;"><div style="height:34px; border-radius:8px; background:#1B9E4B; display:flex; align-items:flex-end; justify-content:center; color:#fff; font-family:'Saira Condensed'; font-weight:700; font-size:14px; padding-bottom:3px;">8.2</div></div>
+              <div style="flex:1; text-align:center;"><div style="height:30px; border-radius:8px; background:#54B97A; display:flex; align-items:flex-end; justify-content:center; color:#fff; font-family:'Saira Condensed'; font-weight:700; font-size:14px; padding-bottom:3px;">7.0</div></div>
+              <div style="flex:1; text-align:center;"><div style="height:38px; border-radius:8px; background:#F4A11A; display:flex; align-items:flex-end; justify-content:center; color:#16261D; font-family:'Saira Condensed'; font-weight:700; font-size:14px; padding-bottom:3px;">9.1</div></div>
+              <div style="flex:1; text-align:center;"><div style="height:26px; border-radius:8px; background:#54B97A; display:flex; align-items:flex-end; justify-content:center; color:#fff; font-family:'Saira Condensed'; font-weight:700; font-size:14px; padding-bottom:3px;">6.5</div></div>
+              <div style="flex:1; text-align:center;"><div style="height:33px; border-radius:8px; background:#1B9E4B; display:flex; align-items:flex-end; justify-content:center; color:#fff; font-family:'Saira Condensed'; font-weight:700; font-size:14px; padding-bottom:3px;">8.0</div></div>
+            </div>
+          </div>
+          <!-- conquistas -->
+          <div style="margin-top:12px;">
+            <div style="font-weight:700; font-size:14px; color:#16261D; margin-bottom:10px;">Conquistas</div>
+            <div style="display:flex; gap:10px;">
+              <div style="flex:1; background:#FCEFD6; border-radius:14px; padding:12px; text-align:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="#F4A11A"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><div style="font-family:'Saira Condensed'; font-weight:700; font-size:18px; color:#16261D; margin-top:4px;">7x</div><div style="font-size:10px; color:#8a5a06;">Craque</div></div>
+              <div style="flex:1; background:#EAF5EC; border-radius:14px; padding:12px; text-align:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1B9E4B" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6m12 5h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg><div style="font-family:'Saira Condensed'; font-weight:700; font-size:18px; color:#16261D; margin-top:4px;">2x</div><div style="font-size:10px; color:#0B4A29;">Artilheiro</div></div>
+              <div style="flex:1; background:#EAF5EC; border-radius:14px; padding:12px; text-align:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1B9E4B" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg><div style="font-family:'Saira Condensed'; font-weight:700; font-size:18px; color:#16261D; margin-top:4px;">9</div><div style="font-size:10px; color:#0B4A29;">Sequência</div></div>
+            </div>
+          </div>
+        </div>
+        <div style="position:absolute; bottom:24px; left:22px; right:22px;"><button style="width:100%; border:none; background:#1B9E4B; color:#fff; font-weight:700; font-size:15px; padding:15px; border-radius:14px; box-shadow:0 10px 22px rgba(27,158,75,.3); cursor:pointer;">Confirmar presença na próxima</button></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============ SEÇÃO: PELADAS ============ -->
+  <div style="font-family:'Saira Condensed',sans-serif; font-weight:600; font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:#8a857a; margin-bottom:14px;">Peladas</div>
+  <div style="display:flex; gap:40px; align-items:flex-start; margin-bottom:56px;">
+
+    <!-- LISTA PELADAS -->
+    <div style="flex:none; width:390px;">
+      <div style="font-size:13px; font-weight:600; color:#6b675e; margin-bottom:12px;">05 · Peladas — lista</div>
+      <div style="position:relative; width:390px; height:844px; background:#F1F4ED; border-radius:44px; overflow:hidden; box-shadow:0 24px 60px -14px rgba(17,40,28,.32), 0 0 0 1px rgba(17,40,28,.06);">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 28px 0; color:#16261D;"><span style="font-weight:700; font-size:15px; font-family:'Saira Condensed';">20:45</span><span style="display:flex; gap:6px; align-items:center;"><svg width="17" height="12" viewBox="0 0 18 12" fill="#16261D"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="8" rx="1"/><rect x="10" y="1" width="3" height="11" rx="1"/></svg><svg width="22" height="12" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="19" height="10" rx="2.5" stroke="#16261D" opacity=".5"/><rect x="3" y="3" width="13" height="6" rx="1" fill="#16261D"/></svg></span></div>
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 22px 10px;"><div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:26px; color:#16261D; letter-spacing:-.02em;">Peladas</div><div style="width:40px; height:40px; border-radius:12px; background:#1B9E4B; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 14px rgba(27,158,75,.3);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></div></div>
+        <div style="padding:0 22px;">
+          <div style="display:flex; background:#fff; border-radius:12px; padding:4px; gap:4px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+            <div style="flex:1; text-align:center; padding:9px; border-radius:9px; background:#1B9E4B; font-weight:600; font-size:14px; color:#fff;">Próximas</div>
+            <div style="flex:1; text-align:center; padding:9px; border-radius:9px; font-weight:600; font-size:14px; color:#8a857a;">Anteriores</div>
+          </div>
+          <div style="margin-top:14px; display:flex; flex-direction:column; gap:11px;">
+            <!-- featured -->
+            <div style="background:#fff; border-radius:18px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.06);">
+              <div style="background:linear-gradient(150deg,#0B4A29,#15824A); padding:14px 16px; color:#fff; display:flex; justify-content:space-between; align-items:flex-start;">
+                <div><div style="display:flex; align-items:center; gap:6px; font-size:11px; font-family:'Saira Condensed'; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:#9fe3b8;"><span style="width:6px; height:6px; border-radius:50%; background:#F4A11A; animation:pulseDot 1.6s infinite;"></span>Aberta para confirmar</div><div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:19px; margin-top:5px;">Pelada de quinta</div></div>
+                <div style="text-align:center; background:rgba(255,255,255,.14); border-radius:11px; padding:6px 10px;"><div style="font-family:'Saira Condensed'; font-weight:700; font-size:22px; line-height:1;">22</div><div style="font-size:10px; color:#9fe3b8;">JUN</div></div>
+              </div>
+              <div style="padding:13px 16px;">
+                <div style="display:flex; gap:16px; font-size:13px; color:#6b675e;"><span style="display:flex; align-items:center; gap:5px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8a857a" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>20h00</span><span style="display:flex; align-items:center; gap:5px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8a857a" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>Society do Zé</span></div>
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-top:12px;">
+                  <div style="display:flex; align-items:center; gap:8px;"><div style="display:flex;"><span style="width:24px; height:24px; border-radius:50%; background:#1B9E4B; border:2px solid #fff;"></span><span style="width:24px; height:24px; border-radius:50%; background:#F4A11A; border:2px solid #fff; margin-left:-9px;"></span><span style="width:24px; height:24px; border-radius:50%; background:#2C6E49; border:2px solid #fff; margin-left:-9px;"></span></div><span style="font-size:12px; color:#8a857a;">14/20</span></div>
+                  <button style="border:none; background:#16261D; color:#fff; font-weight:600; font-size:13px; padding:9px 16px; border-radius:10px; cursor:pointer;">Confirmar</button>
+                </div>
+              </div>
+            </div>
+            <!-- normal cards -->
+            <div style="background:#fff; border-radius:16px; padding:14px 16px; box-shadow:0 1px 3px rgba(0,0,0,.05); display:flex; align-items:center; gap:14px;">
+              <div style="text-align:center; background:#F1F4ED; border-radius:12px; padding:8px 10px; min-width:50px;"><div style="font-family:'Saira Condensed'; font-weight:700; font-size:22px; color:#16261D; line-height:1;">29</div><div style="font-size:10px; color:#8a857a;">JUN</div></div>
+              <div style="flex:1;"><div style="font-weight:700; font-size:15px; color:#16261D;">Pelada de quinta</div><div style="font-size:12px; color:#8a857a; margin-top:2px;">20h · Society do Zé</div></div>
+              <span style="background:#EAF5EC; color:#0B4A29; font-weight:600; font-size:11px; padding:5px 10px; border-radius:8px;">Agendada</span>
+            </div>
+            <div style="background:#fff; border-radius:16px; padding:14px 16px; box-shadow:0 1px 3px rgba(0,0,0,.05); display:flex; align-items:center; gap:14px;">
+              <div style="text-align:center; background:#F1F4ED; border-radius:12px; padding:8px 10px; min-width:50px;"><div style="font-family:'Saira Condensed'; font-weight:700; font-size:22px; color:#16261D; line-height:1;">06</div><div style="font-size:10px; color:#8a857a;">JUL</div></div>
+              <div style="flex:1;"><div style="font-weight:700; font-size:15px; color:#16261D;">Pelada de quinta</div><div style="font-size:12px; color:#8a857a; margin-top:2px;">20h · Society do Zé</div></div>
+              <span style="background:#EAF5EC; color:#0B4A29; font-weight:600; font-size:11px; padding:5px 10px; border-radius:8px;">Agendada</span>
+            </div>
+          </div>
+        </div>
+        <div style="position:absolute; bottom:0; left:0; right:0; height:82px; background:rgba(255,255,255,.92); backdrop-filter:blur(12px); border-top:1px solid #E6EADF; display:flex; align-items:flex-start; padding:12px 14px 0;">
+          <div style="flex:1; text-align:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A7AFA1" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg><div style="font-size:10px; font-weight:500; color:#A7AFA1; margin-top:3px;">Início</div></div>
+          <div style="flex:1; text-align:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A7AFA1" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><div style="font-size:10px; font-weight:500; color:#A7AFA1; margin-top:3px;">Jogadores</div></div>
+          <div style="flex:1; text-align:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1B9E4B" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg><div style="font-size:10px; font-weight:700; color:#1B9E4B; margin-top:3px;">Peladas</div></div>
+          <div style="flex:1; text-align:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A7AFA1" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6m12 5h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22m7-7.34V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg><div style="font-size:10px; font-weight:500; color:#A7AFA1; margin-top:3px;">Rankings</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOVA PELADA -->
+    <div style="flex:none; width:390px;">
+      <div style="font-size:13px; font-weight:600; color:#6b675e; margin-bottom:12px;">06 · Nova pelada (admin)</div>
+      <div style="position:relative; width:390px; height:844px; background:#F1F4ED; border-radius:44px; overflow:hidden; box-shadow:0 24px 60px -14px rgba(17,40,28,.32), 0 0 0 1px rgba(17,40,28,.06);">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 28px 0; color:#16261D;"><span style="font-weight:700; font-size:15px; font-family:'Saira Condensed';">20:45</span><span style="display:flex; gap:6px; align-items:center;"><svg width="17" height="12" viewBox="0 0 18 12" fill="#16261D"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="8" rx="1"/><rect x="10" y="1" width="3" height="11" rx="1"/></svg><svg width="22" height="12" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="19" height="10" rx="2.5" stroke="#16261D" opacity=".5"/><rect x="3" y="3" width="13" height="6" rx="1" fill="#16261D"/></svg></span></div>
+        <div style="display:flex; align-items:center; gap:12px; padding:12px 22px 16px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16261D" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg><div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:24px; color:#16261D; letter-spacing:-.02em;">Nova pelada</div></div>
+        <div style="padding:0 22px;">
+          <div style="font-size:13px; font-weight:600; color:#16261D; margin-bottom:7px;">Nome da pelada</div>
+          <div style="background:#fff; border:1.5px solid #E6EADF; border-radius:13px; padding:13px 14px; font-size:15px; color:#16261D; margin-bottom:16px;">Pelada de quinta</div>
+          <div style="display:flex; gap:12px; margin-bottom:16px;">
+            <div style="flex:1;"><div style="font-size:13px; font-weight:600; color:#16261D; margin-bottom:7px;">Data</div><div style="display:flex; align-items:center; gap:8px; background:#fff; border:1.5px solid #E6EADF; border-radius:13px; padding:13px 14px; font-size:15px; color:#16261D;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8a857a" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>29/06</div></div>
+            <div style="flex:1;"><div style="font-size:13px; font-weight:600; color:#16261D; margin-bottom:7px;">Hora</div><div style="display:flex; align-items:center; gap:8px; background:#fff; border:1.5px solid #E6EADF; border-radius:13px; padding:13px 14px; font-size:15px; color:#16261D;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8a857a" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>20:00</div></div>
+          </div>
+          <div style="font-size:13px; font-weight:600; color:#16261D; margin-bottom:7px;">Local</div>
+          <div style="display:flex; align-items:center; gap:8px; background:#fff; border:1.5px solid #E6EADF; border-radius:13px; padding:13px 14px; font-size:15px; color:#16261D; margin-bottom:16px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8a857a" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>Society do Zé</div>
+          <div style="font-size:13px; font-weight:600; color:#16261D; margin-bottom:9px;">Tipo de quadra</div>
+          <div style="display:flex; gap:9px; margin-bottom:16px;">
+            <span style="flex:1; text-align:center; background:#1B9E4B; color:#fff; font-weight:600; font-size:13px; padding:11px; border-radius:11px;">Society</span>
+            <span style="flex:1; text-align:center; background:#fff; border:1.5px solid #E6EADF; color:#6b675e; font-weight:600; font-size:13px; padding:11px; border-radius:11px;">Campo</span>
+            <span style="flex:1; text-align:center; background:#fff; border:1.5px solid #E6EADF; color:#6b675e; font-weight:600; font-size:13px; padding:11px; border-radius:11px;">Quadra</span>
+          </div>
+          <div style="display:flex; gap:12px; margin-bottom:16px;">
+            <div style="flex:1;"><div style="font-size:13px; font-weight:600; color:#16261D; margin-bottom:7px;">Vagas</div><div style="background:#fff; border:1.5px solid #E6EADF; border-radius:13px; padding:13px 14px; font-size:15px; color:#16261D;">20</div></div>
+            <div style="flex:1;"><div style="font-size:13px; font-weight:600; color:#16261D; margin-bottom:7px;">Valor por cabeça</div><div style="background:#fff; border:1.5px solid #E6EADF; border-radius:13px; padding:13px 14px; font-size:15px; color:#16261D;">R$ 15</div></div>
+          </div>
+        </div>
+        <div style="position:absolute; bottom:24px; left:22px; right:22px;"><button style="width:100%; border:none; background:#1B9E4B; color:#fff; font-weight:700; font-size:16px; padding:16px; border-radius:14px; box-shadow:0 10px 22px rgba(27,158,75,.3); cursor:pointer;">Criar pelada</button></div>
+      </div>
+    </div>
+
+    <!-- DETALHE / PRESENÇA -->
+    <div style="flex:none; width:390px;">
+      <div style="font-size:13px; font-weight:600; color:#6b675e; margin-bottom:12px;">07 · Detalhe + marcar presença</div>
+      <div style="position:relative; width:390px; height:844px; background:#F1F4ED; border-radius:44px; overflow:hidden; box-shadow:0 24px 60px -14px rgba(17,40,28,.32), 0 0 0 1px rgba(17,40,28,.06);">
+        <div style="position:absolute; top:0; left:0; right:0; height:150px; background:linear-gradient(150deg,#0B4A29,#15824A);"></div>
+        <div style="position:relative; display:flex; justify-content:space-between; align-items:center; padding:16px 24px 0; color:#fff;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg><span style="font-weight:700; font-size:15px; font-family:'Saira Condensed';">20:45</span></div>
+        <div style="position:relative; padding:10px 24px 0; color:#fff;">
+          <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:22px;">Pelada de quinta</div>
+          <div style="display:flex; gap:14px; margin-top:6px; font-size:13px; color:#cdeed9;"><span>22/06 · 20h</span><span>·</span><span>Society do Zé</span></div>
+        </div>
+        <div style="position:relative; padding:16px 22px 0;">
+          <!-- presence card -->
+          <div style="background:#fff; border-radius:18px; padding:16px; box-shadow:0 4px 14px rgba(0,0,0,.08);">
+            <div style="display:flex; justify-content:space-between; align-items:center;"><span style="font-weight:700; font-size:15px; color:#16261D;">Você vai jogar?</span><span style="font-size:12px; color:#8a857a;">Confirme até quinta 18h</span></div>
+            <div style="display:flex; gap:9px; margin-top:12px;">
+              <button style="flex:1; border:none; background:#1B9E4B; color:#fff; font-weight:700; font-size:14px; padding:12px; border-radius:11px; display:flex; align-items:center; justify-content:center; gap:6px; cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><path d="M20 6 9 17l-4-4"/></svg>Vou</button>
+              <button style="flex:1; border:1.5px solid #E6EADF; background:#fff; color:#8a857a; font-weight:600; font-size:14px; padding:12px; border-radius:11px; cursor:pointer;">Talvez</button>
+              <button style="flex:1; border:1.5px solid #F3D9D3; background:#fff; color:#DC5B45; font-weight:600; font-size:14px; padding:12px; border-radius:11px; cursor:pointer;">Não vou</button>
+            </div>
+          </div>
+          <!-- confirmados bar -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:18px;"><span style="font-weight:700; font-size:15px; color:#16261D;">Confirmados</span><span style="font-size:13px; color:#8a857a; font-weight:600;">14 de 20</span></div>
+          <div style="height:8px; background:#E6EADF; border-radius:5px; margin-top:9px; overflow:hidden;"><div style="width:70%; height:100%; background:#1B9E4B; border-radius:5px;"></div></div>
+          <!-- times -->
+          <div style="display:flex; gap:11px; margin-top:18px;">
+            <div style="flex:1; background:#fff; border-radius:15px; padding:13px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+              <div style="display:flex; align-items:center; gap:7px; margin-bottom:10px;"><span style="width:14px; height:14px; border-radius:4px; background:#1B9E4B;"></span><span style="font-weight:700; font-size:14px; color:#16261D;">Coletados</span></div>
+              <div style="display:flex; flex-direction:column; gap:7px;">
+                <div style="display:flex; align-items:center; gap:8px;"><span style="width:22px; height:22px; border-radius:7px; background:#0B4A29; color:#fff; font-family:'Saira Condensed'; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center;">10</span><span style="font-size:13px; color:#16261D;">Marcos</span></div>
+                <div style="display:flex; align-items:center; gap:8px;"><span style="width:22px; height:22px; border-radius:7px; background:#1B9E4B; color:#fff; font-family:'Saira Condensed'; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center;">7</span><span style="font-size:13px; color:#16261D;">Rafa</span></div>
+                <div style="display:flex; align-items:center; gap:8px;"><span style="width:22px; height:22px; border-radius:7px; background:#2C6E49; color:#fff; font-family:'Saira Condensed'; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center;">5</span><span style="font-size:13px; color:#16261D;">Léo</span></div>
+              </div>
+            </div>
+            <div style="flex:1; background:#fff; border-radius:15px; padding:13px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+              <div style="display:flex; align-items:center; gap:7px; margin-bottom:10px;"><span style="width:14px; height:14px; border-radius:4px; background:#F4A11A;"></span><span style="font-weight:700; font-size:14px; color:#16261D;">Coloridos</span></div>
+              <div style="display:flex; flex-direction:column; gap:7px;">
+                <div style="display:flex; align-items:center; gap:8px;"><span style="width:22px; height:22px; border-radius:7px; background:#DC8A1A; color:#fff; font-family:'Saira Condensed'; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center;">1</span><span style="font-size:13px; color:#16261D;">Diego</span></div>
+                <div style="display:flex; align-items:center; gap:8px;"><span style="width:22px; height:22px; border-radius:7px; background:#1B9E4B; color:#fff; font-family:'Saira Condensed'; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center;">11</span><span style="font-size:13px; color:#16261D;">Bruno</span></div>
+                <div style="display:flex; align-items:center; gap:8px;"><span style="width:22px; height:22px; border-radius:7px; background:#2C6E49; color:#fff; font-family:'Saira Condensed'; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center;">9</span><span style="font-size:13px; color:#16261D;">Pedro</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="position:absolute; bottom:24px; left:22px; right:22px;"><button style="width:100%; border:none; background:#16261D; color:#fff; font-weight:700; font-size:15px; padding:15px; border-radius:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F4A11A" stroke-width="2"><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>Sortear times de novo</button></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============ SEÇÃO: ENGAJAMENTO ============ -->
+  <div style="font-family:'Saira Condensed',sans-serif; font-weight:600; font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:#8a857a; margin-bottom:14px;">Engajamento</div>
+  <div style="display:flex; gap:40px; align-items:flex-start; margin-bottom:24px;">
+
+    <!-- VOTAÇÃO CRAQUE -->
+    <div style="flex:none; width:390px;">
+      <div style="font-size:13px; font-weight:600; color:#6b675e; margin-bottom:12px;">08 · Votação no craque</div>
+      <div style="position:relative; width:390px; height:844px; background:#F1F4ED; border-radius:44px; overflow:hidden; box-shadow:0 24px 60px -14px rgba(17,40,28,.32), 0 0 0 1px rgba(17,40,28,.06);">
+        <div style="position:absolute; top:0; left:0; right:0; height:180px; background:linear-gradient(150deg,#16261D,#0B4A29); overflow:hidden;"><div style="position:absolute; right:-20px; top:20px;"><svg width="150" height="150" viewBox="0 0 24 24" fill="rgba(244,161,26,.08)"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div></div>
+        <div style="position:relative; display:flex; justify-content:space-between; align-items:center; padding:16px 24px 0; color:#fff;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg><span style="font-weight:700; font-size:15px; font-family:'Saira Condensed';">20:45</span></div>
+        <div style="position:relative; padding:10px 24px 0; color:#fff;">
+          <div style="display:inline-flex; align-items:center; gap:6px; background:rgba(244,161,26,.18); color:#F4A11A; font-family:'Saira Condensed'; font-weight:600; font-size:12px; letter-spacing:.1em; text-transform:uppercase; padding:5px 11px; border-radius:8px;"><span style="width:6px; height:6px; border-radius:50%; background:#F4A11A; animation:pulseDot 1.6s infinite;"></span>Votação aberta</div>
+          <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:26px; margin-top:10px;">Craque da pelada</div>
+          <div style="font-size:13px; color:#9fe3b8; margin-top:3px;">Quem foi o melhor em campo na quinta?</div>
+        </div>
+        <div style="position:relative; padding:18px 22px 0; display:flex; flex-direction:column; gap:10px;">
+          <!-- leader -->
+          <div style="background:#fff; border:2px solid #F4A11A; border-radius:16px; padding:13px; box-shadow:0 6px 18px rgba(244,161,26,.18); position:relative;">
+            <div style="position:absolute; top:-9px; left:14px; background:#F4A11A; color:#16261D; font-size:10px; font-weight:700; padding:3px 9px; border-radius:6px; display:flex; align-items:center; gap:4px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="#16261D"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>NA FRENTE</div>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <div style="width:44px; height:44px; border-radius:13px; background:#0B4A29; color:#fff; font-family:'Saira Condensed'; font-weight:700; font-size:20px; display:flex; align-items:center; justify-content:center;">10</div>
+              <div style="flex:1;"><div style="font-weight:700; font-size:15px; color:#16261D;">Marcos Lima</div><div style="height:7px; background:#F1F4ED; border-radius:4px; margin-top:6px; overflow:hidden;"><div style="width:62%; height:100%; background:#F4A11A; border-radius:4px;"></div></div></div>
+              <div style="text-align:right;"><div style="font-family:'Saira Condensed'; font-weight:700; font-size:20px; color:#16261D; line-height:1;">62%</div><div style="font-size:10px; color:#8a857a;">18 votos</div></div>
+            </div>
+          </div>
+          <!-- others votable -->
+          <div style="background:#fff; border-radius:16px; padding:13px; box-shadow:0 1px 3px rgba(0,0,0,.05); display:flex; align-items:center; gap:12px;">
+            <div style="width:44px; height:44px; border-radius:13px; background:#1B9E4B; color:#fff; font-family:'Saira Condensed'; font-weight:700; font-size:20px; display:flex; align-items:center; justify-content:center;">7</div>
+            <div style="flex:1;"><div style="font-weight:700; font-size:15px; color:#16261D;">Rafa Souza</div><div style="font-size:12px; color:#8a857a;">2 gols · 1 assist.</div></div>
+            <button style="border:1.5px solid #1B9E4B; background:#fff; color:#1B9E4B; font-weight:700; font-size:13px; padding:9px 16px; border-radius:10px; cursor:pointer;">Votar</button>
+          </div>
+          <div style="background:#fff; border-radius:16px; padding:13px; box-shadow:0 1px 3px rgba(0,0,0,.05); display:flex; align-items:center; gap:12px;">
+            <div style="width:44px; height:44px; border-radius:13px; background:#DC8A1A; color:#fff; font-family:'Saira Condensed'; font-weight:700; font-size:20px; display:flex; align-items:center; justify-content:center;">1</div>
+            <div style="flex:1;"><div style="font-weight:700; font-size:15px; color:#16261D;">Diego Alves</div><div style="font-size:12px; color:#8a857a;">5 defesas difíceis</div></div>
+            <button style="border:1.5px solid #1B9E4B; background:#fff; color:#1B9E4B; font-weight:700; font-size:13px; padding:9px 16px; border-radius:10px; cursor:pointer;">Votar</button>
+          </div>
+          <div style="background:#fff; border-radius:16px; padding:13px; box-shadow:0 1px 3px rgba(0,0,0,.05); display:flex; align-items:center; gap:12px;">
+            <div style="width:44px; height:44px; border-radius:13px; background:#2C6E49; color:#fff; font-family:'Saira Condensed'; font-weight:700; font-size:20px; display:flex; align-items:center; justify-content:center;">11</div>
+            <div style="flex:1;"><div style="font-weight:700; font-size:15px; color:#16261D;">Bruno Tavares</div><div style="font-size:12px; color:#8a857a;">1 gol · 3 assist.</div></div>
+            <button style="border:1.5px solid #1B9E4B; background:#fff; color:#1B9E4B; font-weight:700; font-size:13px; padding:9px 16px; border-radius:10px; cursor:pointer;">Votar</button>
+          </div>
+        </div>
+        <div style="position:absolute; bottom:24px; left:22px; right:22px; font-size:12px; color:#8a857a; text-align:center;">Encerra automaticamente domingo às 23h59</div>
+      </div>
+    </div>
+
+    <!-- RANKINGS -->
+    <div style="flex:none; width:390px;">
+      <div style="font-size:13px; font-weight:600; color:#6b675e; margin-bottom:12px;">09 · Rankings</div>
+      <div style="position:relative; width:390px; height:844px; background:#F1F4ED; border-radius:44px; overflow:hidden; box-shadow:0 24px 60px -14px rgba(17,40,28,.32), 0 0 0 1px rgba(17,40,28,.06);">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 28px 0; color:#16261D;"><span style="font-weight:700; font-size:15px; font-family:'Saira Condensed';">20:45</span><span style="display:flex; gap:6px; align-items:center;"><svg width="17" height="12" viewBox="0 0 18 12" fill="#16261D"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="8" rx="1"/><rect x="10" y="1" width="3" height="11" rx="1"/></svg><svg width="22" height="12" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="19" height="10" rx="2.5" stroke="#16261D" opacity=".5"/><rect x="3" y="3" width="13" height="6" rx="1" fill="#16261D"/></svg></span></div>
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 22px 6px;"><div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:26px; color:#16261D; letter-spacing:-.02em;">Rankings</div><span style="background:#fff; color:#16261D; font-weight:600; font-size:13px; padding:7px 13px; border-radius:9px; box-shadow:0 1px 3px rgba(0,0,0,.05); display:flex; align-items:center; gap:6px;">Temporada 2026<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8a857a" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span></div>
+        <div style="padding:0 22px;">
+          <div style="display:flex; gap:7px; overflow:hidden;">
+            <span style="background:#1B9E4B; color:#fff; font-weight:600; font-size:13px; padding:7px 13px; border-radius:9px; white-space:nowrap;">Artilharia</span>
+            <span style="background:#fff; color:#6b675e; font-weight:600; font-size:13px; padding:7px 13px; border-radius:9px; white-space:nowrap;">Assist.</span>
+            <span style="background:#fff; color:#6b675e; font-weight:600; font-size:13px; padding:7px 13px; border-radius:9px; white-space:nowrap;">Presença</span>
+            <span style="background:#fff; color:#6b675e; font-weight:600; font-size:13px; padding:7px 13px; border-radius:9px; white-space:nowrap;">Craque</span>
+          </div>
+          <!-- podium -->
+          <div style="display:flex; align-items:flex-end; gap:10px; margin-top:18px;">
+            <div style="flex:1; text-align:center;">
+              <div style="width:54px; height:54px; margin:0 auto; border-radius:16px; background:#1B9E4B; color:#fff; font-family:'Saira Condensed'; font-weight:700; font-size:24px; display:flex; align-items:center; justify-content:center;">7</div>
+              <div style="font-weight:700; font-size:13px; color:#16261D; margin-top:7px;">Rafa</div>
+              <div style="background:#fff; border-radius:13px 13px 0 0; padding:14px 0 10px; margin-top:7px; box-shadow:0 1px 3px rgba(0,0,0,.05);"><div style="font-family:'Saira Condensed'; font-weight:700; font-size:18px; color:#1B9E4B;">31</div><div style="font-size:18px; color:#C7CDC0; font-weight:700;">2º</div></div>
+            </div>
+            <div style="flex:1; text-align:center;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="#F4A11A" style="margin-bottom:2px;"><path d="M5 16 3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5Z"/></svg>
+              <div style="width:64px; height:64px; margin:0 auto; border-radius:18px; background:#F4A11A; color:#16261D; font-family:'Saira Condensed'; font-weight:700; font-size:30px; display:flex; align-items:center; justify-content:center; border:3px solid #fff; box-shadow:0 8px 18px rgba(244,161,26,.35);">10</div>
+              <div style="font-weight:700; font-size:14px; color:#16261D; margin-top:7px;">Marcos</div>
+              <div style="background:#fff; border-radius:13px 13px 0 0; padding:20px 0 12px; margin-top:7px; box-shadow:0 1px 3px rgba(0,0,0,.05);"><div style="font-family:'Saira Condensed'; font-weight:700; font-size:22px; color:#F4A11A;">38</div><div style="font-size:22px; color:#F4A11A; font-weight:700;">1º</div></div>
+            </div>
+            <div style="flex:1; text-align:center;">
+              <div style="width:54px; height:54px; margin:0 auto; border-radius:16px; background:#2C6E49; color:#fff; font-family:'Saira Condensed'; font-weight:700; font-size:24px; display:flex; align-items:center; justify-content:center;">9</div>
+              <div style="font-weight:700; font-size:13px; color:#16261D; margin-top:7px;">Pedro</div>
+              <div style="background:#fff; border-radius:13px 13px 0 0; padding:10px 0 8px; margin-top:7px; box-shadow:0 1px 3px rgba(0,0,0,.05);"><div style="font-family:'Saira Condensed'; font-weight:700; font-size:18px; color:#2C6E49;">27</div><div style="font-size:18px; color:#C7CDC0; font-weight:700;">3º</div></div>
+            </div>
+          </div>
+          <!-- rest -->
+          <div style="margin-top:14px; display:flex; flex-direction:column; gap:8px;">
+            <div style="background:#fff; border-radius:14px; padding:11px 14px; display:flex; align-items:center; gap:13px; box-shadow:0 1px 3px rgba(0,0,0,.05);"><span style="font-family:'Saira Condensed'; font-weight:700; font-size:17px; color:#A7AFA1; width:18px;">4</span><div style="width:34px; height:34px; border-radius:10px; background:#1B9E4B; color:#fff; font-family:'Saira Condensed'; font-weight:700; font-size:16px; display:flex; align-items:center; justify-content:center;">11</div><span style="flex:1; font-weight:600; font-size:14px; color:#16261D;">Bruno Tavares</span><span style="display:flex; align-items:center; gap:5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1B9E4B" stroke-width="2.5"><path d="M16 7h6v6M22 7l-8.5 8.5-5-5L2 17"/></svg><span style="font-family:'Saira Condensed'; font-weight:700; font-size:18px; color:#16261D;">24</span></span></div>
+            <div style="background:#fff; border-radius:14px; padding:11px 14px; display:flex; align-items:center; gap:13px; box-shadow:0 1px 3px rgba(0,0,0,.05);"><span style="font-family:'Saira Condensed'; font-weight:700; font-size:17px; color:#A7AFA1; width:18px;">5</span><div style="width:34px; height:34px; border-radius:10px; background:#2C6E49; color:#fff; font-family:'Saira Condensed'; font-weight:700; font-size:16px; display:flex; align-items:center; justify-content:center;">8</div><span style="flex:1; font-weight:600; font-size:14px; color:#16261D;">Carlos Nunes</span><span style="display:flex; align-items:center; gap:5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A7AFA1" stroke-width="2.5"><path d="M5 12h14"/></svg><span style="font-family:'Saira Condensed'; font-weight:700; font-size:18px; color:#16261D;">19</span></span></div>
+            <div style="background:#fff; border-radius:14px; padding:11px 14px; display:flex; align-items:center; gap:13px; box-shadow:0 1px 3px rgba(0,0,0,.05);"><span style="font-family:'Saira Condensed'; font-weight:700; font-size:17px; color:#A7AFA1; width:18px;">6</span><div style="width:34px; height:34px; border-radius:10px; background:#DC8A1A; color:#fff; font-family:'Saira Condensed'; font-weight:700; font-size:16px; display:flex; align-items:center; justify-content:center;">4</div><span style="flex:1; font-weight:600; font-size:14px; color:#16261D;">Tiago Melo</span><span style="display:flex; align-items:center; gap:5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#DC5B45" stroke-width="2.5"><path d="M16 17h6v-6M22 17l-8.5-8.5-5 5L2 7"/></svg><span style="font-family:'Saira Condensed'; font-weight:700; font-size:18px; color:#16261D;">17</span></span></div>
+          </div>
+        </div>
+        <div style="position:absolute; bottom:0; left:0; right:0; height:82px; background:rgba(255,255,255,.92); backdrop-filter:blur(12px); border-top:1px solid #E6EADF; display:flex; align-items:flex-start; padding:12px 14px 0;">
+          <div style="flex:1; text-align:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A7AFA1" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg><div style="font-size:10px; font-weight:500; color:#A7AFA1; margin-top:3px;">Início</div></div>
+          <div style="flex:1; text-align:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A7AFA1" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><div style="font-size:10px; font-weight:500; color:#A7AFA1; margin-top:3px;">Jogadores</div></div>
+          <div style="flex:1; text-align:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A7AFA1" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg><div style="font-size:10px; font-weight:500; color:#A7AFA1; margin-top:3px;">Peladas</div></div>
+          <div style="flex:1; text-align:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1B9E4B" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6m12 5h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22m7-7.34V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg><div style="font-size:10px; font-weight:700; color:#1B9E4B; margin-top:3px;">Rankings</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

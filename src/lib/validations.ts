@@ -19,12 +19,15 @@ export const signupSchema = z.object({
 });
 
 export const surfaces = ["SOCIETY", "CAMPO", "QUADRA"] as const;
+export const matchKinds = ["PELADA", "AMISTOSO"] as const;
 
 export const matchSchema = z.object({
   title: z.string().min(2, "Informe um nome para a pelada."),
   date: z.coerce.date(),
+  kind: z.enum(matchKinds).default("PELADA"),
   surface: z.enum(surfaces).default("SOCIETY"),
-  location: z.string().optional()
+  location: z.string().optional(),
+  opponentName: z.string().optional()
 });
 
 export const drawSchema = z.object({
