@@ -10,7 +10,7 @@ import { Input, Label } from "@/components/ui/Input";
 type LoginMode = "player" | "admin";
 type PlayerView = "login" | "signup";
 
-export function LoginPanel({ socialProviders }: { socialProviders: string[] }) {
+export function LoginPanel({ socialProviders = [] }: { socialProviders?: string[] }) {
   const [mode, setMode] = useState<LoginMode>("player");
   const [playerView, setPlayerView] = useState<PlayerView>("login");
   const [signupError, setSignupError] = useState("");

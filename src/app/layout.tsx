@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Hanken_Grotesk, Saira_Condensed } from "next/font/google";
+import { DevServiceWorkerCleanup } from "@/components/layout/DevServiceWorkerCleanup";
 import "@/styles/globals.css";
 
 const display = Bricolage_Grotesque({
@@ -44,7 +45,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
-      <body className={`${display.variable} ${sans.variable} ${jersey.variable}`}>{children}</body>
+      <body className={`${display.variable} ${sans.variable} ${jersey.variable}`}>
+        <DevServiceWorkerCleanup />
+        {children}
+      </body>
     </html>
   );
 }

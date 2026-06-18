@@ -8,7 +8,9 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
 
   return (
-    <div className="light-field-lines min-h-screen bg-areia pb-32 text-tinta">
+    <div className="light-field-lines relative min-h-screen overflow-hidden bg-areia pb-32 text-tinta">
+      <span className="soccer-ball app-ball-bg" aria-hidden="true" />
+      <span className="soccer-ball app-ball-bg" aria-hidden="true" />
       <header className="sticky top-0 z-20 bg-gradient-to-r from-mata to-campo text-white shadow-[0_8px_24px_rgba(11,74,41,.18)]">
         <div className="mx-auto flex max-w-md items-center justify-between px-5 py-3">
           <Link href="/dashboard" className="font-display text-xl font-extrabold tracking-[-.02em] text-white">
@@ -24,7 +26,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-md px-5 py-5">
+      <main className="relative z-10 mx-auto max-w-md px-5 py-5">
         <PushNotificationsMount />
         {children}
       </main>

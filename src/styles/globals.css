@@ -88,3 +88,91 @@ textarea {
   animation: growBar .8s ease-out both;
   transform-origin: left;
 }
+
+.soccer-ball {
+  position: relative;
+  display: inline-block;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 50% 50%, #16261D 0 13%, transparent 14%),
+    radial-gradient(circle at 50% 6%, #16261D 0 10%, transparent 11%),
+    radial-gradient(circle at 92% 38%, #16261D 0 10%, transparent 11%),
+    radial-gradient(circle at 74% 92%, #16261D 0 10%, transparent 11%),
+    radial-gradient(circle at 26% 92%, #16261D 0 10%, transparent 11%),
+    radial-gradient(circle at 8% 38%, #16261D 0 10%, transparent 11%),
+    #fff;
+  box-shadow: inset -7px -9px 18px rgba(22,38,29,.18), 0 10px 24px rgba(0,0,0,.14);
+}
+
+.soccer-ball::before {
+  content: "";
+  position: absolute;
+  inset: 14%;
+  border-radius: 999px;
+  border: 1.5px solid rgba(22,38,29,.2);
+}
+
+.soccer-ball::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background:
+    linear-gradient(36deg, transparent 46%, rgba(22,38,29,.18) 47% 49%, transparent 50%),
+    linear-gradient(108deg, transparent 47%, rgba(22,38,29,.14) 48% 50%, transparent 51%),
+    linear-gradient(180deg, transparent 47%, rgba(22,38,29,.12) 48% 50%, transparent 51%);
+  opacity: .8;
+}
+
+@keyframes ballFloat {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  35% { transform: translate3d(10px, -12px, 0) rotate(18deg); }
+  70% { transform: translate3d(-8px, 6px, 0) rotate(-12deg); }
+}
+
+@keyframes ballRoll {
+  from { transform: translateX(-34px) rotate(0deg); }
+  to { transform: translateX(34px) rotate(360deg); }
+}
+
+.soccer-ball-float {
+  animation: ballFloat 5.5s ease-in-out infinite;
+}
+
+.soccer-ball-roll {
+  animation: ballRoll 4.5s ease-in-out infinite alternate;
+}
+
+.app-ball-bg {
+  pointer-events: none;
+  position: fixed;
+  z-index: 0;
+  opacity: .07;
+}
+
+.app-ball-bg:nth-child(1) {
+  height: 96px;
+  width: 96px;
+  left: max(14px, calc(50% - 310px));
+  top: 118px;
+  animation: ballFloat 8s ease-in-out infinite;
+}
+
+.app-ball-bg:nth-child(2) {
+  height: 148px;
+  width: 148px;
+  right: max(-26px, calc(50% - 340px));
+  bottom: 118px;
+  animation: ballFloat 10s ease-in-out infinite reverse;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-card,
+  .pulse-dot,
+  .grow-bar,
+  .soccer-ball-float,
+  .soccer-ball-roll,
+  .app-ball-bg {
+    animation: none;
+  }
+}
