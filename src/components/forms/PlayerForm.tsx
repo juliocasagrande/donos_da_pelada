@@ -14,9 +14,16 @@ type PlayerFormProps = {
   };
   submitLabel?: string;
   canEditMembershipStatus?: boolean;
+  canEditRating?: boolean;
 };
 
-export function PlayerForm({ action, player, submitLabel = "Salvar jogador", canEditMembershipStatus = false }: PlayerFormProps) {
+export function PlayerForm({
+  action,
+  player,
+  submitLabel = "Salvar jogador",
+  canEditMembershipStatus = false,
+  canEditRating = true
+}: PlayerFormProps) {
   return (
     <form action={action} className="space-y-4">
       <PhotoUpload defaultUrl={player?.photoUrl} />
@@ -46,10 +53,12 @@ export function PlayerForm({ action, player, submitLabel = "Salvar jogador", can
           </Select>
         </div>
       ) : null}
-      <div>
-        <Label>Nota de 0 a 5</Label>
-        <Input name="rating" type="number" min={0} max={5} step={0.5} defaultValue={player?.rating ?? 3} required />
-      </div>
+      {canEditRating ? (
+        <div>
+          <Label>Nota de 0 a 5</Label>
+          <Input name="rating" type="number" min={0} max={5} step={0.5} defaultValue={player?.rating ?? 3} required />
+        </div>
+      ) : null}
       <Button className="w-full" type="submit">{submitLabel}</Button>
     </form>
   );

@@ -18,7 +18,9 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
           <div className="flex items-center gap-2 text-xs text-white/80">
             {user?.role === "MASTER" ? <Shield size={16} className="text-craque" /> : null}
-            <span className="max-w-28 truncate">{user?.name || user?.email}</span>
+            <Link href="/perfil" className="max-w-28 truncate transition hover:text-white" title="Meu perfil">
+              {user?.name || user?.email}
+            </Link>
             <Link href="/logout" className="rounded-[12px] bg-white/95 p-2 text-mata shadow-card" title="Sair">
               <LogOut size={16} />
             </Link>

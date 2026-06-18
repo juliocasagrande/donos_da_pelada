@@ -8,6 +8,7 @@ import { GuestForm } from "@/components/forms/GuestForm";
 import { removeGuestFromMatch, toggleAttendance, toggleOwnAttendance } from "@/lib/actions";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { cn } from "@/lib/utils";
 
 function getSaoPauloDate(date: Date) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(date);
@@ -75,7 +76,7 @@ export default async function AttendancePage({ params }: { params: Promise<{ id:
               {presentCount} confirmados · {waitlistCount} na espera
             </p>
           </div>
-          <div className="font-jersey text-3xl font-bold text-campo">{presentCount}</div>
+          <div key={presentCount} className="pop-scale font-jersey text-3xl font-bold text-campo">{presentCount}</div>
         </div>
         <div className="mt-3 h-2 overflow-hidden rounded-full bg-areia">
           <div className="grow-bar h-full rounded-full bg-campo" style={{ width: `${Math.min(100, presentCount * 5)}%` }} />
@@ -84,7 +85,7 @@ export default async function AttendancePage({ params }: { params: Promise<{ id:
 
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="font-display text-xl font-bold">Voce vai jogar?</h2>
-        <div className="rounded-lg bg-white px-3 py-2 font-jersey text-xl font-bold text-campo shadow-card">{presentCount}</div>
+        <div key={presentCount} className="pop-scale rounded-lg bg-white px-3 py-2 font-jersey text-xl font-bold text-campo shadow-card">{presentCount}</div>
       </div>
 
       {canInviteGuest ? (
@@ -95,7 +96,7 @@ export default async function AttendancePage({ params }: { params: Promise<{ id:
         </Card>
       ) : null}
 
-      <div className="space-y-3">
+      <div className="stagger space-y-3">
         {players.map((player) => {
           const attendance = player.attendances[0];
           const status = attendance?.status || "OUT";
@@ -113,13 +114,14 @@ export default async function AttendancePage({ params }: { params: Promise<{ id:
           return (
             <Card
               key={player.id}
-              className={
+              className={cn(
+                "animate-card",
                 status === "CONFIRMED"
                   ? "border border-campo/20 bg-[#EAF5EC]"
                   : status === "WAITLIST"
                     ? "border border-craque/30 bg-[#FCEFD6]"
                     : "border border-linha bg-white/60 opacity-70"
-              }
+              )}
             >
               <div className="flex items-center gap-3">
                 <PlayerAvatar src={player.photoUrl} name={player.name} position={player.position} />

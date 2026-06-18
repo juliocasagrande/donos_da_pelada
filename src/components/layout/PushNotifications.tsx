@@ -25,9 +25,8 @@ export function PushNotifications() {
   useEffect(() => {
     setAvailable("serviceWorker" in navigator && "PushManager" in window && Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY));
 
-    navigator.serviceWorker
-      ?.getRegistration("/push-sw.js")
-      .then((registration) => registration?.pushManager.getSubscription())
+    navigator.serviceWorker?.ready
+      .then((registration) => registration.pushManager.getSubscription())
       .then((subscription) => setEnabled(Boolean(subscription)))
       .catch(() => setEnabled(false));
   }, []);
@@ -46,7 +45,7 @@ export function PushNotifications() {
       return;
     }
 
-    const registration = await navigator.serviceWorker.register("/push-sw.js", { scope: "/" });
+    const registration = await navigator.serviceWorker.ready;
     const subscription =
       (await registration.pushManager.getSubscription()) ||
       (await registration.pushManager.subscribe({

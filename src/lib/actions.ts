@@ -191,6 +191,36 @@ export async function saveOnboarding(formData: FormData) {
   redirect("/dashboard");
 }
 
+export async function updateOwnProfile(formData: FormData) {
+  const user = await requireUser();
+  const currentPlayer = await prisma.player.findUnique({ where: { userId: user.id } });
+  const parsed = playerSchema.parse({
+    name: value(formData, "name"),
+    nickname: value(formData, "nickname"),
+    photoUrl: value(formData, "photoUrl"),
+    position: value(formData, "position"),
+    membershipStatus: currentPlayer?.membershipStatus || "CONVIDADO",
+    rating: currentPlayer?.rating ?? 0
+  });
+
+  await prisma.player.upsert({
+    where: { userId: user.id },
+    update: parsed,
+    create: { ...parsed, userId: user.id }
+  });
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      name: parsed.nickname || parsed.name,
+      image: parsed.photoUrl || undefined
+    }
+  });
+
+  revalidatePath("/perfil");
+  redirect("/perfil?salvo=1");
+}
+
 export async function createAdmin(formData: FormData) {
   await requireMaster();
   const parsed = adminSchema.parse({

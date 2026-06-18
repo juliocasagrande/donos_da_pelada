@@ -33,7 +33,7 @@ function PlayerSelectionCard({ player }: { player: DrawPlayer }) {
   const PositionIcon = position.icon;
 
   return (
-    <div className="rounded-card bg-areia p-3 shadow-card">
+    <div className="animate-card rounded-card bg-areia p-3 shadow-card">
       <input type="hidden" name="playerId" value={player.id} />
       <input type="hidden" name={`membershipStatus-${player.id}`} value={membershipStatus} />
       {present ? <input type="hidden" name="presentPlayerId" value={player.id} /> : null}
@@ -43,8 +43,8 @@ function PlayerSelectionCard({ player }: { player: DrawPlayer }) {
           type="button"
           onClick={() => setPresent((current) => !current)}
           className={cn(
-            "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-[1.5px] transition",
-            present ? "border-campo bg-campo text-white" : "border-linha bg-white text-transparent"
+            "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-[1.5px] transition active:scale-90",
+            present ? "pop-scale border-campo bg-campo text-white" : "border-linha bg-white text-transparent"
           )}
           aria-pressed={present}
           title={present ? "Presente" : "Ausente"}
@@ -135,9 +135,11 @@ export function DrawTeamsForm({ matchId, players }: { matchId: string; players: 
           <h2 className="font-display text-lg font-bold">Selecao final</h2>
           <p className="text-sm text-musgo">Marque quem esta presente e confirme se e mensalista ou convidado.</p>
         </div>
-        {players.map((player) => (
-          <PlayerSelectionCard key={player.id} player={player} />
-        ))}
+        <div className="stagger space-y-2">
+          {players.map((player) => (
+            <PlayerSelectionCard key={player.id} player={player} />
+          ))}
+        </div>
       </div>
       <SubmitButton className="w-full" pendingLabel="Gerando times...">
         {isPending ? "Gerando times..." : "Gerar times"}

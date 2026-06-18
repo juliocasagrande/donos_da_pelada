@@ -97,8 +97,8 @@ export default async function RankingsPage({
 
     const currentPosition = index + 1;
     const previousPosition = previousNoteRank[playerId] ?? currentPosition;
-    if (currentPosition < previousPosition) return <TrendingUp size={14} className="text-campo" />;
-    if (currentPosition > previousPosition) return <TrendingDown size={14} className="text-ausente" />;
+    if (currentPosition < previousPosition) return <TrendingUp size={14} className="trend-bounce text-campo" />;
+    if (currentPosition > previousPosition) return <TrendingDown size={14} className="trend-bounce text-ausente" />;
     return <Minus size={14} className="text-[#A7AFA1]" />;
   }
 
@@ -130,7 +130,7 @@ export default async function RankingsPage({
 
       <section className="mb-5 grid grid-cols-3 items-end gap-2">
         {second ? (
-          <div className="text-center">
+          <div className="rise-podium text-center" style={{ animationDelay: "90ms" }}>
             <PlayerAvatar src={second.photoUrl} name={second.name} position={second.position} number={7} className="mx-auto bg-campo" />
             <p className="mt-2 truncate text-sm font-bold">{second.nickname || second.name}</p>
             <Card className="mt-2 rounded-b-none p-3">
@@ -143,7 +143,7 @@ export default async function RankingsPage({
         )}
 
         {first ? (
-          <div className="text-center">
+          <div className="rise-podium text-center" style={{ animationDelay: "260ms" }}>
             <Crown className="mx-auto mb-1 text-craque" size={18} fill="currentColor" />
             <PlayerAvatar src={first.photoUrl} name={first.name} position={first.position} number={10} size="lg" className="mx-auto bg-craque text-mata" />
             <p className="mt-2 truncate text-sm font-extrabold">{first.nickname || first.name}</p>
@@ -157,7 +157,7 @@ export default async function RankingsPage({
         )}
 
         {third ? (
-          <div className="text-center">
+          <div className="rise-podium text-center" style={{ animationDelay: "0ms" }}>
             <PlayerAvatar src={third.photoUrl} name={third.name} position={third.position} number={9} className="mx-auto bg-mata" />
             <p className="mt-2 truncate text-sm font-bold">{third.nickname || third.name}</p>
             <Card className="mt-2 rounded-b-none p-3">
@@ -170,7 +170,7 @@ export default async function RankingsPage({
         )}
       </section>
 
-      <div className="space-y-2.5">
+      <div className="stagger space-y-2.5">
         {list.map((player, index) => (
           <Card key={player.id} className="animate-card p-3">
             <div className="flex items-center gap-3">

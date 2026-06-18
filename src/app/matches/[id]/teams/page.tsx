@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/session";
+import { cn } from "@/lib/utils";
 
 export default async function TeamsPage({ params }: { params: Promise<{ id: string }> }) {
   await requireAdmin();
@@ -24,8 +25,8 @@ export default async function TeamsPage({ params }: { params: Promise<{ id: stri
         <Link href={`/matches/${id}/draw`}><Button variant="secondary">Refazer</Button></Link>
       </div>
       {teams.length ? <p className="mb-4 text-sm text-musgo">Diferenca entre somas: {balance.toFixed(1)} ponto(s).</p> : null}
-      <div className="grid gap-4">
-        {teams.map((team) => (
+      <div className="stagger grid gap-4">
+        {teams.map((team, teamIndex) => (
           <Card key={team.id} className="animate-card">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="font-display text-2xl font-extrabold">{team.name}</h2>
@@ -33,8 +34,15 @@ export default async function TeamsPage({ params }: { params: Promise<{ id: stri
             </div>
             <p className="mb-3 text-sm text-musgo">Media {(team.totalRating / Math.max(team.players.length, 1)).toFixed(1)}</p>
             <div className="space-y-2">
-              {team.players.map(({ player }) => (
-                <div key={player.id} className="flex items-center gap-2 rounded-[13px] bg-areia p-2">
+              {team.players.map(({ player }, playerIndex) => (
+                <div
+                  key={player.id}
+                  className={cn(
+                    "flex items-center gap-2 rounded-[13px] bg-areia p-2",
+                    teamIndex % 2 === 0 ? "slide-in-left" : "slide-in-right"
+                  )}
+                  style={{ animationDelay: `${150 + playerIndex * 70}ms` }}
+                >
                   <PlayerAvatar src={player.photoUrl} name={player.name} position={player.position} size="sm" />
                   <div className="min-w-0">
                     <p className="truncate font-bold">{player.nickname || player.name}</p>

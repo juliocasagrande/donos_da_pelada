@@ -109,16 +109,16 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
         </div>
       </section>
 
-      <section className="-mt-3 grid grid-cols-3 gap-2">
-        <div className="rounded-[13px] bg-white p-3 text-center shadow-card">
+      <section className="stagger -mt-3 grid grid-cols-3 gap-2">
+        <div className="animate-card rounded-[13px] bg-white p-3 text-center shadow-card">
           <div className="font-jersey text-3xl font-bold">{player.position === "GOLEIRO" ? saves : goals}</div>
           <p className="text-xs text-musgo">{player.position === "GOLEIRO" ? "Defesas" : "Gols"}</p>
         </div>
-        <div className="rounded-[13px] bg-white p-3 text-center shadow-card">
+        <div className="animate-card rounded-[13px] bg-white p-3 text-center shadow-card">
           <div className="font-jersey text-3xl font-bold">{assists}</div>
           <p className="text-xs text-musgo">Assist.</p>
         </div>
-        <div className="rounded-[13px] bg-white p-3 text-center shadow-card">
+        <div className="animate-card rounded-[13px] bg-white p-3 text-center shadow-card">
           <div className="font-jersey text-3xl font-bold">{presences}</div>
           <p className="text-xs text-musgo">Presencas</p>
         </div>
@@ -137,12 +137,12 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
           </div>
         </div>
         {form.length ? (
-          <div className="grid grid-cols-5 gap-2">
+          <div className="stagger grid grid-cols-5 gap-2">
             {form.map((score, index) => (
               <div
                 key={`${score}-${index}`}
                 className={cn(
-                  "rounded-[8px] py-2 text-center font-jersey text-lg font-bold text-white",
+                  "grow-bar rounded-[8px] py-2 text-center font-jersey text-lg font-bold text-white",
                   score >= 8 ? "bg-campo" : score >= 6 ? "bg-[#55B979]" : "bg-craque text-mata"
                 )}
               >
@@ -161,18 +161,18 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 
       <section className="mt-4">
         <h2 className="mb-3 font-bold">Conquistas</h2>
-        <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-[13px] bg-[#FFF0D3] p-4 text-center text-mata">
+        <div className="stagger grid grid-cols-3 gap-2">
+          <div className="animate-card rounded-[13px] bg-[#FFF0D3] p-4 text-center text-mata">
             <Star className="mx-auto mb-2 text-craque" fill="currentColor" size={24} />
             <strong className="font-jersey text-2xl">{craque}x</strong>
             <p className="text-xs">Craque</p>
           </div>
-          <div className="rounded-[13px] bg-[#EAF6EE] p-4 text-center text-mata">
+          <div className="animate-card rounded-[13px] bg-[#EAF6EE] p-4 text-center text-mata">
             <Trophy className="mx-auto mb-2 text-campo" size={24} />
             <strong className="font-jersey text-2xl">{goals}</strong>
             <p className="text-xs">Artilheiro</p>
           </div>
-          <div className="rounded-[13px] bg-[#EAF6EE] p-4 text-center text-mata">
+          <div className="animate-card rounded-[13px] bg-[#EAF6EE] p-4 text-center text-mata">
             <Flame className="mx-auto mb-2 text-campo" size={24} />
             <strong className="font-jersey text-2xl">{presences}</strong>
             <p className="text-xs">Sequencia</p>

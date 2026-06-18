@@ -176,6 +176,81 @@ textarea {
   animation: ballFloat 10s ease-in-out infinite reverse;
 }
 
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 60ms; }
+.stagger > *:nth-child(3) { animation-delay: 120ms; }
+.stagger > *:nth-child(4) { animation-delay: 180ms; }
+.stagger > *:nth-child(5) { animation-delay: 240ms; }
+.stagger > *:nth-child(6) { animation-delay: 300ms; }
+.stagger > *:nth-child(7) { animation-delay: 360ms; }
+.stagger > *:nth-child(8) { animation-delay: 420ms; }
+.stagger > *:nth-child(n+9) { animation-delay: 480ms; }
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-16px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: none; }
+}
+
+.slide-in-left {
+  animation: slideInLeft .4s ease-out both;
+}
+
+.slide-in-right {
+  animation: slideInRight .4s ease-out both;
+}
+
+@keyframes riseUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: none; }
+}
+
+.rise-podium {
+  animation: riseUp .5s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+@keyframes shineSweep {
+  0% { transform: translateX(-120%) skewX(-20deg); }
+  100% { transform: translateX(220%) skewX(-20deg); }
+}
+
+.shine-sweep {
+  position: relative;
+  overflow: hidden;
+}
+
+.shine-sweep::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(110deg, transparent, rgba(255,255,255,.5), transparent);
+  animation: shineSweep 2.8s ease-in-out infinite;
+}
+
+@keyframes popScale {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+
+.pop-scale {
+  animation: popScale .4s ease-out both;
+}
+
+@keyframes bounceTrend {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+.trend-bounce {
+  animation: bounceTrend .7s ease-in-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-card,
   .pulse-dot,
@@ -183,7 +258,13 @@ textarea {
   .soccer-ball-float,
   .soccer-ball-roll,
   .google-login-mark,
-  .app-ball-bg {
+  .app-ball-bg,
+  .slide-in-left,
+  .slide-in-right,
+  .rise-podium,
+  .shine-sweep::after,
+  .pop-scale,
+  .trend-bounce {
     animation: none;
   }
 }

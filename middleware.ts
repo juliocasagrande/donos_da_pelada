@@ -13,6 +13,7 @@ export const config = {
     "/players/:path*",
     "/matches/:path*",
     "/rankings/:path*",
-    "/onboarding/:path*"
+    "/onboarding/:path*",
+    "/perfil/:path*"
   ]
 };

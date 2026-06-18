@@ -50,14 +50,18 @@ export default async function DashboardPage() {
             <Bell size={20} />
             <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-ausente" />
           </button>
-          <div className="flex h-11 w-11 items-center justify-center rounded-[12px] bg-mata font-jersey text-xl font-bold text-white">
+          <Link
+            href="/perfil"
+            className="flex h-11 w-11 items-center justify-center rounded-[12px] bg-mata font-jersey text-xl font-bold text-white"
+            title="Meu perfil"
+          >
             {(user.name || "P").charAt(0).toUpperCase()}
-          </div>
+          </Link>
         </div>
       </section>
 
       {craque?.winner ? (
-        <Card className="mb-4 border border-craque/30 bg-[#FCEFD6]">
+        <Card className="shine-sweep animate-card mb-4 border border-craque/30 bg-[#FCEFD6]">
           <p className="flex items-center gap-1.5 text-xs font-bold uppercase text-[#8a5a06]"><Star size={14} fill="#F4A11A" /> Craque atual</p>
           <div className="mt-1 flex items-center justify-between gap-4">
             <div>
@@ -93,7 +97,7 @@ export default async function DashboardPage() {
         </Card>
       ) : null}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="stagger grid grid-cols-2 gap-3">
         <StatTile icon={Users} value={players} label="Jogadores" />
         <StatTile icon={Target} value={goals._sum.quantity || 0} label="Gols na temporada" accent="yellow" />
         <StatTile icon={CalendarCheck} value={monthMatches} label="Peladas no mes" />
@@ -104,10 +108,10 @@ export default async function DashboardPage() {
         Ultima pelada: {lastMatch ? `${lastMatch.title} em ${formatDate(lastMatch.date)}` : "nenhuma pelada criada ainda"} · {assists._sum.quantity || 0} participacoes · {defenses._sum.quantity || 0} defesas
       </p>
 
-      <div className="mt-4 grid grid-cols-3 gap-2">
+      <div className="stagger mt-4 grid grid-cols-3 gap-2">
         {shortcuts.map((item) => (
           <Link key={item.href} href={item.href}>
-            <Card className="flex min-h-[70px] flex-col items-center justify-center gap-1.5 px-2 text-center transition hover:-translate-y-0.5">
+            <Card className="animate-card flex min-h-[70px] flex-col items-center justify-center gap-1.5 px-2 text-center transition hover:-translate-y-0.5 active:scale-95">
               <item.icon className="text-campo" size={21} />
               <span className="text-xs font-bold leading-tight">{item.label}</span>
             </Card>
