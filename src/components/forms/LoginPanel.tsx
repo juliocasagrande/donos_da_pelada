@@ -90,7 +90,7 @@ export function LoginPanel({ socialProviders }: { socialProviders: string[] }) {
                 <span className="text-[11px] text-musgo">ou entrar com</span>
                 <div className="h-px flex-1 bg-linha" />
               </div>
-              <AuthButtons socialProviders={socialProviders} requiredProviders={["google", "facebook"]} compact />
+              <AuthButtons socialProviders={socialProviders} requiredProviders={["google"]} compact />
               <p className="text-center text-[13px] text-musgo">
                 Novo na pelada?{" "}
                 <button type="button" className="font-bold text-mata" onClick={() => setPlayerView("signup")}>
@@ -125,7 +125,7 @@ export function LoginPanel({ socialProviders }: { socialProviders: string[] }) {
                 <span className="text-[11px] text-musgo">ou criar com</span>
                 <div className="h-px flex-1 bg-linha" />
               </div>
-              <AuthButtons socialProviders={socialProviders} requiredProviders={["google", "facebook"]} compact />
+              <AuthButtons socialProviders={socialProviders} requiredProviders={["google"]} compact />
               <p className="text-center text-[13px] text-musgo">
                 Ja tenho conta.{" "}
                 <button type="button" className="font-bold text-mata" onClick={() => setPlayerView("login")}>

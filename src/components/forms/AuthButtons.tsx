@@ -18,6 +18,8 @@ export function AuthButtons({
 }) {
   const [error, setError] = useState("");
   const providers = Array.from(new Set([...requiredProviders, ...socialProviders]));
+  const visibleProviders = providers.filter((provider) => ["google", "facebook", "instagram"].includes(provider));
+  const compactClass = compact && visibleProviders.length > 1 ? "grid grid-cols-2 gap-2" : compact ? "grid gap-2" : "space-y-2.5";
 
   function handleSocialLogin(provider: "google" | "facebook" | "instagram") {
     setError("");
@@ -37,7 +39,7 @@ export function AuthButtons({
   }
 
   return (
-    <div className={compact ? "grid grid-cols-2 gap-2" : "space-y-2.5"}>
+    <div className={compactClass}>
       {providers.includes("google") ? (
         <Button className={compact ? "min-h-10 w-full px-3 py-2 text-xs" : "w-full"} type="button" onClick={() => handleSocialLogin("google")}>
           <Mail size={compact ? 15 : 18} /> Google
