@@ -1,3 +1,5 @@
+import { randomInt } from "crypto";
+
 export type PlayerPosition = "GOLEIRO" | "DEFESA" | "MEIA" | "ATAQUE";
 
 export type BalancePlayer = {
@@ -21,8 +23,13 @@ function emptyPositions(): Record<PlayerPosition, number> {
   return { GOLEIRO: 0, DEFESA: 0, MEIA: 0, ATAQUE: 0 };
 }
 
-function shuffle<T>(items: T[]) {
-  return [...items].sort(() => Math.random() - 0.5);
+export function shuffle<T>(items: T[]): T[] {
+  const result = [...items];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = randomInt(0, i + 1);
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
 }
 
 function countPlayersByPosition(players: BalancePlayer[]) {

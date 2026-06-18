@@ -4,14 +4,14 @@ import { PlayerAvatar } from "@/components/players/PlayerAvatar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { RatePlayerForm } from "@/components/matches/RatePlayerForm";
+import { VoteCraqueForm } from "@/components/matches/VoteCraqueForm";
 import {
   closeCraquePoll,
   createCraquePoll,
   notifyStatsEntryOpen,
-  ratePlayerPerformance,
   submitOwnMatchStats,
-  updateStats,
-  voteCraque
+  updateStats
 } from "@/lib/actions";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
@@ -202,27 +202,14 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
                       </p>
                     </div>
                     {canVote && votingOpen && linkedPlayer?.id !== player.id && !ownCraqueVote ? (
-                      <form action={voteCraque.bind(null, poll.id, player.id)}>
-                        <Button variant="ghost" type="submit" className="px-4 py-2 text-campo">Votar</Button>
-                      </form>
+                      <VoteCraqueForm pollId={poll.id} playerId={player.id} />
                     ) : null}
                     {selected ? (
                       <span className="rounded-[10px] bg-campo px-3 py-2 text-xs font-bold text-white">Seu voto</span>
                     ) : null}
                   </div>
                   {canVote && votingOpen && linkedPlayer?.id !== player.id && player.viewerRating == null ? (
-                    <form action={ratePlayerPerformance.bind(null, id, player.id)} className="mt-3 grid grid-cols-[1fr_auto] gap-2">
-                      <select
-                        name="rating"
-                        defaultValue={player.viewerRating ?? 7}
-                        className="min-h-10 rounded-[11px] border-[1.5px] border-linha bg-white px-3 text-sm font-bold outline-none"
-                      >
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((value) => (
-                          <option key={value} value={value}>{value}</option>
-                        ))}
-                      </select>
-                      <Button type="submit" variant="secondary">Dar nota</Button>
-                    </form>
+                    <RatePlayerForm matchId={id} playerId={player.id} defaultValue={player.viewerRating ?? 7} />
                   ) : null}
                   {canVote && player.viewerRating != null ? (
                     <p className="mt-3 rounded-[10px] bg-areia px-3 py-2 text-xs font-bold text-musgo">

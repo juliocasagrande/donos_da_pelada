@@ -65,8 +65,24 @@ model User {
   matchSubmissions PlayerMatchSubmission[] @relation("MatchSubmissions")
   pushSubscriptions PushSubscription[]
   guestInvites Attendance[] @relation("GuestInvites")
+  auditLogs    AuditLog[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  userName   String?
+  action     String
+  entityType String?
+  entityId   String?
+  metadata   Json?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
 }
 
 model PushSubscription {

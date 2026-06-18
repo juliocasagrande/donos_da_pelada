@@ -6,7 +6,14 @@ const prisma = new PrismaClient();
 async function main() {
   const name = process.env.MASTER_ADMIN_NAME || "Administrador Master";
   const email = process.env.MASTER_ADMIN_EMAIL || "admin@donodapelada.com";
-  const password = process.env.MASTER_ADMIN_PASSWORD || "admin123";
+  const password = process.env.MASTER_ADMIN_PASSWORD;
+
+  if (!password || password.length < 6) {
+    throw new Error(
+      "Defina MASTER_ADMIN_PASSWORD (minimo 6 caracteres) no .env antes de rodar o seed."
+    );
+  }
+
   const passwordHash = await bcrypt.hash(password, 12);
 
   await prisma.user.upsert({

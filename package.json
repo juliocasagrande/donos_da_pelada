@@ -7,6 +7,7 @@
     "build": "prisma generate && node --use-system-ca node_modules/next/dist/bin/next build",
     "start": "node --use-system-ca node_modules/next/dist/bin/next start",
     "lint": "next lint",
+    "test": "vitest run",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "prisma db seed",
@@ -41,7 +42,8 @@
     "prisma": "^6.1.0",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "4.1.9"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

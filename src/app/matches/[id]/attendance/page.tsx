@@ -1,12 +1,13 @@
 import Link from "next/link";
-import { Check, Clock, Trash2 } from "lucide-react";
+import { Check, Clock } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PlayerAvatar } from "@/components/players/PlayerAvatar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { GuestForm } from "@/components/forms/GuestForm";
+import { GuestRemoveForm } from "@/components/matches/GuestRemoveForm";
 import { LocationLinks } from "@/components/matches/LocationLinks";
-import { removeGuestFromMatch, toggleAttendance, toggleOwnAttendance } from "@/lib/actions";
+import { toggleAttendance, toggleOwnAttendance } from "@/lib/actions";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { cn, formatDate, formatTime, surfaceLabel } from "@/lib/utils";
@@ -154,11 +155,7 @@ export default async function AttendancePage({ params }: { params: Promise<{ id:
                   </form>
                 ) : null}
                 {canRemoveGuest ? (
-                  <form action={removeGuestFromMatch.bind(null, id, attendance.id)}>
-                    <Button variant="ghost" className="px-3" title="Remover convidado">
-                      <Trash2 size={16} />
-                    </Button>
-                  </form>
+                  <GuestRemoveForm matchId={id} attendanceId={attendance.id} />
                 ) : null}
               </div>
             </Card>

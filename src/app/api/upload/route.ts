@@ -3,6 +3,13 @@ import { randomUUID } from "crypto";
 import { getStorageBucket, getStorageClient } from "@/lib/storage";
 import { requireUser } from "@/lib/session";
 
+const ALLOWED_MIME_TYPES: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp"
+};
+const MAX_FILE_SIZE_BYTES = 8 * 1024 * 1024;
+
 export async function POST(request: Request) {
   try {
     await requireUser();
@@ -14,8 +21,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Arquivo nao enviado." }, { status: 400 });
     }
 
+    const extension = ALLOWED_MIME_TYPES[file.type];
+    if (!extension) {
+      return NextResponse.json(
+        { error: "Formato invalido. Envie uma imagem JPEG, PNG ou WebP." },
+        { status: 400 }
+      );
+    }
+
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      return NextResponse.json({ error: "Arquivo muito grande. Limite de 8MB." }, { status: 413 });
+    }
+
     const supabase = getStorageClient();
-    const extension = file.name.split(".").pop() || "jpg";
 
     if (!supabase) {
       return NextResponse.json(
