@@ -332,17 +332,36 @@ export async function togglePlayer(playerId: string) {
   revalidatePath("/players");
 }
 
+function combineDateAndTime(date: string, time: string) {
+  return `${date}T${time || "19:00"}:00-03:00`;
+}
+
+function combineLocation(street: string, number: string) {
+  const trimmedStreet = street.trim();
+  const trimmedNumber = number.trim();
+  if (!trimmedNumber) return trimmedStreet;
+  if (!trimmedStreet) return trimmedNumber;
+
+  const commaIndex = trimmedStreet.indexOf(",");
+  if (commaIndex === -1) return `${trimmedStreet}, ${trimmedNumber}`;
+  return `${trimmedStreet.slice(0, commaIndex)}, ${trimmedNumber}${trimmedStreet.slice(commaIndex)}`;
+}
+
 export async function createMatch(formData: FormData) {
   await requireAdmin();
   const parsed = matchSchema.parse({
     title: value(formData, "title"),
-    date: value(formData, "date")
+    date: combineDateAndTime(value(formData, "date"), value(formData, "time")),
+    surface: value(formData, "surface") || "SOCIETY",
+    location: combineLocation(value(formData, "locationStreet"), value(formData, "locationNumber"))
   });
 
   const match = await prisma.match.create({
     data: {
       title: parsed.title,
-      date: parsed.date
+      date: parsed.date,
+      surface: parsed.surface,
+      location: parsed.location || null
     }
   });
 
@@ -359,14 +378,18 @@ export async function updateMatch(matchId: string, formData: FormData) {
   await requireAdmin();
   const parsed = matchSchema.parse({
     title: value(formData, "title"),
-    date: value(formData, "date")
+    date: combineDateAndTime(value(formData, "date"), value(formData, "time")),
+    surface: value(formData, "surface") || "SOCIETY",
+    location: combineLocation(value(formData, "locationStreet"), value(formData, "locationNumber"))
   });
 
   await prisma.match.update({
     where: { id: matchId },
     data: {
       title: parsed.title,
-      date: parsed.date
+      date: parsed.date,
+      surface: parsed.surface,
+      location: parsed.location || null
     }
   });
 
@@ -720,18 +743,12 @@ export async function updateStats(matchId: string, formData: FormData) {
 
   for (const playerId of playerIds) {
     const goals = Number(value(formData, `goals-${playerId}`) || 0);
-    const assists = Number(value(formData, `assists-${playerId}`) || 0);
     const defenses = Number(value(formData, `defenses-${playerId}`) || 0);
 
     await prisma.goal.upsert({
       where: { matchId_playerId: { matchId, playerId } },
       update: { quantity: goals },
       create: { matchId, playerId, quantity: goals }
-    });
-    await prisma.assist.upsert({
-      where: { matchId_playerId: { matchId, playerId } },
-      update: { quantity: assists },
-      create: { matchId, playerId, quantity: assists }
     });
     await prisma.difficultSave.upsert({
       where: { matchId_playerId: { matchId, playerId } },
@@ -770,7 +787,6 @@ export async function submitOwnMatchStats(matchId: string, formData: FormData) {
   if (existingSubmission) return;
 
   const goals = Math.max(0, Number(value(formData, "goals") || 0));
-  const assists = Math.max(0, Number(value(formData, "assists") || 0));
   const defenses = Math.max(0, Number(value(formData, "defenses") || 0));
 
   await prisma.$transaction([
@@ -778,11 +794,6 @@ export async function submitOwnMatchStats(matchId: string, formData: FormData) {
       where: { matchId_playerId: { matchId, playerId: linkedPlayer.id } },
       update: { quantity: goals },
       create: { matchId, playerId: linkedPlayer.id, quantity: goals }
-    }),
-    prisma.assist.upsert({
-      where: { matchId_playerId: { matchId, playerId: linkedPlayer.id } },
-      update: { quantity: assists },
-      create: { matchId, playerId: linkedPlayer.id, quantity: assists }
     }),
     prisma.difficultSave.upsert({
       where: { matchId_playerId: { matchId, playerId: linkedPlayer.id } },

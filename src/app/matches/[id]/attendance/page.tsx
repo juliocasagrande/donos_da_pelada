@@ -1,14 +1,15 @@
 import Link from "next/link";
-import { Check, Clock, MapPin, Trash2 } from "lucide-react";
+import { Check, Clock, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PlayerAvatar } from "@/components/players/PlayerAvatar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { GuestForm } from "@/components/forms/GuestForm";
+import { LocationLinks } from "@/components/matches/LocationLinks";
 import { removeGuestFromMatch, toggleAttendance, toggleOwnAttendance } from "@/lib/actions";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
-import { cn } from "@/lib/utils";
+import { cn, formatDate, formatTime, surfaceLabel } from "@/lib/utils";
 
 function getSaoPauloDate(date: Date) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(date);
@@ -57,13 +58,14 @@ export default async function AttendancePage({ params }: { params: Promise<{ id:
       <div className="field-hero -mx-1 mb-5 rounded-card px-5 py-6 text-white">
         <div className="relative">
           <h1 className="font-display text-2xl font-extrabold">{match?.title}</h1>
-          <p className="mt-2 flex gap-4 text-sm text-green-100">
+          <p className="mt-2 flex flex-wrap items-center gap-4 text-sm text-green-100">
             <span className="flex items-center gap-1">
-              <Clock size={14} /> {match ? new Intl.DateTimeFormat("pt-BR").format(match.date) : ""}
+              <Clock size={14} /> {match ? `${formatDate(match.date)} as ${formatTime(match.date)}` : ""}
             </span>
-            <span className="flex items-center gap-1">
-              <MapPin size={14} /> Society
-            </span>
+            {match ? <LocationLinks location={match.location} /> : null}
+            {match ? (
+              <span className="rounded-[7px] bg-white/15 px-2 py-0.5 text-xs font-bold">{surfaceLabel(match.surface)}</span>
+            ) : null}
           </p>
         </div>
       </div>

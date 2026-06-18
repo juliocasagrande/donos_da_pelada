@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { LoginPanel } from "@/components/forms/LoginPanel";
+import { DeveloperCredit } from "@/components/layout/DeveloperCredit";
 import { getCurrentUser } from "@/lib/session";
 
 export default async function LoginPage() {
@@ -29,9 +30,12 @@ export default async function LoginPage() {
         </p>
       </section>
       <section className="relative z-10 flex min-h-[calc(100vh-185px)] items-center px-5 py-4">
-        <Card className="mx-auto w-full max-w-md rounded-[22px] p-4 shadow-[0_12px_40px_rgba(17,40,28,.10)]">
-          <LoginPanel socialProviders={socialProviders} />
-        </Card>
+        <div className="mx-auto w-full max-w-md">
+          <Card className="rounded-[22px] p-4 shadow-[0_12px_40px_rgba(17,40,28,.10)]">
+            <LoginPanel socialProviders={socialProviders} />
+          </Card>
+          <DeveloperCredit className="mt-4" />
+        </div>
       </section>
     </main>
   );

@@ -1,16 +1,18 @@
 import Link from "next/link";
-import { Bell, CalendarCheck, CalendarPlus, Clock, MapPin, Shield, Star, Target, Trophy, Users } from "lucide-react";
+import { Bell, CalendarCheck, CalendarPlus, Clock, Shield, Star, Target, Trophy, Users } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { StatTile } from "@/components/ui/StatTile";
+import { LocationLinks } from "@/components/matches/LocationLinks";
+import { DeveloperCredit } from "@/components/layout/DeveloperCredit";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatTime } from "@/lib/utils";
 
 export default async function DashboardPage() {
   const user = await requireUser();
-  const [linkedPlayer, players, lastMatch, nextMatch, goals, assists, defenses, craque, monthMatches] = await Promise.all([
+  const [linkedPlayer, players, lastMatch, nextMatch, goals, defenses, craque, monthMatches] = await Promise.all([
     prisma.player.findUnique({ where: { userId: user.id } }),
     prisma.player.count({ where: { active: true, membershipStatus: "MENSALISTA" } }),
     prisma.match.findFirst({ orderBy: { date: "desc" } }),
@@ -20,7 +22,6 @@ export default async function DashboardPage() {
       orderBy: { date: "asc" }
     }),
     prisma.goal.aggregate({ where: { player: { membershipStatus: "MENSALISTA" } }, _sum: { quantity: true } }),
-    prisma.assist.aggregate({ where: { player: { membershipStatus: "MENSALISTA" } }, _sum: { quantity: true } }),
     prisma.difficultSave.aggregate({ where: { player: { membershipStatus: "MENSALISTA" } }, _sum: { quantity: true } }),
     prisma.poll.findFirst({
       where: { status: "CLOSED", winnerId: { not: null }, winner: { membershipStatus: "MENSALISTA" } },
@@ -81,8 +82,8 @@ export default async function DashboardPage() {
             </p>
             <h2 className="mt-2 font-display text-2xl font-bold">{nextMatch.title}</h2>
             <div className="mt-2 flex flex-wrap gap-4 text-sm text-green-100">
-              <span className="flex items-center gap-1.5"><Clock size={15} /> {formatDate(nextMatch.date)}</span>
-              <span className="flex items-center gap-1.5"><MapPin size={15} /> Society do Ze</span>
+              <span className="flex items-center gap-1.5"><Clock size={15} /> {formatDate(nextMatch.date)} as {formatTime(nextMatch.date)}</span>
+              <LocationLinks location={nextMatch.location} />
             </div>
             <div className="mt-4 flex gap-2">
               <Link href={`/matches/${nextMatch.id}/attendance`} className="flex-1">
@@ -105,7 +106,7 @@ export default async function DashboardPage() {
       </div>
 
       <p className="mt-4 text-sm text-musgo">
-        Ultima pelada: {lastMatch ? `${lastMatch.title} em ${formatDate(lastMatch.date)}` : "nenhuma pelada criada ainda"} · {assists._sum.quantity || 0} participacoes · {defenses._sum.quantity || 0} defesas
+        Ultima pelada: {lastMatch ? `${lastMatch.title} em ${formatDate(lastMatch.date)}` : "nenhuma pelada criada ainda"} · {defenses._sum.quantity || 0} defesas
       </p>
 
       <div className="stagger mt-4 grid grid-cols-3 gap-2">
@@ -118,6 +119,8 @@ export default async function DashboardPage() {
           </Link>
         ))}
       </div>
+
+      <DeveloperCredit className="mt-6" />
     </AppShell>
   );
 }

@@ -19,9 +19,13 @@ export const adminSchema = z.object({
   active: z.coerce.boolean().optional()
 });
 
+export const surfaces = ["SOCIETY", "CAMPO", "QUADRA"] as const;
+
 export const matchSchema = z.object({
   title: z.string().min(2, "Informe um nome para a pelada."),
-  date: z.coerce.date()
+  date: z.coerce.date(),
+  surface: z.enum(surfaces).default("SOCIETY"),
+  location: z.string().optional()
 });
 
 export const drawSchema = z.object({

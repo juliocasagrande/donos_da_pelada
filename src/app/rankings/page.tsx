@@ -9,7 +9,6 @@ import { cn } from "@/lib/utils";
 
 const tabs = [
   { key: "artilharia", label: "Gols", field: "goalsTotal" },
-  { key: "assistencias", label: "Assist.", field: "assistsTotal" },
   { key: "presenca", label: "Pres.", field: "presenceTotal" },
   { key: "craque", label: "Craque", field: "craqueTotal" },
   { key: "notas", label: "Notas", field: "ratingAverage" }
@@ -17,10 +16,9 @@ const tabs = [
 
 type RankingTab = (typeof tabs)[number];
 
-function score(player: { rating: number; goals: { quantity: number }[]; assists: { quantity: number }[] }) {
+function score(player: { rating: number; goals: { quantity: number }[] }) {
   const goals = player.goals.reduce((sum, item) => sum + item.quantity, 0);
-  const assists = player.assists.reduce((sum, item) => sum + item.quantity, 0);
-  return goals * 3 + assists * 2 + player.rating;
+  return goals * 3 + player.rating;
 }
 
 function matchAverages(ratings: { value: number; match: { date: Date } }[]) {
@@ -56,7 +54,6 @@ export default async function RankingsPage({
     where: { active: true, membershipStatus: "MENSALISTA" },
     include: {
       goals: true,
-      assists: true,
       defenses: true,
       pollWinners: true,
       attendances: true,
@@ -69,7 +66,6 @@ export default async function RankingsPage({
     return {
       ...player,
       goalsTotal: player.goals.reduce((sum, item) => sum + item.quantity, 0),
-      assistsTotal: player.assists.reduce((sum, item) => sum + item.quantity, 0),
       defensesTotal: player.defenses.reduce((sum, item) => sum + item.quantity, 0),
       presenceTotal: player.attendances.filter((attendance) => attendance.status === "CONFIRMED").length,
       craqueTotal: player.pollWinners.length,
@@ -109,7 +105,7 @@ export default async function RankingsPage({
         <span className="shrink-0 rounded-[13px] bg-white px-3 py-2 text-sm font-semibold shadow-card">Temporada 2026</span>
       </div>
 
-      <div className="mb-6 grid grid-cols-5 gap-1.5">
+      <div className="mb-6 grid grid-cols-4 gap-1.5">
         {tabs.map((tab) => (
           <Link
             key={tab.key}

@@ -55,7 +55,6 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
       },
       include: {
         goals: { where: { matchId: id } },
-        assists: { where: { matchId: id } },
         defenses: { where: { matchId: id } },
         ratings: { where: { matchId: id }, include: { user: true } },
         matchSubmissions: { where: { matchId: id } }
@@ -91,7 +90,6 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
     .map((player) => {
       const votes = voteCounts.get(player.id) ?? 0;
       const goals = player.goals.reduce((sum, item) => sum + item.quantity, 0);
-      const assists = player.assists.reduce((sum, item) => sum + item.quantity, 0);
       const defenses = player.defenses.reduce((sum, item) => sum + item.quantity, 0);
       const viewerRating = player.ratings.find((rating) => rating.userId === user.id)?.value;
       const averageRating = player.ratings.length
@@ -103,7 +101,7 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
         percent: totalVotes ? Math.round((votes / totalVotes) * 100) : 0,
         averageRating,
         viewerRating,
-        summary: player.position === "GOLEIRO" ? `${defenses} defesas dificeis` : `${goals} gols · ${assists} assist.`
+        summary: player.position === "GOLEIRO" ? `${defenses} defesas dificeis` : `${goals} gols`
       };
     })
     .sort((a, b) => b.votes - a.votes || (b.averageRating ?? 0) - (a.averageRating ?? 0) || b.rating - a.rating);
@@ -129,16 +127,12 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
         {canVote && votingOpen && ownPlayer && !ownSubmitted ? (
           <Card className="border-2 border-campo p-4">
             <h2 className="font-display text-xl font-extrabold">Seus numeros na pelada</h2>
-            <p className="mb-3 text-sm text-musgo">Informe seus gols, assistencias e defesas. Depois de enviar, esta etapa fecha para voce.</p>
+            <p className="mb-3 text-sm text-musgo">Informe seus gols e defesas. Depois de enviar, esta etapa fecha para voce.</p>
             <form action={submitOwnMatchStats.bind(null, id)} className="space-y-3">
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <label className="text-xs font-semibold text-musgo">
                   Gols
                   <Input name="goals" type="number" min={0} defaultValue={ownPlayer.goals[0]?.quantity || 0} />
-                </label>
-                <label className="text-xs font-semibold text-musgo">
-                  Assist.
-                  <Input name="assists" type="number" min={0} defaultValue={ownPlayer.assists[0]?.quantity || 0} />
                 </label>
                 <label className="text-xs font-semibold text-musgo">
                   Defesas
@@ -264,7 +258,7 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
         <>
           <div className="mb-3">
             <p className="font-jersey text-sm font-semibold uppercase tracking-[.14em] text-musgo">Sumula</p>
-            <h2 className="font-display text-2xl font-extrabold tracking-[-.02em]">Gols e participacoes</h2>
+            <h2 className="font-display text-2xl font-extrabold tracking-[-.02em]">Gols e defesas</h2>
           </div>
 
           <form action={notifyStatsEntryOpen.bind(null, id)} className="mb-4">
@@ -279,9 +273,8 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
                   <div>
                     <h2 className="font-black">{player.nickname || player.name}</h2>
                     <input type="hidden" name="playerId" value={player.id} />
-                    <div className="mt-2 grid grid-cols-3 gap-2">
+                    <div className="mt-2 grid grid-cols-2 gap-2">
                       <label className="text-xs text-musgo">Gols<Input name={`goals-${player.id}`} type="number" min={0} defaultValue={player.goals[0]?.quantity || 0} /></label>
-                      <label className="text-xs text-musgo">Part.<Input name={`assists-${player.id}`} type="number" min={0} defaultValue={player.assists[0]?.quantity || 0} /></label>
                       <label className="text-xs text-musgo">Defesas<Input name={`defenses-${player.id}`} type="number" min={0} defaultValue={player.defenses[0]?.quantity || 0} /></label>
                     </div>
                   </div>

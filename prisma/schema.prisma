@@ -30,6 +30,12 @@ enum MatchStatus {
   CLOSED
 }
 
+enum MatchSurface {
+  SOCIETY
+  CAMPO
+  QUADRA
+}
+
 enum PollStatus {
   OPEN
   CLOSED
@@ -138,6 +144,8 @@ model Match {
   date        DateTime
   title       String
   status      MatchStatus       @default(OPEN)
+  surface     MatchSurface      @default(SOCIETY)
+  location    String?
   attendances Attendance[]
   teams       Team[]
   goals       Goal[]

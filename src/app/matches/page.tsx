@@ -1,12 +1,13 @@
 import Link from "next/link";
-import { Clock, MapPin, Pencil, Plus, Trash2 } from "lucide-react";
+import { Clock, Pencil, Plus, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { LocationLinks } from "@/components/matches/LocationLinks";
 import { closeMatch, deleteMatch } from "@/lib/actions";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, surfaceLabel } from "@/lib/utils";
 
 function dateParts(date: Date) {
   const day = new Intl.DateTimeFormat("pt-BR", { day: "2-digit" }).format(date);
@@ -95,9 +96,10 @@ export default async function MatchesPage({
             </div>
           </div>
           <div className="p-4">
-            <div className="mb-4 flex flex-wrap gap-4 text-sm text-musgo">
+            <div className="mb-4 flex flex-wrap items-center gap-4 text-sm text-musgo">
               <span className="flex items-center gap-1"><Clock size={15} /> {dateParts(featured.date).time}</span>
-              <span className="flex items-center gap-1"><MapPin size={15} /> Society</span>
+              <LocationLinks location={featured.location} />
+              <span className="rounded-[7px] bg-areia px-2 py-0.5 text-xs font-bold text-mata">{surfaceLabel(featured.surface)}</span>
             </div>
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center -space-x-1">
@@ -158,7 +160,7 @@ export default async function MatchesPage({
                 <Link href={`/matches/${match.id}/attendance`} className="min-w-0 flex-1">
                   <h2 className="truncate font-display text-lg font-bold">{match.title}</h2>
                   <p className="truncate text-xs text-musgo">
-                    {parts.time} · Society do Ze · {formatDate(match.date)}
+                    {parts.time} · {match.location || "Local a definir"} · {formatDate(match.date)}
                   </p>
                 </Link>
                 <span className="rounded-[8px] bg-[#E5F3E8] px-3 py-1 text-xs font-bold text-mata">
