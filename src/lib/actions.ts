@@ -292,6 +292,17 @@ export async function togglePlayer(playerId: string) {
   revalidatePath("/players");
 }
 
+export async function deletePlayer(playerId: string) {
+  const admin = await requireAdmin();
+  const player = await prisma.player.findUnique({ where: { id: playerId } });
+  if (!player) return;
+
+  await prisma.player.delete({ where: { id: playerId } });
+  await logAudit(admin, "PLAYER_DELETED", { type: "Player", id: playerId }, { name: player.name });
+  revalidatePath("/players");
+  redirect("/players");
+}
+
 function combineDateAndTime(date: string, time: string) {
   return `${date}T${time || "19:00"}:00-03:00`;
 }

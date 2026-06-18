@@ -47,6 +47,11 @@ enum AttendanceStatus {
   OUT
 }
 
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -66,8 +71,46 @@ model User {
   pushSubscriptions PushSubscription[]
   guestInvites Attendance[] @relation("GuestInvites")
   auditLogs    AuditLog[]
+  transactions Transaction[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+}
+
+model MonthlyFeeConfig {
+  id        String   @id @default(cuid())
+  year      Int
+  month     Int
+  amount    Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([year, month])
+}
+
+model MonthlyPayment {
+  id        String   @id @default(cuid())
+  playerId  String
+  year      Int
+  month     Int
+  amount    Float
+  paidAt    DateTime @default(now())
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([playerId, year, month])
+}
+
+model Transaction {
+  id              String          @id @default(cuid())
+  type            TransactionType
+  description     String
+  amount          Float
+  date            DateTime
+  createdByUserId String?
+  createdByUser   User?           @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  createdAt       DateTime        @default(now())
+
+  @@index([date])
 }
 
 model AuditLog {
@@ -152,6 +195,7 @@ model Player {
   matchSubmissions PlayerMatchSubmission[] @relation("PlayerSubmissions")
   pollVotes   PollVote[]
   pollWinners Poll[]            @relation("PollWinner")
+  payments    MonthlyPayment[]
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 }

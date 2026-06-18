@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bell, CalendarCheck, CalendarPlus, Clock, Shield, Star, Target, Trophy, Users } from "lucide-react";
+import { Bell, CalendarCheck, CalendarPlus, Clock, Shield, Star, Target, Trophy, Users, Wallet } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -42,6 +42,7 @@ export default async function DashboardPage() {
     { href: "/matches/new", label: "Nova pelada", icon: CalendarPlus },
     { href: "/matches", label: "Escalar times", icon: Target },
     { href: "/rankings", label: "Votar craque", icon: Star },
+    ...(isAdmin ? [{ href: "/financeiro", label: "Financeiro", icon: Wallet }] : []),
     ...(user.role === "MASTER" ? [{ href: "/admins", label: "Admins", icon: Shield }] : [])
   ];
 
