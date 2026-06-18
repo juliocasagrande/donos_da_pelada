@@ -44,14 +44,14 @@ export function AuthButtons({
         <Button
           className={
             compact
-              ? "min-h-10 w-full border-[1.5px] border-linha bg-white px-3 py-2 text-xs text-tinta shadow-card hover:bg-areia"
-              : "w-full border-[1.5px] border-linha bg-white text-tinta shadow-card hover:bg-areia"
+              ? "min-h-10 w-full border-[1.5px] border-[#F3C6C1] bg-[#FFF4F2] px-3 py-2 text-xs text-[#7A2D26] shadow-card hover:bg-[#FFECEA]"
+              : "w-full border-[1.5px] border-[#F3C6C1] bg-[#FFF4F2] text-[#7A2D26] shadow-card hover:bg-[#FFECEA]"
           }
           type="button"
           onClick={() => handleSocialLogin("google")}
         >
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white font-display text-sm font-extrabold leading-none">
-            <span className="text-[#4285F4]">G</span>
+          <span className="google-login-mark flex h-5 w-5 items-center justify-center rounded-full bg-white font-display text-sm font-extrabold leading-none shadow-[0_3px_8px_rgba(234,67,53,.16)]">
+            <span className="bg-gradient-to-r from-[#4285F4] via-[#EA4335] to-[#FBBC05] bg-clip-text text-transparent">G</span>
           </span>
           Google
         </Button>

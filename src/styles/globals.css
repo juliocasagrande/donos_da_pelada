@@ -143,6 +143,16 @@ textarea {
   animation: ballRoll 4.5s ease-in-out infinite alternate;
 }
 
+.google-login-mark {
+  animation: googleMarkPop 2.4s ease-in-out infinite;
+}
+
+@keyframes googleMarkPop {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  40% { transform: scale(1.08) rotate(-4deg); }
+  65% { transform: scale(1.02) rotate(3deg); }
+}
+
 .app-ball-bg {
   pointer-events: none;
   position: fixed;
@@ -172,6 +182,7 @@ textarea {
   .grow-bar,
   .soccer-ball-float,
   .soccer-ball-roll,
+  .google-login-mark,
   .app-ball-bg {
     animation: none;
   }
