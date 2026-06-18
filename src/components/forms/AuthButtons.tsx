@@ -3,7 +3,7 @@
 import { signIn } from "next-auth/react";
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Facebook, Instagram, Mail } from "lucide-react";
+import { Facebook, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Input";
 
@@ -41,8 +41,19 @@ export function AuthButtons({
   return (
     <div className={compactClass}>
       {providers.includes("google") ? (
-        <Button className={compact ? "min-h-10 w-full px-3 py-2 text-xs" : "w-full"} type="button" onClick={() => handleSocialLogin("google")}>
-          <Mail size={compact ? 15 : 18} /> Google
+        <Button
+          className={
+            compact
+              ? "min-h-10 w-full border-[1.5px] border-linha bg-white px-3 py-2 text-xs text-tinta shadow-card hover:bg-areia"
+              : "w-full border-[1.5px] border-linha bg-white text-tinta shadow-card hover:bg-areia"
+          }
+          type="button"
+          onClick={() => handleSocialLogin("google")}
+        >
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white font-display text-sm font-extrabold leading-none">
+            <span className="text-[#4285F4]">G</span>
+          </span>
+          Google
         </Button>
       ) : null}
       {providers.includes("facebook") ? (
