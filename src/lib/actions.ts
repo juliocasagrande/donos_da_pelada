@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { MatchStatus, PollStatus, Prisma, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, requireAdmin, requireMaster, requireUser } from "@/lib/session";
-import { adminSchema, drawSchema, matchSchema, playerSchema, signupSchema } from "@/lib/validations";
+import { drawSchema, matchSchema, playerSchema, signupSchema } from "@/lib/validations";
 import { balanceTeams } from "@/lib/balanceTeams";
 import { sendPushToAll, sendPushToUsers } from "@/lib/push";
 import { canConfirmPlayer, isWithinVotingWindow } from "@/lib/attendance";
@@ -203,30 +203,6 @@ export async function updateOwnProfile(formData: FormData) {
   redirect("/perfil?salvo=1");
 }
 
-export async function createAdmin(formData: FormData) {
-  const master = await requireMaster();
-  const parsed = adminSchema.parse({
-    name: value(formData, "name"),
-    email: value(formData, "email").toLowerCase(),
-    password: value(formData, "password"),
-    active: formData.get("active") === "on"
-  });
-
-  const admin = await prisma.user.create({
-    data: {
-      name: parsed.name,
-      email: parsed.email,
-      passwordHash: await bcrypt.hash(parsed.password, 12),
-      role: UserRole.ADMIN,
-      active: parsed.active ?? true,
-      onboarded: true
-    }
-  });
-
-  await logAudit(master, "ADMIN_CREATED", { type: "User", id: admin.id }, { email: admin.email });
-  revalidatePath("/admins");
-}
-
 export async function createPlayerAccount(formData: FormData) {
   const parsed = signupSchema.safeParse({
     name: value(formData, "name").trim(),
@@ -259,18 +235,19 @@ export async function createPlayerAccount(formData: FormData) {
   return { ok: true };
 }
 
-export async function toggleAdmin(userId: string) {
+export async function toggleAdminRole(userId: string) {
   const current = await requireMaster();
   if (current.id === userId) return;
-  const admin = await prisma.user.findUnique({ where: { id: userId } });
-  if (!admin || admin.role === "MASTER") return;
+  const targetUser = await prisma.user.findUnique({ where: { id: userId } });
+  if (!targetUser || targetUser.role === "MASTER") return;
 
+  const newRole = targetUser.role === "ADMIN" ? UserRole.PLAYER : UserRole.ADMIN;
   await prisma.user.update({
     where: { id: userId },
-    data: { active: !admin.active }
+    data: { role: newRole }
   });
 
-  await logAudit(current, admin.active ? "ADMIN_DEACTIVATED" : "ADMIN_ACTIVATED", { type: "User", id: userId });
+  await logAudit(current, newRole === "ADMIN" ? "ADMIN_PROMOTED" : "ADMIN_DEMOTED", { type: "User", id: userId });
   revalidatePath("/admins");
 }
 

@@ -36,6 +36,7 @@ export default async function DashboardPage() {
         : Promise.resolve([])
     ]);
   const isGuest = linkedPlayer?.membershipStatus === "CONVIDADO";
+  const displayName = linkedPlayer?.nickname || linkedPlayer?.name || user.name?.split(" ")[0] || "Craque";
 
   const shortcuts = [
     { href: "/matches/new", label: "Nova pelada", icon: CalendarPlus },
@@ -49,7 +50,7 @@ export default async function DashboardPage() {
       <section className="mb-4 flex items-center justify-between">
         <div>
           <p className="text-sm text-musgo">Salve,</p>
-          <h1 className="font-display text-3xl font-extrabold tracking-[-.02em]">{user.name?.split(" ")[0] || "Craque"}</h1>
+          <h1 className="font-display text-3xl font-extrabold tracking-[-.02em]">{displayName}</h1>
         </div>
         <div className="flex items-center gap-3">
           <button className="relative flex h-11 w-11 items-center justify-center rounded-[12px] bg-white shadow-card">
@@ -61,7 +62,7 @@ export default async function DashboardPage() {
             className="flex h-11 w-11 items-center justify-center rounded-[12px] bg-mata font-jersey text-xl font-bold text-white"
             title="Meu perfil"
           >
-            {(user.name || "P").charAt(0).toUpperCase()}
+            {displayName.charAt(0).toUpperCase()}
           </Link>
         </div>
       </section>

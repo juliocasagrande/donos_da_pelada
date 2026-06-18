@@ -12,13 +12,6 @@ export const playerSchema = z.object({
   rating: z.coerce.number().min(0).max(5)
 });
 
-export const adminSchema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
-  password: z.string().min(6, "A senha precisa ter pelo menos 6 caracteres."),
-  active: z.coerce.boolean().optional()
-});
-
 export const signupSchema = z.object({
   name: z.string().trim().min(2, "Informe seu nome."),
   email: z.string().trim().toLowerCase().email("Informe um e-mail valido."),
