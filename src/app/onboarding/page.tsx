@@ -1,11 +1,12 @@
 import { Card } from "@/components/ui/Card";
 import { PlayerForm } from "@/components/forms/PlayerForm";
 import { saveOnboarding } from "@/lib/actions";
-import { requireUser } from "@/lib/session";
+import { getCurrentUser } from "@/lib/session";
 import { redirect } from "next/navigation";
 
 export default async function OnboardingPage() {
-  const user = await requireUser();
+  const user = await getCurrentUser();
+  if (!user || !user.active) redirect("/login");
   if (user.onboarded) redirect("/dashboard");
 
   return (
