@@ -2,22 +2,30 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, Home, Trophy, Users } from "lucide-react";
+import { CalendarDays, Home, Trophy, Users, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const items = [
+const baseItems = [
   { href: "/dashboard", label: "Inicio", icon: Home },
   { href: "/players", label: "Jogadores", icon: Users },
   { href: "/matches", label: "Peladas", icon: CalendarDays },
   { href: "/rankings", label: "Rankings", icon: Trophy }
 ];
 
-export function BottomNav() {
+const financeItem = { href: "/financeiro", label: "Financeiro", icon: Wallet };
+
+export function BottomNav({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
+  const items = isAdmin ? [...baseItems, financeItem] : baseItems;
 
   return (
     <nav className="fixed inset-x-0 bottom-4 z-30 px-5">
-      <div className="mx-auto grid max-w-md grid-cols-4 rounded-full border border-linha bg-white/90 px-3 py-2 shadow-[0_14px_36px_rgba(27,158,75,.28)] backdrop-blur">
+      <div
+        className={cn(
+          "mx-auto grid max-w-md rounded-full border border-linha bg-white/90 px-3 py-2 shadow-[0_14px_36px_rgba(27,158,75,.28)] backdrop-blur",
+          items.length === 5 ? "grid-cols-5" : "grid-cols-4"
+        )}
+      >
         {items.map((item) => {
           const active = pathname.startsWith(item.href);
           return (

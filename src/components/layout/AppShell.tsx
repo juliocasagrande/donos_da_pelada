@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/session";
 
 export async function AppShell({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
+  const isAdmin = user?.role === "MASTER" || user?.role === "ADMIN";
 
   return (
     <div className="light-field-lines relative min-h-screen overflow-hidden bg-areia pb-32 text-tinta">
@@ -32,7 +33,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
         <PushNotificationsMount />
         {children}
       </main>
-      <BottomNav />
+      <BottomNav isAdmin={isAdmin} />
     </div>
   );
 }
