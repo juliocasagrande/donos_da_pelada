@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { getStorageBucket, getStorageClient } from "@/lib/storage";
-import { requireUser } from "@/lib/session";
+import { ApiAuthError, requireApiUser } from "@/lib/session";
 
 const ALLOWED_MIME_TYPES: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -12,7 +12,7 @@ const MAX_FILE_SIZE_BYTES = 8 * 1024 * 1024;
 
 export async function POST(request: Request) {
   try {
-    await requireUser();
+    await requireApiUser();
 
     const formData = await request.formData();
     const file = formData.get("file");
@@ -54,14 +54,18 @@ export async function POST(request: Request) {
       });
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("Supabase upload failed:", error.message);
+      return NextResponse.json({ error: "Nao foi possivel enviar a foto. Tente novamente." }, { status: 500 });
     }
 
     const { data } = supabase.storage.from(getStorageBucket()).getPublicUrl(path);
     return NextResponse.json({ url: data.publicUrl });
   } catch (error) {
+    if (error instanceof ApiAuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     const message = error instanceof Error ? error.message : "Erro desconhecido no upload.";
     console.error("Upload failed:", message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "Nao foi possivel enviar a foto. Tente novamente." }, { status: 500 });
   }
 }
