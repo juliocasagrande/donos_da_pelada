@@ -12,12 +12,11 @@ export default async function PlayersPage() {
   const players = await prisma.player.findMany({
     where: { peladaId: user.peladaId!, active: true },
     include: { goals: true, defenses: true, user: { select: { whatsapp: true, whatsappChatEnabled: true } } },
-    orderBy: [{ name: "asc" }]
+    orderBy: [{ nickname: "asc" }]
   });
 
   const playerListItems = players.map((player) => ({
     id: player.id,
-    name: player.name,
     nickname: player.nickname,
     photoUrl: player.photoUrl,
     position: player.position,

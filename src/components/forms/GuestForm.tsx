@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import type { FormEvent } from "react";
 import { Plus } from "lucide-react";
+import { RatingSlider } from "@/components/forms/RatingSlider";
 import { Button } from "@/components/ui/Button";
 import { Input, Label, Select } from "@/components/ui/Input";
 import { createGuestForMatch } from "@/lib/actions";
@@ -29,16 +30,11 @@ export function GuestForm({ matchId }: { matchId: string }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <div className="grid grid-cols-[1fr_auto] gap-2">
-        <div>
-          <Label>Nome do convidado</Label>
-          <Input name="name" required />
-        </div>
-        <div className="w-20">
-          <Label>Nota</Label>
-          <Input name="rating" type="number" min={0} max={5} step={0.5} defaultValue={3} required />
-        </div>
+      <div>
+        <Label>Nome do convidado</Label>
+        <Input name="name" required />
       </div>
+      <RatingSlider name="rating" label="Nota de 0 a 5" defaultValue={3} />
       <div>
         <Label>Posicao</Label>
         <Select name="position" defaultValue="MEIA">

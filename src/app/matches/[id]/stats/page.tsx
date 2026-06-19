@@ -62,7 +62,7 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
         ratings: { where: { matchId: id }, include: { user: true } },
         matchSubmissions: { where: { matchId: id } }
       },
-      orderBy: { name: "asc" }
+      orderBy: { nickname: "asc" }
     }),
     prisma.poll.findFirst({
       where: { matchId: id, title: "Craque da pelada" },
@@ -264,10 +264,10 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
                 <Star size={12} fill="currentColor" /> Na frente
               </div>
               <div className="flex items-center gap-3">
-                <PlayerAvatar src={leader.photoUrl} name={leader.name} position={leader.position} number={10} />
+                <PlayerAvatar src={leader.photoUrl} name={leader.nickname} position={leader.position} number={10} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
-                    <h2 className="truncate font-extrabold">{leader.nickname || leader.name}</h2>
+                    <h2 className="truncate font-extrabold">{leader.nickname}</h2>
                     <strong className="font-jersey text-2xl">{leader.percent}%</strong>
                   </div>
                   <div className="mt-2 h-2 rounded-full bg-areia">
@@ -285,9 +285,9 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
               return (
                 <Card key={player.id} className={cn("p-3", selected && "border-2 border-campo bg-[#EAF5EC]")}>
                   <div className="flex items-center gap-3">
-                    <PlayerAvatar src={player.photoUrl} name={player.name} position={player.position} />
+                    <PlayerAvatar src={player.photoUrl} name={player.nickname} position={player.position} />
                     <div className="min-w-0 flex-1">
-                      <h2 className="truncate font-extrabold">{player.nickname || player.name}</h2>
+                      <h2 className="truncate font-extrabold">{player.nickname}</h2>
                       <p className="text-xs text-musgo">
                         {player.summary} · nota {player.averageRating?.toFixed(1) ?? "-"}
                       </p>
@@ -315,9 +315,9 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
             {candidates.map((player) => (
               <Card key={player.id} className="p-3">
                 <div className="flex items-center gap-3">
-                  <PlayerAvatar src={player.photoUrl} name={player.name} position={player.position} />
+                  <PlayerAvatar src={player.photoUrl} name={player.nickname} position={player.position} />
                   <div className="min-w-0 flex-1">
-                    <h2 className="truncate font-extrabold">{player.nickname || player.name}</h2>
+                    <h2 className="truncate font-extrabold">{player.nickname}</h2>
                     <p className="text-xs text-musgo">Nota media {player.averageRating?.toFixed(1) ?? "-"}</p>
                   </div>
                 </div>
@@ -400,9 +400,9 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
                 <form action={updateStats.bind(null, id)} className="space-y-3">
                   {players.map((player) => (
                     <div key={player.id} className="grid grid-cols-[auto_1fr] gap-3 rounded-[13px] bg-areia p-3">
-                      <PlayerAvatar src={player.photoUrl} name={player.name} position={player.position} />
+                      <PlayerAvatar src={player.photoUrl} name={player.nickname} position={player.position} />
                       <div>
-                        <h2 className="font-black">{player.nickname || player.name}</h2>
+                        <h2 className="font-black">{player.nickname}</h2>
                         <input type="hidden" name="playerId" value={player.id} />
                         <div className="mt-2 grid grid-cols-2 gap-2">
                           <label className="text-xs text-musgo">Gols<Input name={`goals-${player.id}`} type="number" min={0} defaultValue={player.goals[0]?.quantity || 0} /></label>

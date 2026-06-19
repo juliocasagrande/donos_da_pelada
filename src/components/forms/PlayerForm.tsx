@@ -1,4 +1,5 @@
 import { PhotoUpload } from "@/components/forms/PhotoUpload";
+import { RatingSlider } from "@/components/forms/RatingSlider";
 import { Button } from "@/components/ui/Button";
 import { Input, Label, Select } from "@/components/ui/Input";
 import { WhatsappMark } from "@/components/ui/WhatsappMark";
@@ -6,8 +7,7 @@ import { WhatsappMark } from "@/components/ui/WhatsappMark";
 type PlayerFormProps = {
   action: (formData: FormData) => void | Promise<void>;
   player?: {
-    name: string;
-    nickname?: string | null;
+    nickname: string;
     photoUrl?: string | null;
     position: string;
     membershipStatus?: string;
@@ -33,12 +33,8 @@ export function PlayerForm({
     <form action={action} className="space-y-4">
       <PhotoUpload defaultUrl={player?.photoUrl} />
       <div>
-        <Label>Nome</Label>
-        <Input name="name" defaultValue={player?.name} required />
-      </div>
-      <div>
         <Label>Apelido</Label>
-        <Input name="nickname" defaultValue={player?.nickname || ""} />
+        <Input name="nickname" defaultValue={player?.nickname || ""} required />
       </div>
       <div>
         <Label>Posicao</Label>
@@ -59,10 +55,7 @@ export function PlayerForm({
         </div>
       ) : null}
       {canEditRating ? (
-        <div>
-          <Label>Nota de 0 a 5</Label>
-          <Input name="rating" type="number" min={0} max={5} step={0.5} defaultValue={player?.rating ?? 3} required />
-        </div>
+        <RatingSlider name="rating" label="Nota de 0 a 5" defaultValue={player?.rating ?? 3} />
       ) : null}
       {showWhatsapp ? (
         <div className="space-y-2 rounded-[13px] border-[1.5px] border-linha bg-white p-3">

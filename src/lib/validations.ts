@@ -4,8 +4,7 @@ export const positions = ["GOLEIRO", "DEFESA", "MEIA", "ATAQUE"] as const;
 export const membershipStatuses = ["MENSALISTA", "CONVIDADO"] as const;
 
 export const playerSchema = z.object({
-  name: z.string().min(2, "Informe o nome do jogador."),
-  nickname: z.string().optional(),
+  nickname: z.string().min(2, "Informe o apelido do jogador."),
   photoUrl: z.string().url().optional().or(z.literal("")),
   position: z.enum(positions),
   membershipStatus: z.enum(membershipStatuses).default("MENSALISTA"),

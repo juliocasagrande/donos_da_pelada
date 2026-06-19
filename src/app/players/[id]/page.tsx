@@ -91,14 +91,14 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
         <div className="flex flex-col items-center text-center">
           <PlayerAvatar
             src={player.photoUrl}
-            name={player.name}
+            name={player.nickname}
             position={player.position}
             number={10}
             size="lg"
             className="bg-craque text-mata"
           />
           <h1 className="mt-4 font-display text-3xl font-extrabold tracking-[-.02em]">
-            {player.nickname || player.name}
+            {player.nickname}
           </h1>
           <div className="mt-2 rounded-full bg-white/16 px-3 py-1 text-xs font-bold">
             <span className="text-craque">●</span> {positionLabel(player.position)}

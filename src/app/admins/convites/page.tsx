@@ -41,7 +41,7 @@ export default async function ConvitesPage() {
       user: { select: { whatsapp: true } }
     },
     distinct: ["userId"],
-    orderBy: [{ name: "asc" }]
+    orderBy: [{ nickname: "asc" }]
   });
 
   return (
@@ -105,14 +105,14 @@ export default async function ConvitesPage() {
           externalPlayers.map((player) => (
             <Card key={player.id} className="flex items-center justify-between gap-3 p-3">
               <div className="min-w-0">
-                <p className="truncate text-sm font-bold">{player.nickname || player.name}</p>
+                <p className="truncate text-sm font-bold">{player.nickname}</p>
                 <p className="truncate text-xs text-musgo">{player.pelada.name}</p>
               </div>
               {player.user?.whatsapp ? (
                 <InviteExternalPlayerLink
                   code={usableInvite.code}
                   peladaName={pelada?.name || "sua pelada"}
-                  playerName={player.nickname || player.name}
+                  playerName={player.nickname}
                   whatsapp={player.user.whatsapp}
                 />
               ) : null}

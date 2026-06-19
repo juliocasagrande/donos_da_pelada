@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { Clock, Pencil, Plus, Trash2 } from "lucide-react";
+import { CalendarDays, Clock, Dices, ListChecks, Pencil, Plus, Shirt, Trash2, Users } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { LocationLinks } from "@/components/matches/LocationLinks";
 import { closeMatch, deleteMatch } from "@/lib/actions";
+import { TOTAL_CAPACITY } from "@/lib/attendance";
 import { prisma } from "@/lib/prisma";
 import { isPeladaAdmin, requireUser } from "@/lib/session";
 import { cn, formatDate, surfaceLabel } from "@/lib/utils";
@@ -30,6 +31,35 @@ const kindTabs = [
   { key: "AMISTOSO", label: "Amistoso" }
 ] as const;
 
+function MatchBadge({ kind }: { kind: string }) {
+  if (kind !== "AMISTOSO") return null;
+  return <span className="rounded-[7px] bg-craque/20 px-2 py-0.5 text-[11px] font-black text-mata">Amistoso</span>;
+}
+
+function AdminActions({ id, closed = false }: { id: string; closed?: boolean }) {
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      <Link href={`/matches/${id}/edit`} className="flex min-h-10 items-center justify-center gap-1 rounded-[11px] bg-white px-3 py-2 text-xs font-bold text-mata shadow-card">
+        <Pencil size={14} /> Editar
+      </Link>
+      {closed ? (
+        <Link href={`/matches/${id}/stats`} className="flex min-h-10 items-center justify-center rounded-[11px] bg-areia px-3 py-2 text-xs font-bold">
+          Sumula
+        </Link>
+      ) : (
+        <form action={closeMatch.bind(null, id)}>
+          <Button variant="ghost" className="w-full py-2 text-xs">Encerrar</Button>
+        </form>
+      )}
+      <form action={deleteMatch.bind(null, id)}>
+        <Button variant="danger" className="w-full py-2 text-xs">
+          <Trash2 size={14} /> Excluir
+        </Button>
+      </form>
+    </div>
+  );
+}
+
 export default async function MatchesPage({
   searchParams
 }: {
@@ -47,8 +77,7 @@ export default async function MatchesPage({
       ...(activeKind.key === "todos" ? {} : { kind: activeKind.key })
     },
     include: {
-      attendances: { where: { status: "CONFIRMED" } },
-      _count: { select: { teams: true } }
+      attendances: { where: { status: "CONFIRMED" } }
     },
     orderBy: { date: activeTab === "proximas" ? "asc" : "desc" }
   });
@@ -58,118 +87,108 @@ export default async function MatchesPage({
 
   return (
     <AppShell>
-      <div className="mb-4 flex items-center justify-between pt-1">
-        <h1 className="font-display text-3xl font-extrabold tracking-[-.02em]">Peladas</h1>
+      <div className="mb-4 flex items-start justify-between gap-3 pt-1">
+        <div>
+          <p className="font-jersey text-sm font-semibold uppercase tracking-[.14em] text-musgo">Agenda</p>
+          <h1 className="font-display text-3xl font-extrabold tracking-[-.02em]">Partidas</h1>
+        </div>
         {isAdmin ? (
-          <Link href="/matches/new">
-            <Button className="h-11 w-11 rounded-[13px] px-0 shadow-button" aria-label="Nova pelada">
-              <Plus size={20} />
-            </Button>
+          <Link href="/matches/new" className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-campo text-white shadow-button" aria-label="Nova partida">
+            <Plus size={20} />
           </Link>
         ) : null}
       </div>
 
-      <div className="mb-3 grid grid-cols-3 gap-1.5">
-        {kindTabs.map((tab) => (
+      <Card className="mb-4 p-2">
+        <div className="grid grid-cols-2 gap-1">
           <Link
-            key={tab.key}
-            href={`/matches?aba=${activeTab}&tipo=${tab.key}`}
+            href={`/matches?aba=proximas&tipo=${activeKind.key}`}
             className={cn(
-              "rounded-[10px] px-2 py-2 text-center text-xs font-bold shadow-sm",
-              activeKind.key === tab.key ? "bg-campo text-white" : "bg-white text-musgo"
+              "rounded-[10px] px-3 py-2 text-center text-sm font-bold",
+              activeTab === "proximas" ? "bg-campo text-white" : "text-musgo"
             )}
           >
-            {tab.label}
+            Proximas
           </Link>
-        ))}
-      </div>
-
-      <div className="mb-4 grid grid-cols-2 rounded-[13px] bg-white p-1 shadow-card">
-        <Link
-          href={`/matches?aba=proximas&tipo=${activeKind.key}`}
-          className={cn(
-            "rounded-[10px] px-3 py-2 text-center text-sm font-bold",
-            activeTab === "proximas" ? "bg-campo text-white" : "text-musgo"
-          )}
-        >
-          Proximas
-        </Link>
-        <Link
-          href={`/matches?aba=anteriores&tipo=${activeKind.key}`}
-          className={cn(
-            "rounded-[10px] px-3 py-2 text-center text-sm font-bold",
-            activeTab === "anteriores" ? "bg-campo text-white" : "text-musgo"
-          )}
-        >
-          Anteriores
-        </Link>
-      </div>
+          <Link
+            href={`/matches?aba=anteriores&tipo=${activeKind.key}`}
+            className={cn(
+              "rounded-[10px] px-3 py-2 text-center text-sm font-bold",
+              activeTab === "anteriores" ? "bg-campo text-white" : "text-musgo"
+            )}
+          >
+            Anteriores
+          </Link>
+        </div>
+        <div className="mt-2 grid grid-cols-3 gap-1.5">
+          {kindTabs.map((tab) => (
+            <Link
+              key={tab.key}
+              href={`/matches?aba=${activeTab}&tipo=${tab.key}`}
+              className={cn(
+                "rounded-[10px] px-2 py-2 text-center text-xs font-bold",
+                activeKind.key === tab.key ? "bg-mata text-white" : "bg-areia text-musgo"
+              )}
+            >
+              {tab.label}
+            </Link>
+          ))}
+        </div>
+      </Card>
 
       {featured ? (
-        <Card className="mb-3 animate-card overflow-hidden p-0">
-          <div className="bg-gradient-to-br from-mata to-campo p-4 text-white">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="mb-1 flex items-center gap-1.5 font-jersey text-xs font-semibold uppercase tracking-[.14em] text-craque">
+        <Card className="mb-4 animate-card overflow-hidden p-0">
+          <div className="field-hero p-5 text-white">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="flex items-center gap-1.5 font-jersey text-xs font-semibold uppercase tracking-[.14em] text-green-200">
                   <span className="h-1.5 w-1.5 rounded-full bg-craque" /> Aberta para confirmar
                 </p>
-                <h2 className="font-display text-2xl font-extrabold tracking-[-.02em]">{featured.title}</h2>
+                <h2 className="mt-1 font-display text-2xl font-extrabold tracking-[-.02em]">{featured.title}</h2>
+                <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-green-100">
+                  <span className="flex items-center gap-1">
+                    <Clock size={15} /> {dateParts(featured.date).time}
+                  </span>
+                  <LocationLinks location={featured.location} />
+                </div>
               </div>
-              <div className="rounded-[10px] bg-white/15 px-3 py-2 text-center">
-                <div className="font-jersey text-3xl font-bold">{dateParts(featured.date).day}</div>
-                <div className="text-[10px] font-bold uppercase">{dateParts(featured.date).month}</div>
+              <div className="shrink-0 rounded-[13px] bg-white/15 px-3 py-2 text-center">
+                <div className="font-jersey text-3xl font-bold leading-none">{dateParts(featured.date).day}</div>
+                <div className="mt-1 text-[10px] font-bold uppercase leading-none">{dateParts(featured.date).month}</div>
               </div>
             </div>
           </div>
           <div className="p-4">
-            <div className="mb-4 flex flex-wrap items-center gap-4 text-sm text-musgo">
-              <span className="flex items-center gap-1"><Clock size={15} /> {dateParts(featured.date).time}</span>
-              <LocationLinks location={featured.location} />
-              <span className="rounded-[7px] bg-areia px-2 py-0.5 text-xs font-bold text-mata">{surfaceLabel(featured.surface)}</span>
-              {featured.kind === "AMISTOSO" ? (
-                <span className="rounded-[7px] bg-craque/20 px-2 py-0.5 text-xs font-bold text-mata">Amistoso</span>
-              ) : null}
-            </div>
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center -space-x-1">
-                <span className="h-5 w-5 rounded-full bg-campo ring-2 ring-white" />
-                <span className="h-5 w-5 rounded-full bg-craque ring-2 ring-white" />
-                <span className="h-5 w-5 rounded-full bg-mata ring-2 ring-white" />
+            <div className="mb-4 grid grid-cols-3 gap-2">
+              <div className="rounded-[11px] bg-areia px-3 py-2">
+                <p className="text-[10px] font-black uppercase text-musgo">Confirmados</p>
+                <p className="font-display text-lg font-extrabold text-campo">{featured.attendances.length}/{TOTAL_CAPACITY}</p>
               </div>
-              <span className="text-sm text-musgo">{featured.attendances.length}/20</span>
-              <Link
-                href={`/matches/${featured.id}/attendance`}
-                className="rounded-[13px] bg-tinta px-5 py-2.5 text-sm font-bold text-white"
-              >
-                Confirmar
-              </Link>
+              <div className="rounded-[11px] bg-areia px-3 py-2">
+                <p className="text-[10px] font-black uppercase text-musgo">Quadra</p>
+                <p className="truncate text-sm font-bold text-mata">{surfaceLabel(featured.surface)}</p>
+              </div>
+              <div className="rounded-[11px] bg-areia px-3 py-2">
+                <p className="text-[10px] font-black uppercase text-musgo">Tipo</p>
+                <p className="truncate text-sm font-bold text-mata">{featured.kind === "AMISTOSO" ? "Amistoso" : "Peladinha"}</p>
+              </div>
             </div>
-            <div className="grid grid-cols-3 gap-2">
-              {isAdmin ? (
-                <Link href={`/matches/${featured.id}/draw`} className="rounded-[11px] bg-areia px-3 py-2 text-center text-xs font-bold">
-                  Sortear
-                </Link>
-              ) : null}
-              <Link href={`/matches/${featured.id}/teams`} className="rounded-[11px] bg-areia px-3 py-2 text-center text-xs font-bold">
-                Times
+            <div className={cn("grid gap-2", isAdmin ? "grid-cols-3" : "grid-cols-2")}>
+              <Link href={`/matches/${featured.id}/attendance`} className="flex items-center justify-center gap-1.5 rounded-[11px] bg-campo px-3 py-2.5 text-center text-sm font-bold text-white">
+                <ListChecks size={16} /> Presenca
+              </Link>
+              <Link href={`/matches/${featured.id}/teams`} className="flex items-center justify-center gap-1.5 rounded-[11px] bg-areia px-3 py-2.5 text-center text-sm font-bold">
+                <Shirt size={16} /> Times
               </Link>
               {isAdmin ? (
-                <Link href={`/matches/${featured.id}/stats`} className="rounded-[11px] bg-areia px-3 py-2 text-center text-xs font-bold">
-                  Sumula
+                <Link href={`/matches/${featured.id}/draw`} className="flex items-center justify-center gap-1.5 rounded-[11px] bg-areia px-3 py-2.5 text-center text-sm font-bold">
+                  <Dices size={16} /> Sortear
                 </Link>
               ) : null}
             </div>
             {isAdmin ? (
-              <div className="mt-2 grid grid-cols-3 gap-2">
-                <Link href={`/matches/${featured.id}/edit`} className="flex min-h-10 items-center justify-center rounded-[11px] bg-white px-3 py-2 text-xs font-bold text-mata shadow-card">
-                  <Pencil size={14} /> Editar
-                </Link>
-                <form action={closeMatch.bind(null, featured.id)}>
-                  <Button variant="ghost" className="w-full py-2 text-xs">Encerrar</Button>
-                </form>
-                <form action={deleteMatch.bind(null, featured.id)}>
-                  <Button variant="danger" className="w-full py-2 text-xs"><Trash2 size={14} /> Excluir</Button>
-                </form>
+              <div className="mt-2">
+                <AdminActions id={featured.id} />
               </div>
             ) : null}
           </div>
@@ -179,47 +198,50 @@ export default async function MatchesPage({
       <div className="space-y-3">
         {others.map((match) => {
           const parts = dateParts(match.date);
+          const closed = match.status === "CLOSED";
           return (
             <Card key={match.id} className="animate-card p-3">
-              <div className="flex items-center gap-3">
-                <div className="rounded-[10px] bg-areia px-3 py-2 text-center text-mata">
+              <div className="flex items-start gap-3">
+                <div className="shrink-0 rounded-[12px] bg-areia px-3 py-2 text-center text-mata">
                   <div className="font-jersey text-2xl font-bold leading-none">{parts.day}</div>
-                  <div className="mt-1 text-[10px] uppercase leading-none">{parts.month}</div>
+                  <div className="mt-1 text-[10px] font-bold uppercase leading-none">{parts.month}</div>
                 </div>
-                <Link href={`/matches/${match.id}/attendance`} className="min-w-0 flex-1">
-                  <h2 className="truncate font-display text-lg font-bold">
-                    {match.title}
-                    {match.kind === "AMISTOSO" ? (
-                      <span className="ml-1.5 rounded-[6px] bg-craque/20 px-1.5 py-0.5 text-[10px] font-bold text-mata">Amistoso</span>
-                    ) : null}
-                  </h2>
-                  <p className="truncate text-xs text-musgo">
-                    {parts.time} · {match.location || "Local a definir"} · {formatDate(match.date)}
-                  </p>
-                </Link>
-                <span className="rounded-[8px] bg-[#E5F3E8] px-3 py-1 text-xs font-bold text-mata">
-                  {match.status === "OPEN" ? "Agendada" : "Encerrada"}
+                <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <h2 className="truncate font-display text-lg font-bold">{match.title}</h2>
+                    <MatchBadge kind={match.kind} />
+                  </div>
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-musgo">
+                    <span className="flex items-center gap-1">
+                      <Clock size={13} /> {parts.time}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <CalendarDays size={13} /> {formatDate(match.date)}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Users size={13} /> {match.attendances.length}/{TOTAL_CAPACITY}
+                    </span>
+                  </div>
+                  <p className="mt-1 truncate text-xs text-musgo">{match.location || "Local a definir"}</p>
+                </div>
+                <span className={cn("rounded-[8px] px-2 py-1 text-[11px] font-black", closed ? "bg-linha text-musgo" : "bg-[#E5F3E8] text-mata")}>
+                  {closed ? "Encerrada" : "Aberta"}
                 </span>
               </div>
               <div className="mt-3 grid grid-cols-3 gap-2">
-                <Link href={`/matches/${match.id}/attendance`} className="rounded-[11px] bg-areia px-3 py-2 text-center text-xs font-bold">
-                  Detalhes
+                <Link href={`/matches/${match.id}/attendance`} className="flex items-center justify-center gap-1.5 rounded-[11px] bg-areia px-3 py-2 text-center text-xs font-bold">
+                  <ListChecks size={14} /> Presenca
                 </Link>
-                <Link href={`/matches/${match.id}/teams`} className="rounded-[11px] bg-areia px-3 py-2 text-center text-xs font-bold">
-                  Times
+                <Link href={`/matches/${match.id}/teams`} className="flex items-center justify-center gap-1.5 rounded-[11px] bg-areia px-3 py-2 text-center text-xs font-bold">
+                  <Shirt size={14} /> Times
                 </Link>
                 <Link href={`/matches/${match.id}/stats`} className="rounded-[11px] bg-areia px-3 py-2 text-center text-xs font-bold">
                   Sumula
                 </Link>
               </div>
               {isAdmin ? (
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  <Link href={`/matches/${match.id}/edit`} className="flex min-h-10 items-center justify-center gap-1 rounded-[11px] bg-white px-3 py-2 text-xs font-bold text-mata shadow-card">
-                    <Pencil size={14} /> Editar
-                  </Link>
-                  <form action={deleteMatch.bind(null, match.id)}>
-                    <Button variant="danger" className="w-full py-2 text-xs"><Trash2 size={14} /> Excluir</Button>
-                  </form>
+                <div className="mt-2">
+                  <AdminActions id={match.id} closed={closed} />
                 </div>
               ) : null}
             </Card>
@@ -228,7 +250,7 @@ export default async function MatchesPage({
         {!matches.length ? (
           <Card>
             <p className="text-sm text-musgo">
-              {activeTab === "proximas" ? "Nenhuma pelada aberta no momento." : "Nenhuma pelada encerrada ainda."}
+              {activeTab === "proximas" ? "Nenhuma partida aberta no momento." : "Nenhuma partida encerrada ainda."}
             </p>
           </Card>
         ) : null}

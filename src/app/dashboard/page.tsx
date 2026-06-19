@@ -97,7 +97,7 @@ export default async function DashboardPage() {
       : Promise.resolve(0)
   ]);
   const isGuest = linkedPlayer?.membershipStatus === "CONVIDADO";
-  const displayName = linkedPlayer?.nickname || linkedPlayer?.name || user.name?.split(" ")[0] || "Craque";
+  const displayName = linkedPlayer?.nickname || user.name?.split(" ")[0] || "Craque";
 
   const gameShortcuts = [
     { href: "/matches/new", label: "Nova pelada", icon: CalendarPlus },
@@ -139,7 +139,7 @@ export default async function DashboardPage() {
               : `${pendingRatingPlayers.length} jogadores novos aguardando nota`}
           </h2>
           <p className="mt-1 truncate text-sm text-musgo">
-            {pendingRatingPlayers.map((player) => player.nickname || player.name).join(", ")}
+            {pendingRatingPlayers.map((player) => player.nickname).join(", ")}
           </p>
           <Link
             href="/players"
@@ -202,7 +202,7 @@ export default async function DashboardPage() {
           <p className="flex items-center gap-1.5 text-xs font-bold uppercase text-[#8a5a06]"><Star size={14} fill="#F4A11A" /> Craque atual</p>
           <div className="mt-1 flex items-center justify-between gap-4">
             <div>
-              <h2 className="font-display text-2xl font-extrabold">{craque.winner.nickname || craque.winner.name}</h2>
+              <h2 className="font-display text-2xl font-extrabold">{craque.winner.nickname}</h2>
               <p className="text-sm text-musgo">{craque.title}</p>
             </div>
             <Trophy className="text-craque" size={36} />

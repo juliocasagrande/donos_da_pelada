@@ -256,8 +256,8 @@ export default async function RankingsPage({
       <section className="mb-5 grid grid-cols-3 items-end gap-2">
         {second ? (
           <div className="rise-podium text-center" style={{ animationDelay: "90ms" }}>
-            <PlayerAvatar src={second.photoUrl} name={second.name} position={second.position} number={7} className="mx-auto bg-campo" />
-            <p className="mt-2 truncate text-sm font-bold">{second.nickname || second.name}</p>
+            <PlayerAvatar src={second.photoUrl} name={second.nickname} position={second.position} number={7} className="mx-auto bg-campo" />
+            <p className="mt-2 truncate text-sm font-bold">{second.nickname}</p>
             {showPeladaName ? <p className="truncate text-[11px] font-semibold text-musgo">{second.pelada.name}</p> : null}
             <Card className="mt-2 rounded-b-none p-3">
               <div className="font-jersey text-2xl font-bold text-campo">{formatValue(second[activeTab.field], activeTab.field)}</div>
@@ -271,8 +271,8 @@ export default async function RankingsPage({
         {first ? (
           <div className="rise-podium text-center" style={{ animationDelay: "260ms" }}>
             <Crown className="mx-auto mb-1 text-craque" size={18} fill="currentColor" />
-            <PlayerAvatar src={first.photoUrl} name={first.name} position={first.position} number={10} size="lg" className="mx-auto bg-craque text-mata" />
-            <p className="mt-2 truncate text-sm font-extrabold">{first.nickname || first.name}</p>
+            <PlayerAvatar src={first.photoUrl} name={first.nickname} position={first.position} number={10} size="lg" className="mx-auto bg-craque text-mata" />
+            <p className="mt-2 truncate text-sm font-extrabold">{first.nickname}</p>
             {showPeladaName ? <p className="truncate text-[11px] font-semibold text-musgo">{first.pelada.name}</p> : null}
             <Card className="mt-2 rounded-b-none p-3">
               <div className="font-jersey text-3xl font-bold text-craque">{formatValue(first[activeTab.field], activeTab.field)}</div>
@@ -285,8 +285,8 @@ export default async function RankingsPage({
 
         {third ? (
           <div className="rise-podium text-center" style={{ animationDelay: "0ms" }}>
-            <PlayerAvatar src={third.photoUrl} name={third.name} position={third.position} number={9} className="mx-auto bg-mata" />
-            <p className="mt-2 truncate text-sm font-bold">{third.nickname || third.name}</p>
+            <PlayerAvatar src={third.photoUrl} name={third.nickname} position={third.position} number={9} className="mx-auto bg-mata" />
+            <p className="mt-2 truncate text-sm font-bold">{third.nickname}</p>
             {showPeladaName ? <p className="truncate text-[11px] font-semibold text-musgo">{third.pelada.name}</p> : null}
             <Card className="mt-2 rounded-b-none p-3">
               <div className="font-jersey text-2xl font-bold text-campo">{formatValue(third[activeTab.field], activeTab.field)}</div>
@@ -303,9 +303,9 @@ export default async function RankingsPage({
           <Card key={player.id} className="animate-card p-3">
             <div className="flex items-center gap-3">
               <span className="w-7 text-center font-jersey text-xl font-bold text-[#A7AFA1]">{index + 4}</span>
-              <PlayerAvatar src={player.photoUrl} name={player.name} position={player.position} size="sm" />
+              <PlayerAvatar src={player.photoUrl} name={player.nickname} position={player.position} size="sm" />
               <div className="min-w-0 flex-1">
-                <h2 className="truncate text-sm font-extrabold">{player.nickname || player.name}</h2>
+                <h2 className="truncate text-sm font-extrabold">{player.nickname}</h2>
                 {showPeladaName ? <p className="truncate text-xs font-semibold text-musgo">{player.pelada.name}</p> : null}
               </div>
               <div className="flex items-center gap-1 text-sm font-bold">

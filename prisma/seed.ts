@@ -66,10 +66,10 @@ async function main() {
     ] as const;
 
     for (const [playerName, position, rating] of samples) {
-      const existing = await prisma.player.findFirst({ where: { name: playerName, peladaId: pelada.id } });
+      const existing = await prisma.player.findFirst({ where: { nickname: playerName, peladaId: pelada.id } });
       if (!existing) {
         await prisma.player.create({
-          data: { name: playerName, position, rating, peladaId: pelada.id }
+          data: { nickname: playerName, position, rating, peladaId: pelada.id }
         });
       }
     }

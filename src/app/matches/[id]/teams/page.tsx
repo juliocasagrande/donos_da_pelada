@@ -46,9 +46,9 @@ export default async function TeamsPage({ params }: { params: Promise<{ id: stri
                   )}
                   style={{ animationDelay: `${150 + playerIndex * 70}ms` }}
                 >
-                  <PlayerAvatar src={player.photoUrl} name={player.name} position={player.position} size="sm" />
+                  <PlayerAvatar src={player.photoUrl} name={player.nickname} position={player.position} size="sm" />
                   <div className="min-w-0">
-                    <p className="truncate font-bold">{player.nickname || player.name}</p>
+                    <p className="truncate font-bold">{player.nickname}</p>
                     <p className="text-xs text-musgo">
                       {player.position} · {player.rating} · {player.membershipStatus === "MENSALISTA" ? "mensalista" : "convidado"}
                     </p>

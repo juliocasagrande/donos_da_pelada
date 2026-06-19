@@ -20,8 +20,7 @@ function positionLabel(position: string) {
 
 export type PlayerListItem = {
   id: string;
-  name: string;
-  nickname: string | null;
+  nickname: string;
   photoUrl: string | null;
   position: string;
   membershipStatus: string;
@@ -44,8 +43,7 @@ export function PlayerList({ players, isAdmin }: { players: PlayerListItem[]; is
       if (filter === "LINHA" && player.position === "GOLEIRO") return false;
       if (!normalizedQuery) return true;
       return (
-        player.name.toLowerCase().includes(normalizedQuery) ||
-        (player.nickname || "").toLowerCase().includes(normalizedQuery)
+        player.nickname.toLowerCase().includes(normalizedQuery)
       );
     });
   }, [players, query, filter]);
@@ -91,13 +89,13 @@ export function PlayerList({ players, isAdmin }: { players: PlayerListItem[]; is
                 <Link href={`/players/${player.id}`} className="flex min-w-0 flex-1 items-center gap-3">
                   <PlayerAvatar
                     src={player.photoUrl}
-                    name={player.name}
+                    name={player.nickname}
                     position={player.position}
                     number={index === 0 ? 10 : undefined}
                     className={index === 0 ? "bg-mata" : undefined}
                   />
                   <div className="min-w-0 flex-1">
-                    <h2 className="truncate text-[15px] font-extrabold">{player.nickname || player.name}</h2>
+                    <h2 className="truncate text-[15px] font-extrabold">{player.nickname}</h2>
                     <p className="truncate text-xs text-musgo">
                       {positionLabel(player.position)}
                       {player.membershipStatus === "MENSALISTA" ? " · Mensalista" : " · Convidado"}
@@ -131,7 +129,7 @@ export function PlayerList({ players, isAdmin }: { players: PlayerListItem[]; is
                     target="_blank"
                     rel="noreferrer"
                     className="rounded-[10px] bg-[#EAF5EC] p-2 text-campo"
-                    aria-label={`Conversar com ${player.nickname || player.name} no WhatsApp`}
+                    aria-label={`Conversar com ${player.nickname} no WhatsApp`}
                   >
                     <WhatsappMark size={16} />
                   </a>

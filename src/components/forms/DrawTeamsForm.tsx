@@ -11,8 +11,7 @@ import { cn } from "@/lib/utils";
 
 type DrawPlayer = {
   id: string;
-  name: string;
-  nickname?: string | null;
+  nickname: string;
   position: string;
   rating: number;
   membershipStatus: string;
@@ -65,7 +64,7 @@ function PlayerSelectionCard({
         </button>
 
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-base font-bold text-tinta">{player.nickname || player.name}</h3>
+          <h3 className="truncate text-base font-bold text-tinta">{player.nickname}</h3>
           <p className="text-xs font-semibold text-musgo">{present ? "Presente" : "Ausente"}</p>
         </div>
 

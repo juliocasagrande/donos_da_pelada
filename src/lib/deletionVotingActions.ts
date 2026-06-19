@@ -147,11 +147,11 @@ export async function requestPlayerDeletion(playerId: string) {
     peladaId: admin.peladaId!,
     target: DeletionRequestTarget.PLAYER,
     targetId: player.id,
-    targetName: player.nickname || player.name,
+    targetName: player.nickname,
     createdByUserId: admin.id
   });
 
-  await logAudit(admin, "PLAYER_DELETION_REQUESTED", { type: "Player", id: playerId }, { name: player.name });
+  await logAudit(admin, "PLAYER_DELETION_REQUESTED", { type: "Player", id: playerId }, { name: player.nickname });
   await evaluateDeletionRequest(request.id);
   redirect("/players");
 }

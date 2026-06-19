@@ -50,7 +50,7 @@ export default async function FinancePage({
     prisma.monthlyFeeConfig.findUnique({ where: { peladaId_year_month: { peladaId, year, month } } }),
     prisma.player.findMany({
       where: { peladaId, active: true, membershipStatus: "MENSALISTA" },
-      orderBy: { name: "asc" }
+      orderBy: { nickname: "asc" }
     }),
     prisma.monthlyPayment.findMany({ where: { peladaId } }),
     prisma.transaction.findMany({ where: { peladaId }, orderBy: { date: "desc" } })
@@ -172,7 +172,7 @@ export default async function FinancePage({
           return (
             <Card key={player.id} className="flex items-center justify-between gap-3 p-3">
               <div className="min-w-0">
-                <h3 className="truncate font-bold">{player.nickname || player.name}</h3>
+                <h3 className="truncate font-bold">{player.nickname}</h3>
                 <p className="text-xs text-musgo">{paid ? "Pago" : "Pendente"}</p>
               </div>
               <form action={setPlayerPaymentStatus.bind(null, player.id, year, month, paid)}>

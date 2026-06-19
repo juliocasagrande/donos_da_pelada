@@ -19,13 +19,12 @@ export default async function DrawPage({
     prisma.player.findMany({
       where: { peladaId: admin.peladaId!, active: true },
       include: { attendances: { where: { matchId: id } } },
-      orderBy: [{ membershipStatus: "asc" }, { name: "asc" }]
+      orderBy: [{ membershipStatus: "asc" }, { nickname: "asc" }]
     })
   ]);
 
   const drawPlayers = players.map((player) => ({
     id: player.id,
-    name: player.name,
     nickname: player.nickname,
     position: player.position,
     rating: player.rating,

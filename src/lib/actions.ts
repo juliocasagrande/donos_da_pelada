@@ -201,7 +201,6 @@ export async function saveOnboarding(formData: FormData) {
   if (!user.peladaId) redirect("/peladas");
   const currentPlayer = await prisma.player.findFirst({ where: { userId: user.id, peladaId: user.peladaId } });
   const parsed = playerSchema.parse({
-    name: value(formData, "name"),
     nickname: value(formData, "nickname"),
     photoUrl: value(formData, "photoUrl"),
     position: value(formData, "position"),
@@ -218,7 +217,7 @@ export async function saveOnboarding(formData: FormData) {
   await prisma.user.update({
     where: { id: user.id },
     data: {
-      name: parsed.nickname || parsed.name,
+      name: parsed.nickname,
       image: parsed.photoUrl || undefined,
       onboarded: true,
       whatsapp: normalizeWhatsapp(value(formData, "whatsapp")),
@@ -233,7 +232,6 @@ export async function updateOwnProfile(formData: FormData) {
   const user = await requireUser();
   const currentPlayer = await prisma.player.findFirst({ where: { userId: user.id, peladaId: user.peladaId! } });
   const parsed = playerSchema.parse({
-    name: value(formData, "name"),
     nickname: value(formData, "nickname"),
     photoUrl: value(formData, "photoUrl"),
     position: value(formData, "position"),
@@ -250,7 +248,7 @@ export async function updateOwnProfile(formData: FormData) {
   await prisma.user.update({
     where: { id: user.id },
     data: {
-      name: parsed.nickname || parsed.name,
+      name: parsed.nickname,
       image: parsed.photoUrl || undefined,
       whatsapp: normalizeWhatsapp(value(formData, "whatsapp")),
       whatsappChatEnabled: value(formData, "whatsappChatEnabled") === "yes"
@@ -386,7 +384,6 @@ export async function toggleAdminRole(userId: string) {
 export async function createPlayer(formData: FormData) {
   const admin = await requireAdmin();
   const parsed = playerSchema.parse({
-    name: value(formData, "name"),
     nickname: value(formData, "nickname"),
     photoUrl: value(formData, "photoUrl"),
     position: value(formData, "position"),
@@ -403,14 +400,13 @@ export async function createPlayer(formData: FormData) {
   }
 
   const player = await prisma.player.create({ data: { ...parsed, peladaId: admin.peladaId!, ratingAssigned: true } });
-  await logAudit(admin, "PLAYER_CREATED", { type: "Player", id: player.id }, { name: player.name });
+  await logAudit(admin, "PLAYER_CREATED", { type: "Player", id: player.id }, { name: player.nickname });
   redirect("/players");
 }
 
 export async function updatePlayer(playerId: string, formData: FormData) {
   const admin = await requireAdmin();
   const parsed = playerSchema.parse({
-    name: value(formData, "name"),
     nickname: value(formData, "nickname"),
     photoUrl: value(formData, "photoUrl"),
     position: value(formData, "position"),
@@ -491,7 +487,7 @@ export async function deletePlayer(playerId: string) {
       data: { active: false, userId: null }
     });
   });
-  await logAudit(admin, "PLAYER_REMOVED_FROM_PELADA", { type: "Player", id: playerId }, { name: player.name });
+  await logAudit(admin, "PLAYER_REMOVED_FROM_PELADA", { type: "Player", id: playerId }, { name: player.nickname });
   revalidatePath("/players");
   revalidatePath("/admins");
   redirect("/players");
@@ -783,8 +779,7 @@ export async function createGuestForMatch(matchId: string, formData: FormData) {
   }
 
   const parsed = playerSchema.parse({
-    name: value(formData, "name"),
-    nickname: "",
+    nickname: value(formData, "name"),
     photoUrl: "",
     position: value(formData, "position"),
     membershipStatus: "CONVIDADO",
@@ -865,7 +860,7 @@ export async function drawTeams(matchId: string, formData: FormData) {
     },
     select: {
       id: true,
-      name: true,
+      nickname: true,
       position: true,
       rating: true,
       membershipStatus: true,
@@ -887,7 +882,9 @@ export async function drawTeams(matchId: string, formData: FormData) {
   const selectedPlayers = [...monthlyPlayers, ...guestPlayers]
     .slice(0, totalCapacity)
     .map(({ membershipStatus: _membershipStatus, ratings: _ratings, ...player }) => ({
-      ...player,
+      id: player.id,
+      name: player.nickname,
+      position: player.position,
       rating: playerBalanceRating({ rating: player.rating, ratings: _ratings })
     }));
 
@@ -972,7 +969,7 @@ export async function drawTeamsForClient(matchId: string, formData: FormData) {
       },
       select: {
         id: true,
-        name: true,
+        nickname: true,
         position: true,
         rating: true,
         membershipStatus: true,
@@ -993,7 +990,9 @@ export async function drawTeamsForClient(matchId: string, formData: FormData) {
     const selectedPlayers = [...monthlyPlayers, ...guestPlayers]
       .slice(0, totalCapacity)
       .map(({ membershipStatus: _membershipStatus, ratings: _ratings, ...player }) => ({
-        ...player,
+        id: player.id,
+        name: player.nickname,
+        position: player.position,
         rating: playerBalanceRating({ rating: player.rating, ratings: _ratings })
       }));
 

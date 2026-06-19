@@ -55,8 +55,7 @@ export default async function ProfilePage({
                   ? { ...player, ...profile }
                   : profile
                     ? {
-                        name: user.name || "",
-                        nickname: null,
+                        nickname: user.name || "",
                         photoUrl: user.image || null,
                         position: "MEIA",
                         rating: 0,

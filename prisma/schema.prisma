@@ -354,8 +354,7 @@ model Player {
   user        User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
   peladaId    String
   pelada      Pelada            @relation(fields: [peladaId], references: [id], onDelete: Cascade)
-  name        String
-  nickname    String?
+  nickname    String
   photoUrl    String?
   position    PlayerPosition
   membershipStatus MembershipStatus @default(MENSALISTA)
