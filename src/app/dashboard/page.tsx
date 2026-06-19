@@ -241,10 +241,6 @@ export default async function DashboardPage() {
         <StatTile icon={Star} value={craque ? 1 : 0} label="Vezes craque" accent="yellow" />
       </div>
 
-      <p className="mt-4 text-sm text-musgo">
-        Ultima pelada: {lastMatch ? `${lastMatch.title} em ${formatDate(lastMatch.date)}` : "nenhuma pelada criada ainda"} · {defenses._sum.quantity || 0} defesas
-      </p>
-
       <SectionLabel className="mb-2 mt-5">Atalhos de jogo</SectionLabel>
       <div className="stagger grid grid-cols-3 gap-2">
         {gameShortcuts.map((item) => (

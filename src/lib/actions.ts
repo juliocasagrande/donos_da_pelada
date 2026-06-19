@@ -78,7 +78,7 @@ async function canUserVoteInMatch(userId: string, matchId: string) {
   const match = await prisma.match.findUnique({ where: { id: matchId }, select: { peladaId: true } });
   if (!match) return false;
   const player = await prisma.player.findFirst({
-    where: { userId, peladaId: match.peladaId, active: true, membershipStatus: "MENSALISTA" }
+    where: { userId, peladaId: match.peladaId, active: true }
   });
   if (!player) return false;
 
@@ -110,7 +110,6 @@ async function getEligibleMatchVoterUserIds(matchId: string) {
       status: "CONFIRMED",
       player: {
         active: true,
-        membershipStatus: "MENSALISTA",
         userId: { not: null }
       }
     },
@@ -1025,7 +1024,9 @@ export async function drawTeamsForClient(matchId: string, formData: FormData) {
 export async function updateStats(matchId: string, formData: FormData) {
   const admin = await requireAdmin();
   await assertMatchInPelada(matchId, admin.peladaId!);
-  if ((await getLatestClosedMatchId(admin.peladaId!)) !== matchId) return;
+  if ((await getLatestClosedMatchId(admin.peladaId!)) !== matchId) {
+    return { ok: false, error: "A sumula so pode ser editada na ultima pelada encerrada." };
+  }
   const playerIds = formData.getAll("playerId").filter((id): id is string => typeof id === "string");
 
   for (const playerId of playerIds) {
@@ -1048,14 +1049,19 @@ export async function updateStats(matchId: string, formData: FormData) {
   revalidatePath(`/matches/${matchId}/stats`);
   revalidatePath("/rankings");
   revalidatePath("/dashboard");
+  return { ok: true };
 }
 
 export async function updateMatchScore(matchId: string, formData: FormData) {
   const admin = await requireAdmin();
   await assertMatchInPelada(matchId, admin.peladaId!);
-  if ((await getLatestClosedMatchId(admin.peladaId!)) !== matchId) return;
+  if ((await getLatestClosedMatchId(admin.peladaId!)) !== matchId) {
+    return { ok: false, error: "O placar so pode ser editado na ultima pelada encerrada." };
+  }
   const match = await prisma.match.findUnique({ where: { id: matchId }, select: { kind: true } });
-  if (!match || match.kind !== "AMISTOSO") return;
+  if (!match || match.kind !== "AMISTOSO") {
+    return { ok: false, error: "Placar disponivel apenas para amistoso." };
+  }
 
   await prisma.match.update({
     where: { id: matchId },
@@ -1067,6 +1073,7 @@ export async function updateMatchScore(matchId: string, formData: FormData) {
 
   revalidatePath(`/matches/${matchId}/stats`);
   revalidatePath("/rankings");
+  return { ok: true };
 }
 
 export async function submitOwnMatchStats(matchId: string, formData: FormData) {
@@ -1077,26 +1084,27 @@ export async function submitOwnMatchStats(matchId: string, formData: FormData) {
     orderBy: { createdAt: "desc" }
   });
 
-  if (!poll || !isWithinVotingWindow(poll.createdAt)) return;
+  if (!poll || !isWithinVotingWindow(poll.createdAt)) {
+    return { ok: false, error: "A janela da votacao ja foi encerrada." };
+  }
 
   const linkedPlayer = await prisma.player.findFirst({
-    where: { userId: user.id, peladaId: user.peladaId!, active: true, membershipStatus: "MENSALISTA" }
+    where: { userId: user.id, peladaId: user.peladaId!, active: true }
   });
-  if (!linkedPlayer) return;
+  if (!linkedPlayer) return { ok: false, error: "Jogador nao encontrado." };
 
   const attendance = await prisma.attendance.findUnique({
     where: { matchId_playerId: { matchId, playerId: linkedPlayer.id } }
   });
-  if (attendance?.status !== "CONFIRMED") return;
-
-  const existingSubmission = await prisma.playerMatchSubmission.findUnique({
-    where: { matchId_playerId_userId: { matchId, playerId: linkedPlayer.id, userId: user.id } }
-  });
-  if (existingSubmission) return;
+  if (attendance?.status !== "CONFIRMED") {
+    return { ok: false, error: "Apenas presentes podem salvar numeros." };
+  }
 
   const goals = Number(value(formData, "goals") || 0);
   const defenses = Number(value(formData, "defenses") || 0);
-  if (!Number.isFinite(goals) || goals < 0 || !Number.isFinite(defenses) || defenses < 0) return;
+  if (!Number.isFinite(goals) || goals < 0 || !Number.isFinite(defenses) || defenses < 0) {
+    return { ok: false, error: "Informe numeros validos." };
+  }
 
   await prisma.$transaction([
     prisma.goal.upsert({
@@ -1108,16 +1116,79 @@ export async function submitOwnMatchStats(matchId: string, formData: FormData) {
       where: { matchId_playerId: { matchId, playerId: linkedPlayer.id } },
       update: { quantity: defenses },
       create: { matchId, playerId: linkedPlayer.id, quantity: defenses }
-    }),
-    prisma.playerMatchSubmission.create({
-      data: { matchId, playerId: linkedPlayer.id, userId: user.id }
     })
   ]);
 
   revalidatePath(`/matches/${matchId}/stats`);
   revalidatePath("/rankings");
   revalidatePath(`/players/${linkedPlayer.id}`);
+  return { ok: true };
+}
+
+export async function confirmMatchVoting(matchId: string) {
+  const user = await requireUser();
+  await assertMatchInPelada(matchId, user.peladaId!);
+  const poll = await prisma.poll.findFirst({
+    where: { matchId, title: "Craque da pelada", status: PollStatus.OPEN },
+    orderBy: { createdAt: "desc" }
+  });
+
+  if (!poll || !isWithinVotingWindow(poll.createdAt)) {
+    return { ok: false, error: "A janela da votacao ja foi encerrada." };
+  }
+
+  const linkedPlayer = await prisma.player.findFirst({
+    where: { userId: user.id, peladaId: user.peladaId!, active: true },
+    include: {
+      goals: { where: { matchId } },
+      defenses: { where: { matchId } }
+    }
+  });
+  if (!linkedPlayer) return { ok: false, error: "Jogador nao encontrado." };
+
+  const attendance = await prisma.attendance.findUnique({
+    where: { matchId_playerId: { matchId, playerId: linkedPlayer.id } }
+  });
+  if (attendance?.status !== "CONFIRMED") {
+    return { ok: false, error: "Apenas presentes podem confirmar a votacao." };
+  }
+
+  const hasStats = Boolean(linkedPlayer.goals.length || linkedPlayer.defenses.length);
+  if (!hasStats) {
+    return { ok: false, error: "Envie seus gols e defesas antes de confirmar." };
+  }
+
+  const vote = await prisma.pollVote.findUnique({
+    where: { pollId_userId: { pollId: poll.id, userId: user.id } }
+  });
+  if (!vote) {
+    return { ok: false, error: "Vote no craque antes de confirmar." };
+  }
+
+  const confirmedPlayers = await prisma.player.findMany({
+    where: { active: true, peladaId: user.peladaId!, attendances: { some: { matchId, status: "CONFIRMED" } } },
+    select: { id: true }
+  });
+  const expectedRatingIds = confirmedPlayers.map((player) => player.id).filter((playerId) => playerId !== linkedPlayer.id);
+  const ratings = await prisma.playerRating.findMany({
+    where: { matchId, userId: user.id, playerId: { in: expectedRatingIds } },
+    select: { playerId: true }
+  });
+  const ratedPlayerIds = new Set(ratings.map((rating) => rating.playerId));
+  const missingRating = expectedRatingIds.some((playerId) => !ratedPlayerIds.has(playerId));
+  if (missingRating) {
+    return { ok: false, error: "Dê nota para todos os outros presentes antes de confirmar." };
+  }
+
+  await prisma.playerMatchSubmission.upsert({
+    where: { matchId_playerId_userId: { matchId, playerId: linkedPlayer.id, userId: user.id } },
+    update: {},
+    create: { matchId, playerId: linkedPlayer.id, userId: user.id }
+  });
+
   await closeCraquePollIfComplete(poll.id);
+  revalidatePath(`/matches/${matchId}/stats`);
+  return { ok: true };
 }
 
 export async function createCraquePoll(matchId: string) {
@@ -1193,7 +1264,6 @@ export async function voteCraque(pollId: string, playerId: string) {
       id: playerId,
       peladaId: poll.match.peladaId,
       active: true,
-      membershipStatus: "MENSALISTA",
       attendances: { some: { matchId: poll.matchId, status: "CONFIRMED" } }
     }
   });
@@ -1234,7 +1304,6 @@ export async function ratePlayerPerformance(matchId: string, playerId: string, f
       id: playerId,
       peladaId: user.peladaId!,
       active: true,
-      membershipStatus: "MENSALISTA",
       attendances: { some: { matchId, status: "CONFIRMED" } }
     }
   });
@@ -1247,7 +1316,7 @@ export async function ratePlayerPerformance(matchId: string, playerId: string, f
     return { ok: false, error: "Escolha uma nota valida." };
   }
 
-  const rating = Math.max(0, Math.min(10, raw));
+  const rating = Math.max(0, Math.min(5, raw));
   await prisma.playerRating.upsert({
     where: { matchId_playerId_userId: { matchId, playerId, userId: user.id } },
     update: { value: rating },
@@ -1277,11 +1346,12 @@ async function getCraquePollProgress(pollId: string) {
   });
   if (!poll) return null;
 
-  const eligiblePlayers = poll.match.attendances
+  const confirmedPlayers = poll.match.attendances
     .map((attendance) => attendance.player)
-    .filter((player) => player.userId && player.active && player.membershipStatus === "MENSALISTA");
+    .filter((player) => player.active);
+  const eligiblePlayers = confirmedPlayers.filter((player) => player.userId);
   const eligibleUserIds = [...new Set(eligiblePlayers.map((player) => player.userId!).filter(Boolean))];
-  const eligiblePlayerIds = eligiblePlayers.map((player) => player.id);
+  const eligiblePlayerIds = confirmedPlayers.map((player) => player.id);
 
   const [submissions, ratings] = await Promise.all([
     prisma.playerMatchSubmission.findMany({

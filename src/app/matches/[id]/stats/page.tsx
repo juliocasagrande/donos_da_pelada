@@ -1,20 +1,14 @@
 import { Star } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
+import { MatchScoreForm } from "@/components/matches/MatchScoreForm";
+import { MatchStatsForm } from "@/components/matches/MatchStatsForm";
+import { OwnMatchStatsForm } from "@/components/matches/OwnMatchStatsForm";
 import { PlayerAvatar } from "@/components/players/PlayerAvatar";
-import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
+import { ConfirmVotingForm } from "@/components/matches/ConfirmVotingForm";
 import { RatePlayerForm } from "@/components/matches/RatePlayerForm";
 import { VoteCraqueForm } from "@/components/matches/VoteCraqueForm";
-import {
-  closeExpiredCraquePolls,
-  closeCraquePoll,
-  createCraquePoll,
-  notifyStatsEntryOpen,
-  submitOwnMatchStats,
-  updateMatchScore,
-  updateStats
-} from "@/lib/actions";
+import { closeExpiredCraquePolls } from "@/lib/actions";
 import { prisma } from "@/lib/prisma";
 import { isPeladaAdmin, requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
@@ -45,16 +39,7 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
       where: {
         peladaId: user.peladaId!,
         active: true,
-        OR: [
-          { membershipStatus: "MENSALISTA" },
-          ...(isAdmin ? [{ userId: user.id }] : [])
-        ],
-        AND: {
-          OR: [
-            { attendances: { some: { matchId: id, status: "CONFIRMED" } } },
-            { teamPlayers: { some: { team: { matchId: id } } } }
-          ]
-        }
+        attendances: { some: { matchId: id, status: "CONFIRMED" } }
       },
       include: {
         goals: { where: { matchId: id } },
@@ -82,12 +67,9 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
     : null;
   const canVote =
     viewerAttendance?.status === "CONFIRMED" &&
-    linkedPlayer?.active === true &&
-    linkedPlayer?.membershipStatus === "MENSALISTA";
+    linkedPlayer?.active === true;
   const votingOpen = isVotingOpen(poll?.createdAt, poll?.status);
   const ownPlayer = linkedPlayer ? players.find((player) => player.id === linkedPlayer.id) : null;
-  const ownSubmitted = Boolean(ownPlayer?.matchSubmissions.some((submission) => submission.userId === user.id));
-  const ownCraqueVote = poll?.votes.find((vote) => vote.userId === user.id);
   const canAdminEditStats = isAdmin && latestClosedMatch?.id === id;
 
   const voteCounts = new Map<string, number>();
@@ -116,9 +98,26 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
     })
     .sort((a, b) => b.votes - a.votes || (b.averageRating ?? 0) - (a.averageRating ?? 0) || b.rating - a.rating);
   const leader = candidates[0];
-  const eligiblePlayers = players.filter((player) => player.userId && player.active && player.membershipStatus === "MENSALISTA");
+  const eligiblePlayers = players.filter((player) => player.userId && player.active);
   const eligibleUserIds = [...new Set(eligiblePlayers.map((player) => player.userId!).filter(Boolean))];
-  const eligiblePlayerIds = eligiblePlayers.map((player) => player.id);
+  const eligiblePlayerIds = players.map((player) => player.id);
+  const ownConfirmed = Boolean(ownPlayer?.matchSubmissions.some((submission) => submission.userId === user.id));
+  const ownStatsSent = Boolean(ownPlayer?.goals.length || ownPlayer?.defenses.length);
+  const ownCraqueVote = poll?.votes.find((vote) => vote.userId === user.id);
+  const ownRatedPlayerIds = new Set(
+    players
+      .flatMap((candidate) => candidate.ratings)
+      .filter((rating) => rating.userId === user.id)
+      .map((rating) => rating.playerId)
+  );
+  const expectedOwnRatingIds = eligiblePlayerIds.filter((playerId) => playerId !== linkedPlayer?.id);
+  const ownRatedAll = expectedOwnRatingIds.every((playerId) => ownRatedPlayerIds.has(playerId));
+  const canConfirmOwnVoting = canVote && votingOpen && ownStatsSent && Boolean(ownCraqueVote) && ownRatedAll && !ownConfirmed;
+  const missingVotingSteps = [
+    !ownStatsSent ? "Salvar seus gols e defesas" : null,
+    !ownCraqueVote ? "Votar no craque" : null,
+    !ownRatedAll ? "Dar nota para todos os outros presentes" : null
+  ].filter((step): step is string => Boolean(step));
   const completedUserIds = new Set(
     eligiblePlayers
       .filter((player) => {
@@ -169,7 +168,7 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
       </section>
 
       <section className="-mt-5 mb-5 space-y-2.5">
-        {poll && canVote && votingOpen && (ownCraqueVote || ownSubmitted) ? (
+        {poll && canVote && votingOpen && (ownCraqueVote || ownConfirmed || ownStatsSent) ? (
           <Card className="border border-campo/20 bg-[#EAF5EC]">
             <p className="text-sm font-bold text-mata">
               {pendingResponses === 0
@@ -182,73 +181,46 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
           </Card>
         ) : null}
 
-        {canVote && votingOpen && ownPlayer && !ownSubmitted ? (
+        {canVote && votingOpen && ownPlayer && !ownConfirmed ? (
           <Card className="border-2 border-campo p-4">
             <h2 className="font-display text-xl font-extrabold">Seus numeros na pelada</h2>
-            <p className="mb-3 text-sm text-musgo">Informe seus gols e defesas. Depois de enviar, esta etapa fecha para voce.</p>
-            <form action={submitOwnMatchStats.bind(null, id)} className="space-y-3">
-              <div className="grid grid-cols-2 gap-2">
-                <label className="text-xs font-semibold text-musgo">
-                  Gols
-                  <Input name="goals" type="number" min={0} defaultValue={ownPlayer.goals[0]?.quantity || 0} />
-                </label>
-                <label className="text-xs font-semibold text-musgo">
-                  Defesas
-                  <Input name="defenses" type="number" min={0} defaultValue={ownPlayer.defenses[0]?.quantity || 0} />
-                </label>
-              </div>
-              <Button type="submit" className="w-full">Enviar meus numeros</Button>
-            </form>
+            <p className="mb-3 text-sm text-musgo">
+              {ownStatsSent
+                ? "Seus numeros estao salvos. Voce ainda pode ajustar antes de confirmar a votacao."
+                : "Informe seus gols e defesas antes de confirmar sua votacao."}
+            </p>
+            <OwnMatchStatsForm
+              matchId={id}
+              goals={ownPlayer.goals[0]?.quantity || 0}
+              defenses={ownPlayer.defenses[0]?.quantity || 0}
+            />
           </Card>
         ) : null}
 
-        {canVote && votingOpen && ownSubmitted ? (
+        {canVote && votingOpen && ownConfirmed ? (
           <Card className="border border-campo/20 bg-[#EAF5EC]">
-            <p className="text-sm font-bold text-mata">Seus numeros ja foram enviados.</p>
+            <p className="text-sm font-bold text-mata">Sua votacao foi confirmada.</p>
+            <p className="mt-1 text-xs text-musgo">Agora ela ja conta como finalizada para voce.</p>
           </Card>
         ) : null}
 
-        {isAdmin ? (
-          <div>
-            <div className="mb-2">
-              <p className="font-jersey text-sm font-semibold uppercase tracking-[.14em] text-musgo">Admins</p>
-              <h2 className="font-display text-2xl font-extrabold tracking-[-.02em]">Controle da votacao</h2>
-            </div>
-            <Card className="border-2 border-craque p-4">
-              {!poll ? (
-                <>
-                  <p className="mb-3 text-sm text-musgo">Abre craque da pelada, gols/defesas e notas dos presentes por 1 hora.</p>
-                  <form action={createCraquePoll.bind(null, id)}>
-                    <Button className="w-full">Criar votacao</Button>
-                  </form>
-                </>
-              ) : poll.status === "OPEN" ? (
-                <>
-                  <p className="mb-3 text-sm text-musgo">A votacao esta aberta. Encerre para publicar o craque.</p>
-                  <form action={closeCraquePoll.bind(null, poll.id)}>
-                    <Button className="w-full">Encerrar e publicar craque</Button>
-                  </form>
-                </>
-              ) : (
-                <p className="text-sm font-semibold text-musgo">Votacao encerrada e publicada.</p>
-              )}
-            </Card>
-          </div>
-        ) : null}
-
-        {false && !poll && isAdmin ? (
-          <Card className="border-2 border-craque p-4">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div>
-                <p className="font-jersey text-xs font-bold uppercase tracking-[.12em] text-craque">Enquete</p>
-                <h2 className="font-display text-xl font-extrabold">Abrir votacao</h2>
+        {canVote && votingOpen && !ownConfirmed ? (
+          <Card className={cn("border-2 p-4", canConfirmOwnVoting ? "border-campo" : "border-linha")}>
+            <h2 className="font-display text-xl font-extrabold">Confirmar votacao</h2>
+            <p className="mb-3 text-sm text-musgo">
+              Depois de confirmar, sua votacao sera considerada encerrada.
+            </p>
+            {canConfirmOwnVoting ? (
+              <ConfirmVotingForm matchId={id} />
+            ) : (
+              <div className="space-y-2">
+                {missingVotingSteps.map((step) => (
+                  <p key={step} className="rounded-[10px] bg-areia px-3 py-2 text-xs font-bold text-musgo">
+                    {step}
+                  </p>
+                ))}
               </div>
-              <Star className="text-craque" fill="currentColor" />
-            </div>
-            <p className="mb-3 text-sm text-musgo">Abre craque da pelada, gols/defesas e notas dos presentes por 1 hora.</p>
-            <form action={createCraquePoll.bind(null, id)}>
-              <Button className="w-full">Criar votacao</Button>
-            </form>
+            )}
           </Card>
         ) : null}
 
@@ -322,7 +294,7 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
                   </div>
                 </div>
                 {canVote && votingOpen && linkedPlayer?.id !== player.id && player.viewerRating == null ? (
-                  <RatePlayerForm matchId={id} playerId={player.id} defaultValue={7} />
+                  <RatePlayerForm matchId={id} playerId={player.id} defaultValue={3} />
                 ) : null}
                 {canVote && player.viewerRating != null ? (
                   <p className="mt-3 rounded-[10px] bg-areia px-3 py-2 text-xs font-bold text-musgo">
@@ -368,20 +340,13 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
               <p className="mb-3 text-sm text-musgo">
                 Salve o placar contra {match.opponentName || "o adversario"}.
               </p>
-              <form action={updateMatchScore.bind(null, id)} className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
-                <label className="text-xs font-semibold text-musgo">
-                  {match.title}
-                  <Input name="homeScore" type="number" min={0} defaultValue={match.homeScore ?? ""} />
-                </label>
-                <span className="pb-3 text-sm font-black text-musgo">x</span>
-                <label className="text-xs font-semibold text-musgo">
-                  {match.opponentName || "Adversario"}
-                  <Input name="awayScore" type="number" min={0} defaultValue={match.awayScore ?? ""} />
-                </label>
-                <div className="col-span-3">
-                  <Button className="w-full" type="submit">Salvar placar</Button>
-                </div>
-              </form>
+              <MatchScoreForm
+                matchId={id}
+                homeName={match.title}
+                awayName={match.opponentName || "Adversario"}
+                homeScore={match.homeScore}
+                awayScore={match.awayScore}
+              />
             </Card>
           ) : null}
 
@@ -391,30 +356,19 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
           </div>
 
           {canAdminEditStats ? (
-            <>
-              <form action={notifyStatsEntryOpen.bind(null, id)} className="mb-4">
-                <Button className="w-full" type="submit">Avisar abertura dos lancamentos</Button>
-              </form>
-
-              <Card>
-                <form action={updateStats.bind(null, id)} className="space-y-3">
-                  {players.map((player) => (
-                    <div key={player.id} className="grid grid-cols-[auto_1fr] gap-3 rounded-[13px] bg-areia p-3">
-                      <PlayerAvatar src={player.photoUrl} name={player.nickname} position={player.position} />
-                      <div>
-                        <h2 className="font-black">{player.nickname}</h2>
-                        <input type="hidden" name="playerId" value={player.id} />
-                        <div className="mt-2 grid grid-cols-2 gap-2">
-                          <label className="text-xs text-musgo">Gols<Input name={`goals-${player.id}`} type="number" min={0} defaultValue={player.goals[0]?.quantity || 0} /></label>
-                          <label className="text-xs text-musgo">Defesas<Input name={`defenses-${player.id}`} type="number" min={0} defaultValue={player.defenses[0]?.quantity || 0} /></label>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  <Button className="w-full" type="submit">Salvar estatisticas</Button>
-                </form>
-              </Card>
-            </>
+            <Card>
+              <MatchStatsForm
+                matchId={id}
+                players={players.map((player) => ({
+                  id: player.id,
+                  nickname: player.nickname,
+                  photoUrl: player.photoUrl,
+                  position: player.position,
+                  goals: player.goals[0]?.quantity || 0,
+                  defenses: player.defenses[0]?.quantity || 0
+                }))}
+              />
+            </Card>
           ) : null}
         </>
       ) : null}

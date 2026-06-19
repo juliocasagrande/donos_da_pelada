@@ -6,9 +6,11 @@ import { Plus } from "lucide-react";
 import { RatingSlider } from "@/components/forms/RatingSlider";
 import { Button } from "@/components/ui/Button";
 import { Input, Label, Select } from "@/components/ui/Input";
+import { useToast } from "@/components/ui/ToastProvider";
 import { createGuestForMatch } from "@/lib/actions";
 
 export function GuestForm({ matchId }: { matchId: string }) {
+  const toast = useToast();
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -22,9 +24,11 @@ export function GuestForm({ matchId }: { matchId: string }) {
       const result = await createGuestForMatch(matchId, formData);
       if (!result.ok) {
         setError(result.error || "Nao foi possivel adicionar o convidado.");
+        toast.error(result.error || "Nao foi possivel adicionar o convidado.");
         return;
       }
       setSuccess("Convidado adicionado e marcado como presente.");
+      toast.success("Convidado adicionado.");
     });
   }
 
