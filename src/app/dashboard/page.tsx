@@ -2,15 +2,19 @@ import Link from "next/link";
 import {
   CalendarCheck,
   CalendarPlus,
+  Check,
   ChevronRight,
   Clock,
+  Radar as RadarIcon,
   Shield,
+  ShieldCheck,
   Star,
   Target,
   Ticket,
   Trash2,
   UserCheck,
-  Users
+  Users,
+  X
 } from "lucide-react";
 import { DeletionVoteValue } from "@prisma/client";
 import { AppShell } from "@/components/layout/AppShell";
@@ -21,11 +25,14 @@ import { StatTile } from "@/components/ui/StatTile";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { LocationLinks } from "@/components/matches/LocationLinks";
 import { DeveloperCredit } from "@/components/layout/DeveloperCredit";
-import { closeExpiredCraquePolls } from "@/lib/actions";
+import { closeExpiredCraquePolls, toggleOwnAttendance } from "@/lib/actions";
+import { SubmitButton } from "@/components/forms/SubmitButton";
+import { approveMatchGuestRequest, rejectMatchGuestRequest } from "@/lib/radarActions";
 import { voteDeletionRequest } from "@/lib/deletionVotingActions";
+import { haversineKm } from "@/lib/geo";
 import { prisma } from "@/lib/prisma";
 import { isPeladaAdmin, requireUser } from "@/lib/session";
-import { formatDate, formatTime } from "@/lib/utils";
+import { cn, formatDate, formatTime } from "@/lib/utils";
 
 export default async function DashboardPage() {
   const user = await requireUser();
@@ -44,7 +51,10 @@ export default async function DashboardPage() {
     pendingJoinRequestsCount,
     visibleCraquePolls,
     pendingDeletionRequests,
-    peladaAdminCount
+    peladaAdminCount,
+    pendingGuestRequests,
+    radarProfile,
+    peladaOwner
   ] = await Promise.all([
     prisma.player.findFirst({ where: { userId: user.id, peladaId } }),
     prisma.player.count({ where: { peladaId, active: true, membershipStatus: "MENSALISTA" } }),
@@ -111,8 +121,54 @@ export default async function DashboardPage() {
       ? prisma.peladaMembership.count({
           where: { peladaId, role: { in: ["PRESIDENTE", "ADMIN"] }, user: { active: true } }
         })
-      : Promise.resolve(0)
+      : Promise.resolve(0),
+    isAdmin
+      ? prisma.matchGuestRequest.findMany({
+          where: { status: "PENDING", match: { peladaId, deletedAt: null } },
+          include: { user: true, match: true },
+          orderBy: { createdAt: "asc" },
+          take: 5
+        })
+      : Promise.resolve([]),
+    prisma.user.findUnique({
+      where: { id: user.id },
+      select: { radarEnabled: true, radarRadiusKm: true, latitude: true, longitude: true }
+    }),
+    prisma.peladaMembership.findFirst({
+      where: { peladaId, role: "PRESIDENTE" },
+      include: { user: { select: { name: true, email: true } } },
+      orderBy: { createdAt: "asc" }
+    })
   ]);
+
+  let nearbyOpenMatchesCount = 0;
+  if (radarProfile?.radarEnabled && radarProfile.latitude != null && radarProfile.longitude != null) {
+    const openMatches = await prisma.match.findMany({
+      where: {
+        deletedAt: null,
+        status: "OPEN",
+        openToGuests: true,
+        peladaId: { not: peladaId },
+        guestLatitude: { not: null },
+        guestLongitude: { not: null },
+        date: { gte: new Date() }
+      },
+      select: { guestLatitude: true, guestLongitude: true }
+    });
+    nearbyOpenMatchesCount = openMatches.filter(
+      (match) =>
+        haversineKm(radarProfile.latitude!, radarProfile.longitude!, match.guestLatitude!, match.guestLongitude!) <=
+        radarProfile.radarRadiusKm
+    ).length;
+  }
+  const myNextMatchAttendance =
+    nextMatch && linkedPlayer
+      ? await prisma.attendance.findUnique({
+          where: { matchId_playerId: { matchId: nextMatch.id, playerId: linkedPlayer.id } },
+          select: { status: true }
+        })
+      : null;
+  const amGoingToNextMatch = myNextMatchAttendance?.status === "CONFIRMED" || myNextMatchAttendance?.status === "WAITLIST";
   const isGuest = linkedPlayer?.membershipStatus === "CONVIDADO";
   const displayName = linkedPlayer?.nickname || user.name?.split(" ")[0] || "Craque";
   const visibleCraquePoll = visibleCraquePolls.find((poll) => poll.status === "OPEN") ?? visibleCraquePolls[0];
@@ -153,6 +209,13 @@ export default async function DashboardPage() {
       tint: "bg-[#FCEFD6] text-[#C58207]"
     },
     { href: "/admins/convites", label: "Convites", icon: Ticket, badge: null, tint: "bg-[#EAF5EC] text-campo" },
+    {
+      href: "/admins/radar",
+      label: "Pedidos do radar",
+      icon: RadarIcon,
+      badge: pendingGuestRequests.length > 0 ? pendingGuestRequests.length : null,
+      tint: "bg-[#EAF5EC] text-campo"
+    },
     ...(user.role === "MASTER"
       ? [{ href: "/admins", label: "Admins & permissões", icon: Shield, badge: null, tint: "bg-[#EAF5EC] text-campo" }]
       : [])
@@ -236,6 +299,58 @@ export default async function DashboardPage() {
         </Card>
       ) : null}
 
+      {isAdmin && pendingGuestRequests.length ? (
+        <Card className="animate-card mb-4 border border-campo/30 bg-[#EAF5EC]">
+          <p className="flex items-center gap-1.5 text-xs font-bold uppercase text-campo">
+            <RadarIcon size={14} /> Radar de peladas
+          </p>
+          <h2 className="mt-1 font-display text-lg font-extrabold">
+            {pendingGuestRequests.length === 1
+              ? "1 pedido para jogar nas suas peladas"
+              : `${pendingGuestRequests.length} pedidos para jogar nas suas peladas`}
+          </h2>
+          <div className="mt-3 space-y-2">
+            {pendingGuestRequests.map((request) => (
+              <div key={request.id} className="flex items-center justify-between gap-2 rounded-[11px] bg-white/75 p-2.5">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold">{request.user.name || request.user.email}</p>
+                  <p className="truncate text-xs text-musgo">{request.match.title}</p>
+                </div>
+                <div className="flex shrink-0 gap-1.5">
+                  <form action={approveMatchGuestRequest.bind(null, request.id)}>
+                    <Button type="submit" className="py-1.5 text-[11px]">Aprovar</Button>
+                  </form>
+                  <form action={rejectMatchGuestRequest.bind(null, request.id)}>
+                    <Button type="submit" variant="danger" className="py-1.5 text-[11px]">Rejeitar</Button>
+                  </form>
+                </div>
+              </div>
+            ))}
+          </div>
+          <Link href="/admins/radar" className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-mata">
+            Ver todos os pedidos <ChevronRight size={14} />
+          </Link>
+        </Card>
+      ) : null}
+
+      {!isAdmin && radarProfile?.radarEnabled && nearbyOpenMatchesCount > 0 ? (
+        <Link href="/radar" className="block">
+          <Card className="animate-card mb-4 border border-campo/25 bg-[#EAF5EC]">
+            <p className="flex items-center gap-1.5 text-xs font-bold uppercase text-campo">
+              <RadarIcon size={14} /> Radar de peladas
+            </p>
+            <div className="mt-1 flex items-center justify-between gap-3">
+              <h2 className="font-display text-lg font-extrabold">
+                {nearbyOpenMatchesCount === 1
+                  ? "1 pelada aberta perto de voce"
+                  : `${nearbyOpenMatchesCount} peladas abertas perto de voce`}
+              </h2>
+              <ChevronRight size={18} className="shrink-0 text-campo" />
+            </div>
+          </Card>
+        </Link>
+      ) : null}
+
       {visibleCraquePoll ? (
         <Link href={`/matches/${visibleCraquePoll.matchId}/stats`} className="block">
           <Card className="animate-card mb-4 border border-campo/25 bg-[#EAF5EC]">
@@ -265,8 +380,7 @@ export default async function DashboardPage() {
                   </>
                 ) : (
                   <p className="mt-1 text-sm font-semibold text-musgo">
-                    Resultado disponivel
-                    {visibleCraquePoll.winner ? `: ${visibleCraquePoll.winner.nickname}` : " por mais algumas horas"}.
+                    {visibleCraquePoll.winner ? "Resultado disponivel. Confira a revelacao abaixo." : "Resultado disponivel por mais algumas horas."}
                   </p>
                 )}
               </div>
@@ -286,23 +400,63 @@ export default async function DashboardPage() {
       ) : null}
 
       {nextMatch ? (
-        <Card className="field-hero mb-4 rounded-[22px] p-5 text-white">
-          <div className="relative">
-            <p className="flex items-center gap-2 font-jersey text-sm font-semibold uppercase tracking-[.12em] text-green-200">
-              <span className="pulse-dot h-2 w-2 rounded-full bg-craque" /> Proxima pelada
-            </p>
+        <Card className="field-hero relative mb-4 rounded-[22px] p-5 text-white">
+          <Link
+            href={`/matches/${nextMatch.id}/attendance`}
+            className="absolute inset-0 z-0 rounded-[22px]"
+            aria-label="Ajustar minha participacao na pelada"
+          />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between gap-2">
+              <p className="flex items-center gap-2 font-jersey text-sm font-semibold uppercase tracking-[.12em] text-green-200">
+                <span className="pulse-dot h-2 w-2 rounded-full bg-craque" /> Proxima pelada
+              </p>
+              {peladaOwner?.user.name || peladaOwner?.user.email ? (
+                <span className="flex items-center gap-1 text-[11px] font-medium text-green-200/80">
+                  <ShieldCheck size={12} /> {peladaOwner.user.name || peladaOwner.user.email}
+                </span>
+              ) : null}
+            </div>
             <h2 className="mt-2 font-display text-2xl font-bold">{nextMatch.title}</h2>
             <div className="mt-2 flex flex-wrap gap-4 text-sm text-green-100">
               <span className="flex items-center gap-1.5"><Clock size={15} /> {formatDate(nextMatch.date)} as {formatTime(nextMatch.date)}</span>
               <LocationLinks location={nextMatch.location} />
             </div>
             <div className="mt-4 flex gap-2">
-              <Link href={`/matches/${nextMatch.id}/attendance`} className="flex-1">
-                <Button className="w-full bg-craque text-tinta shadow-none">
-                  {isGuest ? "Aguardar convite" : "Vou jogar"}
-                </Button>
-              </Link>
-              <Button variant="ghost" className="border-white/25 bg-transparent text-white">Nao vou</Button>
+              {isGuest ? (
+                <Link href={`/matches/${nextMatch.id}/attendance`} className="flex-1">
+                  <Button className="w-full bg-craque text-tinta shadow-none">Aguardar convite</Button>
+                </Link>
+              ) : (
+                <>
+                  <form action={toggleOwnAttendance.bind(null, nextMatch.id, true)} className="flex-1">
+                    <SubmitButton
+                      className={cn(
+                        "w-full gap-1.5 uppercase shadow-none",
+                        amGoingToNextMatch ? "bg-craque text-tinta" : "border border-white/25 bg-transparent text-white"
+                      )}
+                      pendingLabel="Confirmando..."
+                    >
+                      {amGoingToNextMatch ? <Check size={15} /> : null}
+                      {myNextMatchAttendance?.status === "WAITLIST" ? "Na espera" : "Vou jogar"}
+                    </SubmitButton>
+                  </form>
+                  <form action={toggleOwnAttendance.bind(null, nextMatch.id, false)} className="flex-1">
+                    <SubmitButton
+                      className={cn(
+                        "w-full gap-1.5 uppercase shadow-none",
+                        !amGoingToNextMatch && myNextMatchAttendance
+                          ? "bg-ausente text-white"
+                          : "border border-white/25 bg-transparent text-white"
+                      )}
+                      pendingLabel="Salvando..."
+                    >
+                      {!amGoingToNextMatch && myNextMatchAttendance ? <X size={15} /> : null}
+                      Nao vou
+                    </SubmitButton>
+                  </form>
+                </>
+              )}
             </div>
             <p className="mt-3 text-xs text-green-200">{nextMatch.attendances.length} confirmados</p>
           </div>

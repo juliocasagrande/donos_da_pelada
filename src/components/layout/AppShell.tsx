@@ -94,7 +94,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
         ) : null}
         {children}
       </main>
-      <BottomNav isAdmin={isAdmin} />
+      <BottomNav isAdmin={isAdmin} showRadar={Boolean(user?.radarEnabled)} />
     </div>
   );
 }

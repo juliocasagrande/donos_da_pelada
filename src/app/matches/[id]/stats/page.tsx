@@ -5,10 +5,11 @@ import { PlayerAvatar } from "@/components/players/PlayerAvatar";
 import { Card } from "@/components/ui/Card";
 import { ConfirmVotingForm } from "@/components/matches/ConfirmVotingForm";
 import { RatePlayerForm } from "@/components/matches/RatePlayerForm";
+import { ShareMatchStoryButton } from "@/components/matches/ShareMatchStoryButton";
 import { VoteCraqueForm } from "@/components/matches/VoteCraqueForm";
 import { closeExpiredCraquePolls } from "@/lib/actions";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { isPeladaAdmin, requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { VOTING_WINDOW_HOURS } from "@/lib/attendance";
 
@@ -61,6 +62,7 @@ function VotingRuleStatus({
 
 export default async function StatsPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser();
+  const isAdmin = isPeladaAdmin(user);
   await closeExpiredCraquePolls(user.peladaId!);
   const { id } = await params;
   const [match, players, poll, linkedPlayer] = await Promise.all([
@@ -267,6 +269,7 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
 
             {candidates.map((player) => {
               const selected = ownCraqueVote?.playerId === player.id;
+              const canShare = linkedPlayer?.id === player.id || isAdmin;
               return (
                 <Card key={player.id} className={cn("p-3", selected && "border-2 border-campo bg-[#EAF5EC]")}>
                   <div className="flex items-center gap-3">
@@ -283,6 +286,7 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
                     {selected ? (
                       <span className="rounded-[10px] bg-campo px-3 py-2 text-xs font-bold text-white">Seu voto</span>
                     ) : null}
+                    {canShare ? <ShareMatchStoryButton matchId={id} playerId={player.id} fileLabel={player.nickname} /> : null}
                   </div>
                 </Card>
               );

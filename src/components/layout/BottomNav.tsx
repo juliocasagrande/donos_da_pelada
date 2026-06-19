@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, Home, Trophy, Users, Wallet } from "lucide-react";
+import { CalendarDays, Home, Radar, Trophy, Users, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const baseItems = [
@@ -13,17 +13,18 @@ const baseItems = [
 ];
 
 const financeItem = { href: "/financeiro", label: "Financeiro", icon: Wallet };
+const radarItem = { href: "/radar", label: "Radar", icon: Radar };
 
-export function BottomNav({ isAdmin = false }: { isAdmin?: boolean }) {
+export function BottomNav({ isAdmin = false, showRadar = false }: { isAdmin?: boolean; showRadar?: boolean }) {
   const pathname = usePathname();
-  const items = isAdmin ? [...baseItems, financeItem] : baseItems;
+  const items = [...baseItems, ...(showRadar ? [radarItem] : []), ...(isAdmin ? [financeItem] : [])];
 
   return (
     <nav className="fixed inset-x-0 bottom-4 z-30 px-5">
       <div
         className={cn(
           "mx-auto grid max-w-md rounded-full border border-linha bg-white/90 px-3 py-2 shadow-[0_14px_36px_rgba(27,158,75,.28)] backdrop-blur",
-          items.length === 5 ? "grid-cols-5" : "grid-cols-4"
+          items.length === 6 ? "grid-cols-6" : items.length === 5 ? "grid-cols-5" : "grid-cols-4"
         )}
       >
         {items.map((item) => {

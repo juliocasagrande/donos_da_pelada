@@ -1,4 +1,6 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { Radar } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { PlayerForm } from "@/components/forms/PlayerForm";
 import { saveOnboarding } from "@/lib/actions";
@@ -35,6 +37,18 @@ export default async function PerfilOnboardingPage() {
           <p className="mt-1 text-sm text-musgo">
             Voce pode permitir que jogadores das suas peladas abram conversa com voce e enviem convites por WhatsApp.
           </p>
+        </Card>
+        <Card className="mb-4 border border-campo/15 bg-white">
+          <h2 className="flex items-center gap-2 font-display text-lg font-bold">
+            <Radar size={18} className="text-campo" /> Radar de peladas
+          </h2>
+          <p className="mt-1 text-sm text-musgo">
+            Falta gente pra fechar o time? Ative o radar no seu perfil e descubra peladas abertas perto de voce, ou deixe
+            sua propria pelada aberta para jogadores de fora completarem o time.
+          </p>
+          <Link href="/perfil" className="mt-2 inline-flex text-sm font-bold text-mata">
+            Ativar no meu perfil
+          </Link>
         </Card>
         <Card>
           <PlayerForm action={saveOnboarding} submitLabel="Entrar na pelada" canEditRating={false} showWhatsapp />

@@ -3,17 +3,22 @@
 import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/Input";
 
-export function LocationAutocomplete({
+type Suggestion = { label: string; lat: number; lon: number };
+
+export function AddressAutocomplete({
   defaultValue = "",
-  name = "location",
-  quickSuggestions = []
+  defaultLat,
+  defaultLon
 }: {
   defaultValue?: string;
-  name?: string;
-  quickSuggestions?: string[];
+  defaultLat?: number | null;
+  defaultLon?: number | null;
 }) {
   const [value, setValue] = useState(defaultValue);
-  const [suggestions, setSuggestions] = useState<{ label: string; lat: number; lon: number }[]>([]);
+  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(
+    defaultLat != null && defaultLon != null ? { lat: defaultLat, lon: defaultLon } : null
+  );
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const skipNextFetch = useRef(true);
@@ -24,6 +29,8 @@ export function LocationAutocomplete({
       skipNextFetch.current = false;
       return;
     }
+
+    setCoords(null);
 
     if (value.trim().length < 3) {
       setSuggestions([]);
@@ -49,7 +56,7 @@ export function LocationAutocomplete({
   return (
     <div className="relative space-y-2">
       <Input
-        name={name}
+        name="address"
         value={value}
         onChange={(event) => setValue(event.target.value)}
         onFocus={() => {
@@ -60,28 +67,11 @@ export function LocationAutocomplete({
           focused.current = false;
           setTimeout(() => setOpen(false), 150);
         }}
-        placeholder="Society do Ze - Rua das Quadras"
+        placeholder="Rua, bairro, cidade"
         autoComplete="off"
       />
-      {quickSuggestions.length ? (
-        <div className="flex flex-wrap gap-1.5">
-          {quickSuggestions.map((suggestion) => (
-            <button
-              key={suggestion}
-              type="button"
-              className="rounded-[9px] border border-linha bg-white px-2.5 py-1.5 text-left text-[11px] font-bold text-musgo shadow-sm"
-              onClick={() => {
-                skipNextFetch.current = true;
-                setValue(suggestion);
-                setSuggestions([]);
-                setOpen(false);
-              }}
-            >
-              {suggestion}
-            </button>
-          ))}
-        </div>
-      ) : null}
+      <input type="hidden" name="latitude" value={coords?.lat ?? ""} />
+      <input type="hidden" name="longitude" value={coords?.lon ?? ""} />
       {open && suggestions.length > 0 ? (
         <ul className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-[13px] border-[1.5px] border-linha bg-white shadow-card">
           {suggestions.map((suggestion) => (
@@ -93,6 +83,7 @@ export function LocationAutocomplete({
                 onClick={() => {
                   skipNextFetch.current = true;
                   setValue(suggestion.label);
+                  setCoords({ lat: suggestion.lat, lon: suggestion.lon });
                   setSuggestions([]);
                   setOpen(false);
                 }}
@@ -102,6 +93,9 @@ export function LocationAutocomplete({
             </li>
           ))}
         </ul>
+      ) : null}
+      {!coords && value.trim().length >= 3 ? (
+        <p className="text-xs text-musgo">Escolha um endereco da lista para o radar calcular a distancia.</p>
       ) : null}
     </div>
   );

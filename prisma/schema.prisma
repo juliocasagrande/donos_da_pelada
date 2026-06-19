@@ -75,6 +75,17 @@ enum JoinRequestStatus {
   REJECTED
 }
 
+enum GuestPosition {
+  LINHA
+  GOLEIRO
+}
+
+enum GuestFeeMode {
+  FREE
+  CHARGE
+  PAY
+}
+
 enum DeletionRequestTarget {
   PELADA
   PLAYER
@@ -110,11 +121,17 @@ model User {
   createdDeletionRequests DeletionRequest[] @relation("CreatedDeletionRequests")
   deletionVotes DeletionVote[]
   peladaJoinRequests PeladaJoinRequest[]
+  matchGuestRequests MatchGuestRequest[]
   careerStats   UserCareerStats?
   whatsapp      String?
   whatsappChatEnabled Boolean @default(false)
   pushNotificationsEnabled Boolean @default(false)
   pushPromptDismissed Boolean @default(false)
+  radarEnabled  Boolean   @default(false)
+  radarRadiusKm Int       @default(10)
+  address       String?
+  latitude      Float?
+  longitude     Float?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -393,6 +410,17 @@ model Match {
   awayScore   Int?
   closeReminderSentAt DateTime?
   deletedAt   DateTime?
+  openToGuests Boolean          @default(false)
+  guestLatitude  Float?
+  guestLongitude Float?
+  guestLineSlots Int?
+  guestGoalkeeperSlots Int?
+  guestLineFeeMode GuestFeeMode @default(FREE)
+  guestGoalkeeperFeeMode GuestFeeMode @default(FREE)
+  guestLineFeeAmount Float?
+  guestGoalkeeperFeeAmount Float?
+  guestMinRating Float?
+  guestMaxRating Float?
   attendances Attendance[]
   teams       Team[]
   goals       Goal[]
@@ -401,10 +429,27 @@ model Match {
   ratings     PlayerRating[]
   playerSubmissions PlayerMatchSubmission[]
   polls       Poll[]
+  guestRequests MatchGuestRequest[]
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 
   @@index([peladaId])
+}
+
+model MatchGuestRequest {
+  id        String            @id @default(cuid())
+  matchId   String
+  match     Match             @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  position  GuestPosition
+  status    JoinRequestStatus @default(PENDING)
+  playerId  String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@unique([matchId, userId])
+  @@index([matchId, status])
 }
 
 model Attendance {

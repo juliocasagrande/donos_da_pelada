@@ -13,6 +13,7 @@ import { MENSALISTA_FREE_LIMIT, canAddMensalista, isPeladaIdPro } from "@/lib/pl
 import { assertMatchInPelada, assertPlayerInPelada, assertPollInPelada } from "@/lib/peladaGuard";
 import { sendPushToAll, sendPushToUsers } from "@/lib/push";
 import { canConfirmPlayer, isWithinVotingWindow } from "@/lib/attendance";
+import { hasConflictingConfirmedMatch } from "@/lib/matchConflicts";
 import { logAudit } from "@/lib/audit";
 
 function value(formData: FormData, key: string) {
@@ -119,7 +120,7 @@ async function getEligibleMatchVoterUserIds(matchId: string) {
   return [...new Set(attendances.map((attendance) => attendance.player.userId).filter((userId): userId is string => Boolean(userId)))];
 }
 
-async function getAttendanceStatusForPlayer(
+export async function getAttendanceStatusForPlayer(
   matchId: string,
   position: string,
   matchDate: Date,
@@ -560,7 +561,7 @@ function optionalInt(value: string) {
   return Math.floor(parsed);
 }
 
-async function getPeladaAdminUserIds(peladaId: string) {
+export async function getPeladaAdminUserIds(peladaId: string) {
   const [memberships, masters] = await Promise.all([
     prisma.peladaMembership.findMany({
       where: { peladaId, role: { in: ["PRESIDENTE", "ADMIN"] } },
@@ -746,6 +747,11 @@ export async function toggleOwnAttendance(matchId: string, present: boolean) {
     });
     await promoteNextFromWaitlist(matchId);
     revalidatePath(`/matches/${matchId}/attendance`);
+    revalidatePath("/dashboard");
+    return;
+  }
+
+  if (await hasConflictingConfirmedMatch(user.id, match.date, matchId)) {
     return;
   }
 
@@ -758,6 +764,7 @@ export async function toggleOwnAttendance(matchId: string, present: boolean) {
     });
   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   revalidatePath(`/matches/${matchId}/attendance`);
+  revalidatePath("/dashboard");
 }
 
 export async function createGuestForMatch(matchId: string, formData: FormData) {

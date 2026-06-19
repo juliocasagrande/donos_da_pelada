@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { Bell, KeyRound, LogOut, Shield, UserRound, Users } from "lucide-react";
+import { Bell, KeyRound, LogOut, Radar, Shield, UserRound, Users } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PlayerForm } from "@/components/forms/PlayerForm";
 import { ChangePasswordForm } from "@/components/profile/ChangePasswordForm";
 import { PushPreferenceSettings } from "@/components/profile/PushPreferenceSettings";
+import { RadarSettingsForm } from "@/components/profile/RadarSettingsForm";
 import { Card } from "@/components/ui/Card";
 import { updateOwnProfile } from "@/lib/actions";
 import { prisma } from "@/lib/prisma";
@@ -12,14 +13,24 @@ import { requireUser } from "@/lib/session";
 export default async function ProfilePage({
   searchParams
 }: {
-  searchParams: Promise<{ salvo?: string }>;
+  searchParams: Promise<{ salvo?: string; radarErro?: string }>;
 }) {
   const user = await requireUser();
-  const { salvo } = await searchParams;
+  const { salvo, radarErro } = await searchParams;
   const player = await prisma.player.findFirst({ where: { userId: user.id, peladaId: user.peladaId! } });
   const profile = await prisma.user.findUnique({
     where: { id: user.id },
-    select: { whatsapp: true, whatsappChatEnabled: true, pushNotificationsEnabled: true, passwordHash: true }
+    select: {
+      whatsapp: true,
+      whatsappChatEnabled: true,
+      pushNotificationsEnabled: true,
+      passwordHash: true,
+      radarEnabled: true,
+      radarRadiusKm: true,
+      address: true,
+      latitude: true,
+      longitude: true
+    }
   });
 
   return (
@@ -38,6 +49,11 @@ export default async function ProfilePage({
       {salvo ? (
         <div className="animate-card mb-4 rounded-[13px] border border-campo/30 bg-[#EAF5EC] p-3 text-sm font-semibold text-campo">
           Perfil atualizado com sucesso.
+        </div>
+      ) : null}
+      {radarErro ? (
+        <div className="animate-card mb-4 rounded-[13px] border border-ausente/30 bg-[#FBE9E6] p-3 text-sm font-semibold text-ausente">
+          {radarErro}
         </div>
       ) : null}
 
@@ -88,6 +104,22 @@ export default async function ProfilePage({
           </div>
           <Card>
             <PushPreferenceSettings initialEnabled={Boolean(profile?.pushNotificationsEnabled)} />
+          </Card>
+        </section>
+
+        <section>
+          <div className="mb-2 flex items-center gap-2 px-1">
+            <Radar size={17} className="text-campo" />
+            <h2 className="text-sm font-extrabold uppercase tracking-[.08em] text-musgo">Radar de peladas</h2>
+          </div>
+          <Card>
+            <RadarSettingsForm
+              initialEnabled={Boolean(profile?.radarEnabled)}
+              initialRadiusKm={profile?.radarRadiusKm ?? 10}
+              initialAddress={profile?.address ?? ""}
+              initialLat={profile?.latitude ?? null}
+              initialLon={profile?.longitude ?? null}
+            />
           </Card>
         </section>
 
