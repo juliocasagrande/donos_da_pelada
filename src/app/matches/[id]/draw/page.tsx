@@ -44,7 +44,7 @@ export default async function DrawPage({
         <DrawTeamsForm matchId={id} players={drawPlayers} />
         {presentCount ? (
           <p className="mt-3 text-sm text-musgo">
-            Se houver jogadores sobrando, mensalistas entram primeiro e convidados so entram depois que todos os mensalistas forem considerados.
+            Mensalistas preenchem os primeiros times sempre que possivel. Goleiros sao distribuidos primeiro nos times iniciais.
           </p>
         ) : null}
       </Card>

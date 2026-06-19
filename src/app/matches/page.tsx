@@ -43,7 +43,7 @@ function AdminActions({ id, closed = false }: { id: string; closed?: boolean }) 
         <Pencil size={14} /> Editar
       </Link>
       {closed ? (
-        <Link href={`/matches/${id}/stats`} className="flex min-h-10 items-center justify-center rounded-[11px] bg-areia px-3 py-2 text-xs font-bold">
+        <Link href={`/matches/${id}/sumula`} className="flex min-h-10 items-center justify-center rounded-[11px] bg-areia px-3 py-2 text-xs font-bold">
           Sumula
         </Link>
       ) : (
@@ -73,6 +73,7 @@ export default async function MatchesPage({
   const matches = await prisma.match.findMany({
     where: {
       peladaId: user.peladaId!,
+      deletedAt: null,
       status: activeTab === "proximas" ? "OPEN" : "CLOSED",
       ...(activeKind.key === "todos" ? {} : { kind: activeKind.key })
     },
@@ -228,16 +229,18 @@ export default async function MatchesPage({
                   {closed ? "Encerrada" : "Aberta"}
                 </span>
               </div>
-              <div className="mt-3 grid grid-cols-3 gap-2">
+              <div className={cn("mt-3 grid gap-2", isAdmin ? "grid-cols-3" : "grid-cols-2")}>
                 <Link href={`/matches/${match.id}/attendance`} className="flex items-center justify-center gap-1.5 rounded-[11px] bg-areia px-3 py-2 text-center text-xs font-bold">
                   <ListChecks size={14} /> Presenca
                 </Link>
                 <Link href={`/matches/${match.id}/teams`} className="flex items-center justify-center gap-1.5 rounded-[11px] bg-areia px-3 py-2 text-center text-xs font-bold">
                   <Shirt size={14} /> Times
                 </Link>
-                <Link href={`/matches/${match.id}/stats`} className="rounded-[11px] bg-areia px-3 py-2 text-center text-xs font-bold">
-                  Sumula
-                </Link>
+                {isAdmin ? (
+                  <Link href={`/matches/${match.id}/sumula`} className="rounded-[11px] bg-areia px-3 py-2 text-center text-xs font-bold">
+                    Sumula
+                  </Link>
+                ) : null}
               </div>
               {isAdmin ? (
                 <div className="mt-2">

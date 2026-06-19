@@ -75,7 +75,7 @@ async function getConfirmedCounts(matchId: string, db: DbClient = prisma) {
 }
 
 async function canUserVoteInMatch(userId: string, matchId: string) {
-  const match = await prisma.match.findUnique({ where: { id: matchId }, select: { peladaId: true } });
+  const match = await prisma.match.findFirst({ where: { id: matchId, deletedAt: null }, select: { peladaId: true } });
   if (!match) return false;
   const player = await prisma.player.findFirst({
     where: { userId, peladaId: match.peladaId, active: true }
@@ -577,7 +577,7 @@ async function getPeladaAdminUserIds(peladaId: string) {
 
 async function getLatestClosedMatchId(peladaId: string) {
   const latest = await prisma.match.findFirst({
-    where: { peladaId, status: MatchStatus.CLOSED },
+    where: { peladaId, status: MatchStatus.CLOSED, deletedAt: null },
     orderBy: [{ date: "desc" }, { updatedAt: "desc" }],
     select: { id: true }
   });
@@ -656,7 +656,12 @@ export async function updateMatch(matchId: string, formData: FormData) {
 export async function deleteMatch(matchId: string) {
   const admin = await requireAdmin();
   await assertMatchInPelada(matchId, admin.peladaId!);
-  await prisma.match.delete({ where: { id: matchId } });
+  const match = await prisma.match.findUnique({ where: { id: matchId }, select: { status: true, kind: true } });
+  if (match?.status === MatchStatus.CLOSED) {
+    await prisma.match.update({ where: { id: matchId }, data: { deletedAt: new Date() } });
+  } else {
+    await prisma.match.delete({ where: { id: matchId } });
+  }
   await logAudit(admin, "MATCH_DELETED", { type: "Match", id: matchId });
   revalidatePath("/matches");
   revalidatePath("/dashboard");
@@ -685,7 +690,7 @@ export async function closeMatch(matchId: string) {
 
   await sendPushToUsers(await getEligibleMatchVoterUserIds(matchId), {
     title: "Pelada encerrada",
-    body: `Informe seus gols, notas e vote no craque da ${match.title}. A janela fica aberta por 1 hora.`,
+    body: `Informe seus gols/defesas e vote no craque da ${match.title}. As notas sao opcionais.`,
     url: `/matches/${matchId}/stats`
   });
 
@@ -697,7 +702,7 @@ export async function closeMatch(matchId: string) {
 
 export async function toggleAttendance(matchId: string, playerId: string, present: boolean) {
   const admin = await requireAdmin();
-  const match = await prisma.match.findFirst({ where: { id: matchId, peladaId: admin.peladaId! } });
+  const match = await prisma.match.findFirst({ where: { id: matchId, peladaId: admin.peladaId!, deletedAt: null } });
   const player = await prisma.player.findFirst({ where: { id: playerId, peladaId: admin.peladaId! } });
   if (!match || !player) return;
 
@@ -725,7 +730,7 @@ export async function toggleAttendance(matchId: string, playerId: string, presen
 
 export async function toggleOwnAttendance(matchId: string, present: boolean) {
   const user = await requireUser();
-  const match = await prisma.match.findFirst({ where: { id: matchId, peladaId: user.peladaId! } });
+  const match = await prisma.match.findFirst({ where: { id: matchId, peladaId: user.peladaId!, deletedAt: null } });
   const player = await prisma.player.findFirst({ where: { userId: user.id, peladaId: user.peladaId! } });
   if (!match || !player) return;
   if (match.status === MatchStatus.CLOSED) return;
@@ -757,7 +762,7 @@ export async function toggleOwnAttendance(matchId: string, present: boolean) {
 
 export async function createGuestForMatch(matchId: string, formData: FormData) {
   const user = await requireUser();
-  const match = await prisma.match.findFirst({ where: { id: matchId, peladaId: user.peladaId! } });
+  const match = await prisma.match.findFirst({ where: { id: matchId, peladaId: user.peladaId!, deletedAt: null } });
 
   if (!match) {
     return { ok: false, error: "Pelada nao encontrada." };
@@ -875,16 +880,13 @@ export async function drawTeams(matchId: string, formData: FormData) {
     );
   }
 
-  const totalCapacity = parsed.numberOfTeams * parsed.desiredPlayersPerTeam;
-  const monthlyPlayers = presentPlayers.filter((player) => player.membershipStatus === "MENSALISTA");
-  const guestPlayers = presentPlayers.filter((player) => player.membershipStatus === "CONVIDADO");
-  const selectedPlayers = [...monthlyPlayers, ...guestPlayers]
-    .slice(0, totalCapacity)
-    .map(({ membershipStatus: _membershipStatus, ratings: _ratings, ...player }) => ({
+  const selectedPlayers = presentPlayers
+    .map(({ membershipStatus, ratings: _ratings, ...player }) => ({
       id: player.id,
       name: player.nickname,
       position: player.position,
-      rating: playerBalanceRating({ rating: player.rating, ratings: _ratings })
+      rating: playerBalanceRating({ rating: player.rating, ratings: _ratings }),
+      membershipStatus
     }));
 
   const teams = balanceTeams(selectedPlayers, parsed.numberOfTeams, parsed.desiredPlayersPerTeam);
@@ -942,7 +944,7 @@ export async function drawTeamsForClient(matchId: string, formData: FormData) {
         });
       }
 
-      const match = await prisma.match.findFirst({ where: { id: matchId, peladaId: admin.peladaId! } });
+      const match = await prisma.match.findFirst({ where: { id: matchId, peladaId: admin.peladaId!, deletedAt: null } });
       if (match) {
         for (const playerId of selectedPlayerIds.filter((id) => presentPlayerIds.has(id))) {
           const player = await prisma.player.findFirst({ where: { id: playerId, peladaId: admin.peladaId! } });
@@ -983,16 +985,13 @@ export async function drawTeamsForClient(matchId: string, formData: FormData) {
       };
     }
 
-    const totalCapacity = parsed.numberOfTeams * parsed.desiredPlayersPerTeam;
-    const monthlyPlayers = presentPlayers.filter((player) => player.membershipStatus === "MENSALISTA");
-    const guestPlayers = presentPlayers.filter((player) => player.membershipStatus === "CONVIDADO");
-    const selectedPlayers = [...monthlyPlayers, ...guestPlayers]
-      .slice(0, totalCapacity)
-      .map(({ membershipStatus: _membershipStatus, ratings: _ratings, ...player }) => ({
+    const selectedPlayers = presentPlayers
+      .map(({ membershipStatus, ratings: _ratings, ...player }) => ({
         id: player.id,
         name: player.nickname,
         position: player.position,
-        rating: playerBalanceRating({ rating: player.rating, ratings: _ratings })
+        rating: playerBalanceRating({ rating: player.rating, ratings: _ratings }),
+        membershipStatus
       }));
 
     const teams = balanceTeams(selectedPlayers, parsed.numberOfTeams, parsed.desiredPlayersPerTeam);
@@ -1058,7 +1057,7 @@ export async function updateMatchScore(matchId: string, formData: FormData) {
   if ((await getLatestClosedMatchId(admin.peladaId!)) !== matchId) {
     return { ok: false, error: "O placar so pode ser editado na ultima pelada encerrada." };
   }
-  const match = await prisma.match.findUnique({ where: { id: matchId }, select: { kind: true } });
+  const match = await prisma.match.findFirst({ where: { id: matchId, deletedAt: null }, select: { kind: true } });
   if (!match || match.kind !== "AMISTOSO") {
     return { ok: false, error: "Placar disponivel apenas para amistoso." };
   }
@@ -1089,7 +1088,11 @@ export async function submitOwnMatchStats(matchId: string, formData: FormData) {
   }
 
   const linkedPlayer = await prisma.player.findFirst({
-    where: { userId: user.id, peladaId: user.peladaId!, active: true }
+    where: { userId: user.id, peladaId: user.peladaId!, active: true },
+    include: {
+      goals: { where: { matchId } },
+      defenses: { where: { matchId } }
+    }
   });
   if (!linkedPlayer) return { ok: false, error: "Jogador nao encontrado." };
 
@@ -1165,21 +1168,6 @@ export async function confirmMatchVoting(matchId: string) {
     return { ok: false, error: "Vote no craque antes de confirmar." };
   }
 
-  const confirmedPlayers = await prisma.player.findMany({
-    where: { active: true, peladaId: user.peladaId!, attendances: { some: { matchId, status: "CONFIRMED" } } },
-    select: { id: true }
-  });
-  const expectedRatingIds = confirmedPlayers.map((player) => player.id).filter((playerId) => playerId !== linkedPlayer.id);
-  const ratings = await prisma.playerRating.findMany({
-    where: { matchId, userId: user.id, playerId: { in: expectedRatingIds } },
-    select: { playerId: true }
-  });
-  const ratedPlayerIds = new Set(ratings.map((rating) => rating.playerId));
-  const missingRating = expectedRatingIds.some((playerId) => !ratedPlayerIds.has(playerId));
-  if (missingRating) {
-    return { ok: false, error: "Dê nota para todos os outros presentes antes de confirmar." };
-  }
-
   await prisma.playerMatchSubmission.upsert({
     where: { matchId_playerId_userId: { matchId, playerId: linkedPlayer.id, userId: user.id } },
     update: {},
@@ -1222,7 +1210,7 @@ export async function createCraquePoll(matchId: string) {
 
 export async function notifyStatsEntryOpen(matchId: string) {
   const admin = await requireAdmin();
-  const match = await prisma.match.findFirst({ where: { id: matchId, peladaId: admin.peladaId! } });
+  const match = await prisma.match.findFirst({ where: { id: matchId, peladaId: admin.peladaId!, deletedAt: null } });
   if (!match) return;
 
   await sendPushToUsers(await getEligibleMatchVoterUserIds(matchId), {
@@ -1351,36 +1339,19 @@ async function getCraquePollProgress(pollId: string) {
     .filter((player) => player.active);
   const eligiblePlayers = confirmedPlayers.filter((player) => player.userId);
   const eligibleUserIds = [...new Set(eligiblePlayers.map((player) => player.userId!).filter(Boolean))];
-  const eligiblePlayerIds = confirmedPlayers.map((player) => player.id);
 
-  const [submissions, ratings] = await Promise.all([
-    prisma.playerMatchSubmission.findMany({
-      where: { matchId: poll.matchId, userId: { in: eligibleUserIds } },
-      select: { userId: true }
-    }),
-    prisma.playerRating.findMany({
-      where: { matchId: poll.matchId, userId: { in: eligibleUserIds }, playerId: { in: eligiblePlayerIds } },
-      select: { userId: true, playerId: true }
-    })
-  ]);
+  const submissions = await prisma.playerMatchSubmission.findMany({
+    where: { matchId: poll.matchId, userId: { in: eligibleUserIds } },
+    select: { userId: true }
+  });
 
   const submittedUsers = new Set(submissions.map((submission) => submission.userId));
   const votedUsers = new Set(poll.votes.map((vote) => vote.userId));
-  const ratingsByUser = new Map<string, Set<string>>();
-  for (const rating of ratings) {
-    ratingsByUser.set(rating.userId, new Set([...(ratingsByUser.get(rating.userId) ?? []), rating.playerId]));
-  }
 
   const completedUsers = eligiblePlayers
     .filter((player) => {
       const userId = player.userId!;
-      const expectedRatings = eligiblePlayerIds.filter((playerId) => playerId !== player.id);
-      const userRatings = ratingsByUser.get(userId) ?? new Set<string>();
-      return (
-        submittedUsers.has(userId) &&
-        votedUsers.has(userId) &&
-        expectedRatings.every((playerId) => userRatings.has(playerId))
-      );
+      return submittedUsers.has(userId) && votedUsers.has(userId);
     })
     .map((player) => player.userId!);
 
@@ -1442,7 +1413,7 @@ export async function closeExpiredCraquePolls(peladaId: string) {
     where: {
       title: "Craque da pelada",
       status: PollStatus.OPEN,
-      match: { peladaId }
+      match: { peladaId, deletedAt: null }
     },
     select: { id: true, createdAt: true }
   });
@@ -1458,6 +1429,7 @@ export async function sendCloseMatchReminders(now = new Date()) {
   const reminderDate = new Date(now.getTime() - 90 * 60 * 1000);
   const matches = await prisma.match.findMany({
     where: {
+      deletedAt: null,
       status: MatchStatus.OPEN,
       date: { lte: reminderDate },
       closeReminderSentAt: null

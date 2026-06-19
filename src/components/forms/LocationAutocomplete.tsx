@@ -5,10 +5,12 @@ import { Input } from "@/components/ui/Input";
 
 export function LocationAutocomplete({
   defaultValue = "",
-  name = "location"
+  name = "location",
+  quickSuggestions = []
 }: {
   defaultValue?: string;
   name?: string;
+  quickSuggestions?: string[];
 }) {
   const [value, setValue] = useState(defaultValue);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -45,7 +47,7 @@ export function LocationAutocomplete({
   }, [value]);
 
   return (
-    <div className="relative">
+    <div className="relative space-y-2">
       <Input
         name={name}
         value={value}
@@ -61,6 +63,25 @@ export function LocationAutocomplete({
         placeholder="Society do Ze - Rua das Quadras"
         autoComplete="off"
       />
+      {quickSuggestions.length ? (
+        <div className="flex flex-wrap gap-1.5">
+          {quickSuggestions.map((suggestion) => (
+            <button
+              key={suggestion}
+              type="button"
+              className="rounded-[9px] border border-linha bg-white px-2.5 py-1.5 text-left text-[11px] font-bold text-musgo shadow-sm"
+              onClick={() => {
+                skipNextFetch.current = true;
+                setValue(suggestion);
+                setSuggestions([]);
+                setOpen(false);
+              }}
+            >
+              {suggestion}
+            </button>
+          ))}
+        </div>
+      ) : null}
       {open && suggestions.length > 0 ? (
         <ul className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-[13px] border-[1.5px] border-linha bg-white shadow-card">
           {suggestions.map((suggestion) => (

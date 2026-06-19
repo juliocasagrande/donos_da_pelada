@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 export default async function TeamsPage({ params }: { params: Promise<{ id: string }> }) {
   const admin = await requireAdmin();
   const { id } = await params;
-  const match = await prisma.match.findFirst({ where: { id, peladaId: admin.peladaId! }, select: { id: true } });
+  const match = await prisma.match.findFirst({ where: { id, peladaId: admin.peladaId!, deletedAt: null }, select: { id: true } });
   if (!match) notFound();
   const teams = await prisma.team.findMany({
     where: { matchId: id },
@@ -59,7 +59,7 @@ export default async function TeamsPage({ params }: { params: Promise<{ id: stri
           </Card>
         ))}
       </div>
-      {teams.length ? <Link href={`/matches/${id}/stats`} className="mt-4 block"><Button className="w-full">Registrar gols e participacoes</Button></Link> : null}
+      {teams.length ? <Link href={`/matches/${id}/sumula`} className="mt-4 block"><Button className="w-full">Registrar sumula</Button></Link> : null}
     </AppShell>
   );
 }

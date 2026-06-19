@@ -13,6 +13,7 @@ import {
 import { AppShell } from "@/components/layout/AppShell";
 import { CashFlowAreaChart } from "@/components/finance/CashFlowAreaChart";
 import { DeleteTransactionForm } from "@/components/finance/DeleteTransactionForm";
+import { MonthlyFeeReminderForm } from "@/components/finance/MonthlyFeeReminderForm";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input, Label, Select } from "@/components/ui/Input";
@@ -82,6 +83,7 @@ export default async function FinancePage({
 
   const currentPayments = allPayments.filter((payment) => payment.year === year && payment.month === month);
   const paidPlayerIds = new Set(currentPayments.map((payment) => payment.playerId));
+  const pendingPaymentCount = Math.max(0, players.length - paidPlayerIds.size);
   const currentTransactions = allTransactions.filter(
     (transaction) => transaction.date >= monthStart && transaction.date < monthEnd
   );
@@ -229,6 +231,9 @@ export default async function FinancePage({
             </div>
             <div className="mt-3 h-2 overflow-hidden rounded-full bg-areia">
               <div className="h-full rounded-full bg-campo" style={{ width: `${paidPercent}%` }} />
+            </div>
+            <div className="mt-3">
+              <MonthlyFeeReminderForm year={year} month={month} pendingCount={pendingPaymentCount} />
             </div>
           </Card>
 

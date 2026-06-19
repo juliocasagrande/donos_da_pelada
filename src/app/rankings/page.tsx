@@ -107,6 +107,7 @@ export default async function RankingsPage({
   const friendlyMatches = await prisma.match.findMany({
     where: {
       peladaId: { in: selectedPeladaIds },
+      deletedAt: null,
       kind: "AMISTOSO",
       status: "CLOSED",
       homeScore: { not: null },

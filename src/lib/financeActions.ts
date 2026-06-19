@@ -8,6 +8,8 @@ import { requireAdmin } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 import { isPeladaIdPro } from "@/lib/plan";
 import { assertPlayerInPelada, assertTransactionInPelada } from "@/lib/peladaGuard";
+import { sendPushToUsers } from "@/lib/push";
+import { formatCurrencyBRL, monthLabel } from "@/lib/financeUtils";
 
 async function requireProForFinance(peladaId: string) {
   if (!(await isPeladaIdPro(peladaId))) redirect("/financeiro?bloqueado=1");
@@ -101,4 +103,57 @@ export async function deleteTransaction(transactionId: string) {
     { description: transaction.description, amount: transaction.amount }
   );
   revalidatePath("/financeiro");
+}
+
+export async function sendMonthlyFeeReminder(year: number, month: number) {
+  const admin = await requireAdmin();
+  await requireProForFinance(admin.peladaId!);
+
+  const [feeConfig, players, payments] = await Promise.all([
+    prisma.monthlyFeeConfig.findUnique({
+      where: { peladaId_year_month: { peladaId: admin.peladaId!, year, month } }
+    }),
+    prisma.player.findMany({
+      where: {
+        peladaId: admin.peladaId!,
+        active: true,
+        membershipStatus: "MENSALISTA",
+        userId: { not: null }
+      },
+      select: { id: true, userId: true }
+    }),
+    prisma.monthlyPayment.findMany({
+      where: { peladaId: admin.peladaId!, year, month },
+      select: { playerId: true }
+    })
+  ]);
+
+  const paidPlayerIds = new Set(payments.map((payment) => payment.playerId));
+  const pendingUserIds = [
+    ...new Set(
+      players
+        .filter((player) => !paidPlayerIds.has(player.id))
+        .map((player) => player.userId)
+        .filter((userId): userId is string => Boolean(userId))
+    )
+  ];
+
+  if (!pendingUserIds.length) {
+    return { ok: false, error: "Nao ha mensalistas pendentes com usuario vinculado para cobrar." };
+  }
+
+  const amountText = feeConfig?.amount ? ` no valor de ${formatCurrencyBRL(feeConfig.amount)}` : "";
+  await sendPushToUsers(pendingUserIds, {
+    title: "Mensalidade pendente",
+    body: `Sua mensalidade de ${monthLabel(year, month)}${amountText} esta pendente.`,
+    url: "/dashboard"
+  });
+
+  await logAudit(admin, "MONTHLY_FEE_REMINDER_SENT", { type: "MonthlyFeeConfig", id: `${year}-${month}` }, {
+    year,
+    month,
+    recipients: pendingUserIds.length
+  });
+
+  return { ok: true, count: pendingUserIds.length };
 }

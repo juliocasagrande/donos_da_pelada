@@ -33,7 +33,7 @@ export default async function AttendancePage({ params }: { params: Promise<{ id:
   const user = await requireUser();
   const { id } = await params;
   const [match, players] = await Promise.all([
-    prisma.match.findFirst({ where: { id, peladaId: user.peladaId! } }),
+    prisma.match.findFirst({ where: { id, peladaId: user.peladaId!, deletedAt: null } }),
     prisma.player.findMany({
       where: { peladaId: user.peladaId!, active: true },
       include: { attendances: { where: { matchId: id }, include: { invitedByUser: true } } },

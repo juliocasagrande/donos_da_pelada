@@ -11,7 +11,7 @@ import { requireAdmin } from "@/lib/session";
 export default async function EditMatchPage({ params }: { params: Promise<{ id: string }> }) {
   const admin = await requireAdmin();
   const { id } = await params;
-  const match = await prisma.match.findUnique({ where: { id } });
+  const match = await prisma.match.findFirst({ where: { id, peladaId: admin.peladaId!, deletedAt: null } });
   if (!match) notFound();
   const allowAmistoso = await isPeladaIdPro(admin.peladaId!);
 
@@ -32,7 +32,7 @@ export default async function EditMatchPage({ params }: { params: Promise<{ id: 
           <Button variant="danger" className="w-full" type="submit">Excluir pelada</Button>
         </form>
         <p className="mt-3 text-xs text-musgo">
-          Encerrar uma pelada preserva presencas, gols, notas e craque. Excluir remove a pelada e seus dados vinculados.
+          Encerrar uma pelada preserva presencas, gols, notas e craque. Excluir uma partida encerrada oculta a pelada, mas mantem as estatisticas dos jogadores.
         </p>
       </Card>
     </AppShell>

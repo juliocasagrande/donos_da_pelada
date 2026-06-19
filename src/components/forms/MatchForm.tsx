@@ -42,9 +42,10 @@ type MatchFormProps = {
   };
   submitLabel?: string;
   allowAmistoso?: boolean;
+  recentLocations?: string[];
 };
 
-export function MatchForm({ action, match, submitLabel = "Criar pelada", allowAmistoso = true }: MatchFormProps) {
+export function MatchForm({ action, match, submitLabel = "Criar pelada", allowAmistoso = true, recentLocations = [] }: MatchFormProps) {
   const today = new Date().toISOString().slice(0, 10);
   const [selectedKind, setSelectedKind] = useState(match?.kind ?? "PELADA");
 
@@ -102,7 +103,7 @@ export function MatchForm({ action, match, submitLabel = "Criar pelada", allowAm
       <div className="grid grid-cols-[1fr_92px] gap-2">
         <div>
           <Label>Local</Label>
-          <LocationAutocomplete name="locationStreet" defaultValue={match?.location ?? ""} />
+          <LocationAutocomplete name="locationStreet" defaultValue={match?.location ?? ""} quickSuggestions={recentLocations} />
         </div>
         <div>
           <Label>Numero</Label>

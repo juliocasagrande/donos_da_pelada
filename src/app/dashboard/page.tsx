@@ -8,13 +8,13 @@ import {
   Star,
   Target,
   Ticket,
-  Trophy,
   Trash2,
   UserCheck,
   Users
 } from "lucide-react";
 import { DeletionVoteValue } from "@prisma/client";
 import { AppShell } from "@/components/layout/AppShell";
+import { CraqueRevealCard } from "@/components/dashboard/CraqueRevealCard";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { StatTile } from "@/components/ui/StatTile";
@@ -32,26 +32,24 @@ export default async function DashboardPage() {
   await closeExpiredCraquePolls(user.peladaId!);
   const isAdmin = isPeladaAdmin(user);
   const peladaId = user.peladaId!;
+  const recentClosedPollCutoff = new Date(Date.now() - 3 * 60 * 60 * 1000);
   const [
     linkedPlayer,
     players,
-    lastMatch,
     nextMatch,
     goals,
-    defenses,
     craque,
     monthMatches,
     pendingRatingPlayers,
     pendingJoinRequestsCount,
-    openCraquePoll,
+    visibleCraquePolls,
     pendingDeletionRequests,
     peladaAdminCount
   ] = await Promise.all([
     prisma.player.findFirst({ where: { userId: user.id, peladaId } }),
     prisma.player.count({ where: { peladaId, active: true, membershipStatus: "MENSALISTA" } }),
-    prisma.match.findFirst({ where: { peladaId }, orderBy: { date: "desc" } }),
     prisma.match.findFirst({
-      where: { peladaId, status: "OPEN" },
+      where: { peladaId, status: "OPEN", deletedAt: null },
       include: { attendances: { where: { present: true }, take: 3 } },
       orderBy: { date: "asc" }
     }),
@@ -59,26 +57,45 @@ export default async function DashboardPage() {
       where: { player: { peladaId, membershipStatus: "MENSALISTA" } },
       _sum: { quantity: true }
     }),
-    prisma.difficultSave.aggregate({
-      where: { player: { peladaId, membershipStatus: "MENSALISTA" } },
-      _sum: { quantity: true }
-    }),
     prisma.poll.findFirst({
-      where: { match: { peladaId }, status: "CLOSED", winnerId: { not: null }, winner: { membershipStatus: "MENSALISTA" } },
+      where: { match: { peladaId, deletedAt: null }, status: "CLOSED", winnerId: { not: null }, winner: { membershipStatus: "MENSALISTA" } },
       include: { winner: true },
       orderBy: { updatedAt: "desc" }
     }),
-    prisma.match.count({ where: { peladaId } }),
+    prisma.match.count({ where: { peladaId, deletedAt: null } }),
     isAdmin
       ? prisma.player.findMany({ where: { peladaId, active: true, ratingAssigned: false }, orderBy: { createdAt: "asc" } })
       : Promise.resolve([]),
     isAdmin
       ? prisma.peladaJoinRequest.count({ where: { peladaId, status: "PENDING" } })
       : Promise.resolve(0),
-    prisma.poll.findFirst({
-      where: { status: "OPEN", title: "Craque da pelada", match: { peladaId } },
-      select: { matchId: true },
-      orderBy: { createdAt: "desc" }
+    prisma.poll.findMany({
+      where: {
+        title: "Craque da pelada",
+        match: { peladaId, deletedAt: null },
+        OR: [
+          { status: "OPEN" },
+          { status: "CLOSED", updatedAt: { gte: recentClosedPollCutoff } }
+        ]
+      },
+      include: {
+        winner: true,
+        votes: { select: { userId: true, playerId: true } },
+        match: {
+          select: {
+            id: true,
+            title: true,
+            date: true,
+            playerSubmissions: { select: { userId: true } },
+            attendances: {
+              where: { status: "CONFIRMED" },
+              include: { player: { select: { id: true, userId: true, active: true } } }
+            }
+          }
+        }
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 5
     }),
     isAdmin
       ? prisma.deletionRequest.findMany({
@@ -98,6 +115,28 @@ export default async function DashboardPage() {
   ]);
   const isGuest = linkedPlayer?.membershipStatus === "CONVIDADO";
   const displayName = linkedPlayer?.nickname || user.name?.split(" ")[0] || "Craque";
+  const visibleCraquePoll = visibleCraquePolls.find((poll) => poll.status === "OPEN") ?? visibleCraquePolls[0];
+  const openCraquePoll = visibleCraquePoll?.status === "OPEN" ? visibleCraquePoll : null;
+  const pollEligibleUserIds = visibleCraquePoll
+    ? [
+        ...new Set(
+          visibleCraquePoll.match.attendances
+            .map((attendance) => attendance.player)
+            .filter((player) => player.active && player.userId)
+            .map((player) => player.userId!)
+        )
+      ]
+    : [];
+  const pollCompletedUserIds = new Set(visibleCraquePoll?.match.playerSubmissions.map((submission) => submission.userId) ?? []);
+  const pollPendingCount = visibleCraquePoll
+    ? pollEligibleUserIds.filter((userId) => !pollCompletedUserIds.has(userId)).length
+    : 0;
+  const currentUserPollVote = visibleCraquePoll?.votes.find((vote) => vote.userId === user.id);
+  const currentUserPollFinished = pollCompletedUserIds.has(user.id);
+  const pollVotingMsLeft = visibleCraquePoll?.createdAt
+    ? Math.max(0, visibleCraquePoll.createdAt.getTime() + 60 * 60 * 1000 - Date.now())
+    : 0;
+  const pollVotingMinutesLeft = Math.ceil(pollVotingMsLeft / 60000);
 
   const gameShortcuts = [
     { href: "/matches/new", label: "Nova pelada", icon: CalendarPlus },
@@ -197,17 +236,53 @@ export default async function DashboardPage() {
         </Card>
       ) : null}
 
-      {craque?.winner ? (
-        <Card className="shine-sweep animate-card mb-4 border border-craque/30 bg-[#FCEFD6]">
-          <p className="flex items-center gap-1.5 text-xs font-bold uppercase text-[#8a5a06]"><Star size={14} fill="#F4A11A" /> Craque atual</p>
-          <div className="mt-1 flex items-center justify-between gap-4">
-            <div>
-              <h2 className="font-display text-2xl font-extrabold">{craque.winner.nickname}</h2>
-              <p className="text-sm text-musgo">{craque.title}</p>
+      {visibleCraquePoll ? (
+        <Link href={`/matches/${visibleCraquePoll.matchId}/stats`} className="block">
+          <Card className="animate-card mb-4 border border-campo/25 bg-[#EAF5EC]">
+            <p className="flex items-center gap-1.5 text-xs font-bold uppercase text-campo">
+              <Star size={14} fill="currentColor" />
+              {visibleCraquePoll.status === "OPEN" ? "Votacao aberta" : "Votacao encerrada"}
+            </p>
+            <div className="mt-2 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="truncate font-display text-xl font-extrabold">{visibleCraquePoll.match.title}</h2>
+                {visibleCraquePoll.status === "OPEN" ? (
+                  <>
+                    <p className="mt-1 text-sm font-semibold text-musgo">
+                      {currentUserPollFinished
+                        ? "Sua votacao ja foi confirmada."
+                        : currentUserPollVote
+                          ? "Seu voto foi salvo. Falta confirmar a votacao."
+                          : "Informe seus numeros e vote no craque. Notas sao opcionais."}
+                    </p>
+                    <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-bold text-mata">
+                      <span>{pollPendingCount} {pollPendingCount === 1 ? "pessoa falta" : "pessoas faltam"}</span>
+                      <span className="inline-flex items-center gap-1">
+                        <Clock size={13} />
+                        {pollVotingMinutesLeft <= 1 ? "menos de 1 min" : `${pollVotingMinutesLeft} min`}
+                      </span>
+                    </p>
+                  </>
+                ) : (
+                  <p className="mt-1 text-sm font-semibold text-musgo">
+                    Resultado disponivel
+                    {visibleCraquePoll.winner ? `: ${visibleCraquePoll.winner.nickname}` : " por mais algumas horas"}.
+                  </p>
+                )}
+              </div>
+              <ChevronRight size={18} className="mt-1 shrink-0 text-campo" />
             </div>
-            <Trophy className="text-craque" size={36} />
-          </div>
-        </Card>
+          </Card>
+        </Link>
+      ) : null}
+
+      {craque?.winner ? (
+        <CraqueRevealCard
+          nickname={craque.winner.nickname}
+          title={craque.title}
+          photoUrl={craque.winner.photoUrl}
+          position={craque.winner.position}
+        />
       ) : null}
 
       {nextMatch ? (

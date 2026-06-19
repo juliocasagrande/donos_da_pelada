@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
+import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -11,23 +12,56 @@ type ActionState = { ok: boolean; error?: string } | null;
 export function OwnMatchStatsForm({
   matchId,
   goals,
-  defenses
+  defenses,
+  saved = false
 }: {
   matchId: string;
   goals: number;
   defenses: number;
+  saved?: boolean;
 }) {
   const toast = useToast();
+  const [editing, setEditing] = useState(!saved);
+  const [savedGoals, setSavedGoals] = useState(goals);
+  const [savedDefenses, setSavedDefenses] = useState(defenses);
   const [state, formAction, isPending] = useActionState(
-    (_prevState: ActionState, formData: FormData) => submitOwnMatchStats(matchId, formData),
+    (_prevState: ActionState, formData: FormData) => {
+      setSavedGoals(Number(formData.get("goals") || 0));
+      setSavedDefenses(Number(formData.get("defenses") || 0));
+      return submitOwnMatchStats(matchId, formData);
+    },
     null
   );
 
   useEffect(() => {
     if (!state) return;
-    if (state.ok) toast.success("Numeros salvos.");
+    if (state.ok) {
+      setEditing(false);
+      toast.success("Numeros salvos.");
+    }
     if (state.error) toast.error(state.error);
   }, [state, toast]);
+
+  if (!editing) {
+    return (
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-[13px] bg-areia p-3">
+            <p className="text-xs font-bold uppercase text-musgo">Gols</p>
+            <p className="font-jersey text-3xl font-bold text-campo">{savedGoals}</p>
+          </div>
+          <div className="rounded-[13px] bg-areia p-3">
+            <p className="text-xs font-bold uppercase text-musgo">Defesas</p>
+            <p className="font-jersey text-3xl font-bold text-campo">{savedDefenses}</p>
+          </div>
+        </div>
+        <Button type="button" variant="secondary" className="w-full" onClick={() => setEditing(true)}>
+          <Pencil size={15} />
+          Editar numeros
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <form action={formAction} className="space-y-3">

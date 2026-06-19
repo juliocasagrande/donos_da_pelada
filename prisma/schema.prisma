@@ -392,6 +392,7 @@ model Match {
   homeScore   Int?
   awayScore   Int?
   closeReminderSentAt DateTime?
+  deletedAt   DateTime?
   attendances Attendance[]
   teams       Team[]
   goals       Goal[]

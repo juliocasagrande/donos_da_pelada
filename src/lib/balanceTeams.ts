@@ -7,6 +7,7 @@ export type BalancePlayer = {
   name: string;
   position: PlayerPosition;
   rating: number;
+  membershipStatus?: "MENSALISTA" | "CONVIDADO" | string;
 };
 
 export type BalancedTeam = {
@@ -128,6 +129,85 @@ function recalculate(team: BalancedTeam) {
   }
 }
 
+function selectPriorityPlayers(players: BalancePlayer[], totalCapacity: number, numberOfTeams: number) {
+  const shuffled = shuffle(players);
+  const selected = new Map<string, BalancePlayer>();
+  const addPlayers = (items: BalancePlayer[]) => {
+    for (const player of items) {
+      if (selected.size >= totalCapacity) return;
+      selected.set(player.id, player);
+    }
+  };
+
+  const goalkeepers = shuffled.filter((player) => player.position === "GOLEIRO");
+  addPlayers(goalkeepers.slice(0, numberOfTeams));
+  addPlayers(shuffled.filter((player) => player.membershipStatus === "MENSALISTA"));
+  addPlayers(goalkeepers);
+  addPlayers(shuffled.filter((player) => player.membershipStatus !== "MENSALISTA"));
+
+  return [...selected.values()];
+}
+
+function sortedCandidateTeams(
+  teams: BalancedTeam[],
+  player: BalancePlayer,
+  targetSizes: number[],
+  desiredPlayersPerTeam: number,
+  totalByPosition: Record<PlayerPosition, number>,
+  numberOfTeams: number,
+  allowedIndexes?: number[]
+) {
+  const allowed = allowedIndexes ? new Set(allowedIndexes) : null;
+  return [...teams]
+    .filter((team) => !allowed || allowed.has(teams.indexOf(team)))
+    .sort((a, b) => {
+      const leftTargetSize = targetSizes[teams.indexOf(a)] ?? desiredPlayersPerTeam;
+      const rightTargetSize = targetSizes[teams.indexOf(b)] ?? desiredPlayersPerTeam;
+      const costDiff =
+        calculateTeamCost(a, player, leftTargetSize, teams, totalByPosition, numberOfTeams) -
+        calculateTeamCost(b, player, rightTargetSize, teams, totalByPosition, numberOfTeams);
+
+      if (costDiff !== 0) return costDiff;
+      return teams.indexOf(a) - teams.indexOf(b);
+    });
+}
+
+function placePlayer(
+  teams: BalancedTeam[],
+  player: BalancePlayer,
+  targetSizes: number[],
+  desiredPlayersPerTeam: number,
+  totalByPosition: Record<PlayerPosition, number>,
+  numberOfTeams: number,
+  allowedIndexes?: number[]
+) {
+  const bestTeam = sortedCandidateTeams(
+    teams,
+    player,
+    targetSizes,
+    desiredPlayersPerTeam,
+    totalByPosition,
+    numberOfTeams,
+    allowedIndexes
+  )[0];
+
+  if (!bestTeam) return false;
+
+  bestTeam.players.push(player);
+  recalculate(bestTeam);
+  return true;
+}
+
+function getPriorityTeamIndexes(numberOfTeams: number) {
+  return Array.from({ length: Math.min(2, numberOfTeams) }, (_, index) => index);
+}
+
+function availablePriorityIndexes(teams: BalancedTeam[], targetSizes: number[], numberOfTeams: number) {
+  return getPriorityTeamIndexes(numberOfTeams).filter(
+    (index) => teams[index].players.length < (targetSizes[index] ?? 0)
+  );
+}
+
 export function balanceTeams(
   players: BalancePlayer[],
   numberOfTeams: number,
@@ -146,9 +226,10 @@ export function balanceTeams(
   }
 
   const totalCapacity = numberOfTeams * desiredPlayersPerTeam;
-  const selectedPlayers = shuffle(players).slice(0, totalCapacity);
+  const selectedPlayers = selectPriorityPlayers(players, totalCapacity, numberOfTeams);
   const totalByPosition = countPlayersByPosition(selectedPlayers);
   const targetSizes = getTeamTargetSizes(selectedPlayers.length, numberOfTeams, desiredPlayersPerTeam);
+  const priorityTeamIndexes = getPriorityTeamIndexes(numberOfTeams);
   const teams: BalancedTeam[] = Array.from({ length: numberOfTeams }, (_, index) => ({
     name: `Time ${index + 1}`,
     players: [],
@@ -157,26 +238,52 @@ export function balanceTeams(
     positions: emptyPositions()
   }));
 
-  const grouped = positionOrder.flatMap((position) =>
+  const assigned = new Set<string>();
+  const goalkeepers = selectedPlayers
+    .filter((player) => player.position === "GOLEIRO")
+    .sort((a, b) => b.rating - a.rating);
+
+  goalkeepers.slice(0, numberOfTeams).forEach((player, index) => {
+    if (teams[index].players.length >= (targetSizes[index] ?? desiredPlayersPerTeam)) return;
+    teams[index].players.push(player);
+    assigned.add(player.id);
+    recalculate(teams[index]);
+  });
+
+  const monthlyLinePlayers = selectedPlayers
+    .filter((player) => !assigned.has(player.id) && player.membershipStatus === "MENSALISTA")
+    .sort((a, b) => b.rating - a.rating);
+
+  for (const player of monthlyLinePlayers) {
+    const priorityIndexes = availablePriorityIndexes(teams, targetSizes, numberOfTeams);
+    placePlayer(
+      teams,
+      player,
+      targetSizes,
+      desiredPlayersPerTeam,
+      totalByPosition,
+      numberOfTeams,
+      priorityIndexes.length ? priorityIndexes : undefined
+    );
+    assigned.add(player.id);
+  }
+
+  const remainingPlayers = positionOrder.flatMap((position) =>
     selectedPlayers
-      .filter((player) => player.position === position)
+      .filter((player) => !assigned.has(player.id) && player.position === position)
       .sort((a, b) => b.rating - a.rating)
   );
 
-  for (const player of grouped) {
-    const bestTeam = [...teams].sort((a, b) => {
-      const leftTargetSize = targetSizes[teams.indexOf(a)] ?? desiredPlayersPerTeam;
-      const rightTargetSize = targetSizes[teams.indexOf(b)] ?? desiredPlayersPerTeam;
-      const costDiff =
-        calculateTeamCost(a, player, leftTargetSize, teams, totalByPosition, numberOfTeams) -
-        calculateTeamCost(b, player, rightTargetSize, teams, totalByPosition, numberOfTeams);
+  for (const player of remainingPlayers) {
+    const priorityHasVacancy = priorityTeamIndexes.some(
+      (index) => teams[index].players.length < (targetSizes[index] ?? 0)
+    );
+    const allowedIndexes = priorityHasVacancy
+      ? availablePriorityIndexes(teams, targetSizes, numberOfTeams)
+      : undefined;
 
-      if (costDiff !== 0) return costDiff;
-      return teams.indexOf(a) - teams.indexOf(b);
-    })[0];
-
-    bestTeam.players.push(player);
-    recalculate(bestTeam);
+    placePlayer(teams, player, targetSizes, desiredPlayersPerTeam, totalByPosition, numberOfTeams, allowedIndexes);
+    assigned.add(player.id);
   }
 
   return teams.map((team) => {
