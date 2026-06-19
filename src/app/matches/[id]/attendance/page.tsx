@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Check, Clock, Radar as RadarIcon, UserCheck, UserMinus, UserPlus, Users } from "lucide-react";
+import { Check, Clock, UserCheck, UserMinus, Users } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PlayerAvatar } from "@/components/players/PlayerAvatar";
 import { Button } from "@/components/ui/Button";
@@ -279,7 +279,7 @@ export default async function AttendancePage({
       {canInviteGuest ? (
         <CollapsibleCard
           className="mt-5"
-          icon={UserPlus}
+          icon="userPlus"
           title="Chamar convidado"
           description="Mensalistas podem adicionar convidados apos as 14h no dia da pelada."
         >
@@ -290,7 +290,7 @@ export default async function AttendancePage({
       {isAdmin && match ? (
         <CollapsibleCard
           className="mt-3"
-          icon={RadarIcon}
+          icon="radar"
           title="Radar: abrir para externos"
           description="Defina vagas, cobranca e nota minima para jogadores de fora encontrarem essa pelada."
           defaultOpen={Boolean(radarAberto || radarErro)}

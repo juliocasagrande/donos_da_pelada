@@ -146,7 +146,7 @@ export default async function RadarPage({
                 ) : null}
                 {match.guestMinRating || match.guestMaxRating ? (
                   <span className="rounded-[8px] bg-areia px-2 py-1 text-musgo">
-                    Nota {match.guestMinRating ?? 0} - {match.guestMaxRating ?? 5}
+                    Nota {match.guestMinRating ?? 0} - {match.guestMaxRating ?? 10}
                   </span>
                 ) : null}
               </div>

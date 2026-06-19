@@ -147,11 +147,11 @@ export function OpenToGuestsForm({
       <div className="grid grid-cols-2 gap-2">
         <div>
           <Label>Nota minima</Label>
-          <Input name="guestMinRating" type="number" min={0} max={5} step="0.5" defaultValue={guestMinRating ?? ""} placeholder="0" />
+          <Input name="guestMinRating" type="number" min={0} max={10} step="0.5" defaultValue={guestMinRating ?? ""} placeholder="0" />
         </div>
         <div>
           <Label>Nota maxima</Label>
-          <Input name="guestMaxRating" type="number" min={0} max={5} step="0.5" defaultValue={guestMaxRating ?? ""} placeholder="5" />
+          <Input name="guestMaxRating" type="number" min={0} max={10} step="0.5" defaultValue={guestMaxRating ?? ""} placeholder="10" />
         </div>
       </div>
 

@@ -52,17 +52,17 @@ async function main() {
 
   if (process.env.SEED_SAMPLE_PLAYERS === "true") {
     const samples = [
-      ["Carlos", PlayerPosition.GOLEIRO, 4],
-      ["Joao", PlayerPosition.DEFESA, 3],
-      ["Pedro", PlayerPosition.DEFESA, 4],
-      ["Lucas", PlayerPosition.MEIA, 5],
-      ["Rafael", PlayerPosition.MEIA, 4],
-      ["Bruno", PlayerPosition.ATAQUE, 5],
-      ["Andre", PlayerPosition.ATAQUE, 3],
-      ["Marcos", PlayerPosition.DEFESA, 2],
-      ["Felipe", PlayerPosition.MEIA, 3],
-      ["Diego", PlayerPosition.ATAQUE, 4],
-      ["Thiago", PlayerPosition.GOLEIRO, 3]
+      ["Carlos", PlayerPosition.GOLEIRO, 8],
+      ["Joao", PlayerPosition.DEFESA, 6],
+      ["Pedro", PlayerPosition.DEFESA, 8],
+      ["Lucas", PlayerPosition.MEIA, 10],
+      ["Rafael", PlayerPosition.MEIA, 8],
+      ["Bruno", PlayerPosition.ATAQUE, 10],
+      ["Andre", PlayerPosition.ATAQUE, 6],
+      ["Marcos", PlayerPosition.DEFESA, 4],
+      ["Felipe", PlayerPosition.MEIA, 6],
+      ["Diego", PlayerPosition.ATAQUE, 8],
+      ["Thiago", PlayerPosition.GOLEIRO, 6]
     ] as const;
 
     for (const [playerName, position, rating] of samples) {

@@ -25,6 +25,13 @@ function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
 }
 
+function optionalRating(raw: string) {
+  if (!raw) return null;
+  const rating = Number(raw);
+  if (!Number.isFinite(rating)) return null;
+  return Math.round(clamp(rating, 0, 10) * 2) / 2;
+}
+
 export async function updateRadarSettings(formData: FormData) {
   const user = await requireUser();
   const radarEnabled = value(formData, "radarEnabled") === "on";
@@ -77,8 +84,11 @@ export async function openMatchToGuests(matchId: string, formData: FormData) {
     guestGoalkeeperFeeMode === GuestFeeMode.FREE ? null : Number(value(formData, "guestGoalkeeperFeeAmount")) || 0;
   const minRatingRaw = value(formData, "guestMinRating");
   const maxRatingRaw = value(formData, "guestMaxRating");
-  const guestMinRating = minRatingRaw ? Number(minRatingRaw) : null;
-  const guestMaxRating = maxRatingRaw ? Number(maxRatingRaw) : null;
+  const guestMinRating = optionalRating(minRatingRaw);
+  const guestMaxRating = optionalRating(maxRatingRaw);
+  if (guestMinRating != null && guestMaxRating != null && guestMinRating > guestMaxRating) {
+    redirect(`/matches/${matchId}/attendance?radarErro=${encodeURIComponent("A nota minima nao pode ser maior que a nota maxima.")}`);
+  }
 
   let guestLatitude: number | null = null;
   let guestLongitude: number | null = null;
@@ -190,6 +200,13 @@ export async function approveMatchGuestRequest(requestId: string) {
   }
 
   const globalRating = await getUserGlobalRating(request.userId);
+  const comparableRating = globalRating ?? 0;
+  if (request.match.guestMinRating != null && comparableRating < request.match.guestMinRating) {
+    redirect(`/admins/radar?radarErro=${encodeURIComponent("Esse jogador esta abaixo da nota minima definida para a pelada.")}`);
+  }
+  if (request.match.guestMaxRating != null && comparableRating > request.match.guestMaxRating) {
+    redirect(`/admins/radar?radarErro=${encodeURIComponent("Esse jogador esta acima da nota maxima definida para a pelada.")}`);
+  }
   const position = request.position === "GOLEIRO" ? PlayerPosition.GOLEIRO : PlayerPosition.MEIA;
 
   await prisma.$transaction(

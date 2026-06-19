@@ -192,7 +192,7 @@ function averageLatestMatchRatings(
 }
 
 function playerBalanceRating(player: { rating: number; ratings: { value: number; match: { date: Date } }[] }) {
-  return averageLatestMatchRatings(player.ratings, 10) ?? player.rating * 2;
+  return averageLatestMatchRatings(player.ratings, 10) ?? player.rating;
 }
 
 export async function saveOnboarding(formData: FormData) {
@@ -1311,7 +1311,7 @@ export async function ratePlayerPerformance(matchId: string, playerId: string, f
     return { ok: false, error: "Escolha uma nota valida." };
   }
 
-  const rating = Math.max(0, Math.min(5, raw));
+  const rating = Math.round(Math.max(0, Math.min(10, raw)) * 2) / 2;
   await prisma.playerRating.upsert({
     where: { matchId_playerId_userId: { matchId, playerId, userId: user.id } },
     update: { value: rating },

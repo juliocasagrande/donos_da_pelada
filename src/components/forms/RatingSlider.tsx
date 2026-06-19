@@ -10,7 +10,7 @@ type RatingSliderProps = {
   className?: string;
 };
 
-export function RatingSlider({ name, defaultValue = 3, label = "Nota", className }: RatingSliderProps) {
+export function RatingSlider({ name, defaultValue = 5, label = "Nota", className }: RatingSliderProps) {
   const [rating, setRating] = useState(defaultValue);
 
   return (
@@ -23,7 +23,7 @@ export function RatingSlider({ name, defaultValue = 3, label = "Nota", className
       <input
         type="range"
         min={0}
-        max={5}
+        max={10}
         step={0.5}
         value={rating}
         onChange={(event) => setRating(Number(event.target.value))}
@@ -31,8 +31,8 @@ export function RatingSlider({ name, defaultValue = 3, label = "Nota", className
       />
       <div className="mt-2 flex justify-between text-[10px] font-bold text-musgo/70">
         <span>0</span>
-        <span>2.5</span>
         <span>5</span>
+        <span>10</span>
       </div>
     </div>
   );

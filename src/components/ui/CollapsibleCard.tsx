@@ -1,14 +1,19 @@
 "use client";
 
-import { useState, type ComponentType, type ReactNode } from "react";
-import { ChevronDown } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { ChevronDown, Radar, UserPlus } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
+
+const icons = {
+  radar: Radar,
+  userPlus: UserPlus
+} as const;
 
 export function CollapsibleCard({
   title,
   description,
-  icon: Icon,
+  icon,
   badge,
   defaultOpen = false,
   className,
@@ -16,13 +21,14 @@ export function CollapsibleCard({
 }: {
   title: string;
   description?: string;
-  icon?: ComponentType<{ size?: number; className?: string }>;
+  icon?: keyof typeof icons;
   badge?: ReactNode;
   defaultOpen?: boolean;
   className?: string;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  const Icon = icon ? icons[icon] : null;
 
   return (
     <Card className={cn("p-0", className)}>

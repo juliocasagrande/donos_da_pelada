@@ -55,7 +55,7 @@ export function PlayerForm({
         </div>
       ) : null}
       {canEditRating ? (
-        <RatingSlider name="rating" label="Nota de 0 a 5" defaultValue={player?.rating ?? 3} />
+        <RatingSlider name="rating" label="Nota de 0 a 10" defaultValue={player?.rating ?? 5} />
       ) : null}
       {showWhatsapp ? (
         <div className="space-y-2 rounded-[13px] border-[1.5px] border-linha bg-white p-3">

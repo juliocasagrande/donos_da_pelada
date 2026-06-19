@@ -8,7 +8,7 @@ export const playerSchema = z.object({
   photoUrl: z.string().url().optional().or(z.literal("")),
   position: z.enum(positions),
   membershipStatus: z.enum(membershipStatuses).default("MENSALISTA"),
-  rating: z.coerce.number().min(0).max(5)
+  rating: z.coerce.number().min(0).max(10).multipleOf(0.5)
 });
 
 export const passwordRequirements = [

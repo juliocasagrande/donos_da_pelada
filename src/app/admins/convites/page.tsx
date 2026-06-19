@@ -28,7 +28,22 @@ export default async function ConvitesPage() {
     where: {
       peladaId: { not: admin.peladaId! },
       active: true,
-      userId: { not: null },
+      userId: { not: null, notIn: [admin.id] },
+      attendances: {
+        some: {
+          status: "CONFIRMED",
+          match: {
+            attendances: {
+              some: {
+                status: "CONFIRMED",
+                player: {
+                  userId: admin.id
+                }
+              }
+            }
+          }
+        }
+      },
       user: {
         active: true,
         whatsapp: { not: null },
@@ -120,7 +135,7 @@ export default async function ConvitesPage() {
           ))
         ) : (
           <Card>
-            <p className="text-sm text-musgo">Nenhum jogador externo com chat habilitado por enquanto.</p>
+            <p className="text-sm text-musgo">Nenhum jogador externo com chat habilitado que ja jogou com voce por enquanto.</p>
           </Card>
         )}
       </div>

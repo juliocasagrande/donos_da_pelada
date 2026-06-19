@@ -1,9 +1,20 @@
-import { ImageResponse } from "next/og";
 import { NextResponse } from "next/server";
 import { ApiAuthError, isPeladaAdmin, requireApiUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+function escapeXml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
 
 function formatShortDate(date: Date) {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -17,95 +28,193 @@ function formatShortDate(date: Date) {
   return `${parts.day} ${MONTHS[Number(parts.month) - 1]} ${parts.year}`;
 }
 
-function SparkleIcon({ color = "#16261D", size = 37 }: { color?: string; size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
-      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-    </svg>
-  );
-}
+async function getImageDataUrl(url: string | null) {
+  if (!url) return null;
 
-function CheckIcon({ color = "#9fe3b8", size = 37 }: { color?: string; size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={3}>
-      <path d="M20 6 9 17l-4-4" />
-    </svg>
-  );
-}
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
 
-function TrophyIcon({ color = "#16261D", size = 48 }: { color?: string; size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.4}>
-      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6m12 5h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22m7-7.34V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2Z" />
-    </svg>
-  );
-}
-
-function StarIcon({ filled, color }: { filled: boolean; color: string }) {
-  return (
-    <svg width={40} height={40} viewBox="0 0 24 24" fill={filled ? color : "rgba(255,255,255,0.18)"}>
-      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-    </svg>
-  );
-}
-
-function StatColumn({ value, label, color = "#fff" }: { value: string; label: string; color?: string }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
-      <span style={{ fontFamily: "Saira Condensed", fontWeight: 700, fontSize: "75px", color, lineHeight: 1 }}>{value}</span>
-      <span
-        style={{
-          display: "flex",
-          fontFamily: "Saira Condensed",
-          fontWeight: 600,
-          fontSize: "27px",
-          letterSpacing: "3px",
-          textTransform: "uppercase",
-          color: "rgba(255,255,255,0.55)",
-          marginTop: "11px"
-        }}
-      >
-        {label}
-      </span>
-    </div>
-  );
-}
-
-let fontCache: Record<string, ArrayBuffer | null> | null = null;
-
-async function loadGoogleFont(family: string, weight: number) {
-  const url = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family)}:wght@${weight}&display=swap`;
-  const css = await (await fetch(url)).text();
-  const match = css.match(/src: url\(([^)]+)\) format\('(opentype|truetype)'\)/);
-  if (!match) throw new Error(`Fonte nao encontrada: ${family} ${weight}`);
-  const response = await fetch(match[1]);
-  return response.arrayBuffer();
-}
-
-async function tryLoadGoogleFont(family: string, weight: number) {
   try {
-    return await loadGoogleFont(family, weight);
-  } catch (error) {
-    console.warn(`Nao foi possivel carregar a fonte ${family} ${weight}, usando fallback.`, error);
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) return null;
+
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.startsWith("image/")) return null;
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+    return `data:${contentType};base64,${buffer.toString("base64")}`;
+  } catch {
     return null;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
-async function getFonts() {
-  if (!fontCache) {
-    const [bricolage800, bricolage700, saira700, saira600, hanken500] = await Promise.all([
-      tryLoadGoogleFont("Bricolage+Grotesque", 800),
-      tryLoadGoogleFont("Bricolage+Grotesque", 700),
-      tryLoadGoogleFont("Saira+Condensed", 700),
-      tryLoadGoogleFont("Saira+Condensed", 600),
-      tryLoadGoogleFont("Hanken+Grotesk", 500)
-    ]);
-    fontCache = { bricolage800, bricolage700, saira700, saira600, hanken500 };
-  }
-  return fontCache;
+function star(index: number, filledStars: number, color: string) {
+  return `<polygon transform="translate(${index * 48} 0) scale(1.7)" points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="${index < filledStars ? color : "rgba(255,255,255,.18)"}" />`;
 }
 
-export async function GET(request: Request, { params }: { params: Promise<{ matchId: string; playerId: string }> }) {
+function statColumn(x: number, value: string, label: string, color = "#fff") {
+  return `
+    <text x="${x}" y="1178" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="78" font-weight="700" fill="${color}">${escapeXml(value)}</text>
+    <text x="${x}" y="1238" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="27" font-weight="700" letter-spacing="3" fill="rgba(255,255,255,.55)">${escapeXml(label.toUpperCase())}</text>
+  `;
+}
+
+function renderStorySvg({
+  playerName,
+  peladaName,
+  matchTitle,
+  dateLabel,
+  photoSrc,
+  isGoalkeeper,
+  isGold,
+  isHumor,
+  isCraqueWinner,
+  averageRating,
+  ratingsCount,
+  filledStars,
+  goals,
+  assists,
+  thirdStatValue,
+  thirdStatLabel,
+  badgeLabel
+}: {
+  playerName: string;
+  peladaName: string;
+  matchTitle: string;
+  dateLabel: string;
+  photoSrc: string | null;
+  isGoalkeeper: boolean;
+  isGold: boolean;
+  isHumor: boolean;
+  isCraqueWinner: boolean;
+  averageRating: number | null;
+  ratingsCount: number;
+  filledStars: number;
+  goals: number;
+  assists: number;
+  thirdStatValue: string;
+  thirdStatLabel: string;
+  badgeLabel: string;
+}) {
+  const theme = isGold
+    ? {
+        bgStart: "#0B4A29",
+        bgMid: "#0a3f23",
+        bgEnd: "#062a17",
+        ringStart: "#F4A11A",
+        ringEnd: "#ffd98a",
+        accent: "#F4A11A",
+        sub: "#9fe3b8",
+        badgeBg: "#F4A11A",
+        badgeColor: "#16261D",
+        ribbonBg: "#F4A11A",
+        ribbonText: "#16261D",
+        ribbonLabel: "Craque da pelada",
+        punchline: "Hoje a pelada foi minha."
+      }
+    : {
+        bgStart: "#11643A",
+        bgMid: "#0B4A29",
+        bgEnd: "#072d19",
+        ringStart: "#1B9E4B",
+        ringEnd: "#9fe3b8",
+        accent: "#9fe3b8",
+        sub: "#9fe3b8",
+        badgeBg: "#1B9E4B",
+        badgeColor: "#ffffff",
+        ribbonBg: "rgba(255,255,255,.12)",
+        ribbonText: "#ffffff",
+        ribbonLabel: "Fechou a pelada",
+        punchline: isHumor ? "Paguei a agua, ta pago." : "Nao fiz gol, mas nao faltei."
+      };
+
+  const safeName = escapeXml(playerName);
+  const initial = escapeXml(playerName.trim().slice(0, 1).toUpperCase() || "?");
+  const ratingLabel = averageRating != null ? averageRating.toFixed(1) : "-";
+  const ratingCopy = `${ratingsCount} ${ratingsCount === 1 ? "jogador avaliou" : "jogadores avaliaram"}`;
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="${theme.bgStart}" />
+      <stop offset="55%" stop-color="${theme.bgMid}" />
+      <stop offset="100%" stop-color="${theme.bgEnd}" />
+    </linearGradient>
+    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="${theme.ringStart}" />
+      <stop offset="100%" stop-color="${theme.ringEnd}" />
+    </linearGradient>
+    <pattern id="fieldLines" width="112" height="112" patternUnits="userSpaceOnUse">
+      <rect width="3" height="112" fill="rgba(255,255,255,.04)" />
+    </pattern>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="rgba(159,227,184,.20)" />
+      <stop offset="64%" stop-color="rgba(159,227,184,0)" />
+    </radialGradient>
+    <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000000" flood-opacity=".20" />
+    </filter>
+    <clipPath id="photoClip">
+      <rect x="386" y="405" width="308" height="308" rx="76" />
+    </clipPath>
+  </defs>
+
+  <rect width="1080" height="1920" fill="url(#bg)" />
+  <rect width="1080" height="1920" fill="url(#fieldLines)" />
+  <line x1="0" y1="256" x2="1080" y2="256" stroke="rgba(255,255,255,.07)" stroke-width="4" />
+  <circle cx="540" cy="630" r="400" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="4" />
+  <circle cx="540" cy="626" r="560" fill="url(#glow)" />
+
+  <g transform="translate(0 112)">
+    <rect x="336" y="48" width="408" height="86" rx="43" fill="${theme.ribbonBg}" stroke="rgba(255,255,255,.18)" />
+    <circle cx="383" cy="91" r="9" fill="${theme.accent}" />
+    <text x="540" y="103" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="36" font-weight="700" letter-spacing="5" fill="${theme.ribbonText}">${escapeXml(theme.ribbonLabel.toUpperCase())}</text>
+
+    <rect x="374" y="393" width="332" height="332" rx="88" fill="url(#ring)" filter="url(#softShadow)" />
+    <rect x="386" y="405" width="308" height="308" rx="76" fill="${isGoalkeeper ? "#DC8A1A" : "#0a3f23"}" />
+    ${
+      photoSrc
+        ? `<image href="${photoSrc}" x="386" y="405" width="308" height="308" preserveAspectRatio="xMidYMid slice" clip-path="url(#photoClip)" />`
+        : `<text x="540" y="610" text-anchor="middle" font-family="Arial, sans-serif" font-size="150" font-weight="800" fill="#fff">${initial}</text>`
+    }
+    <circle cx="682" cy="704" r="51" fill="${theme.badgeBg}" stroke="${theme.bgEnd}" stroke-width="8" />
+    ${
+      isGold && isCraqueWinner
+        ? `<path d="M663 696h-8a15 15 0 0 1 0-30h8m34 30h8a15 15 0 0 0 0-30h-8M652 737h56M674 716v10c0 5-4 8-8 10-8 4-13 10-13 21m53 0c0-11-5-17-13-21-4-2-8-5-8-10v-10M697 656h-34v40a17 17 0 0 0 34 0v-40Z" fill="none" stroke="#16261D" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />`
+        : `<text x="682" y="718" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="38" font-weight="700" fill="${theme.badgeColor}">${escapeXml(badgeLabel)}</text>`
+    }
+
+    <text x="540" y="823" text-anchor="middle" font-family="Arial, sans-serif" font-size="104" font-weight="800" fill="#fff">${safeName}</text>
+    <text x="540" y="884" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="36" font-weight="700" letter-spacing="6" fill="${theme.sub}">${escapeXml(`${isGoalkeeper ? "Goleiro" : "Linha"} - ${peladaName}`.toUpperCase())}</text>
+
+    <rect x="64" y="940" width="952" height="352" rx="60" fill="rgba(255,255,255,.07)" stroke="rgba(255,255,255,.13)" />
+    <text x="166" y="1072" font-family="Arial Narrow, Arial, sans-serif" font-size="124" font-weight="700" fill="${isGold ? "#F4A11A" : "#ffffff"}">${escapeXml(ratingLabel)}</text>
+    <text x="402" y="1018" font-family="Arial Narrow, Arial, sans-serif" font-size="30" font-weight="700" letter-spacing="4" fill="${theme.sub}">NOTA DA GALERA</text>
+    <g transform="translate(402 1046)">
+      ${[0, 1, 2, 3, 4].map((index) => star(index, filledStars, isGold ? "#F4A11A" : "#9fe3b8")).join("")}
+    </g>
+    <text x="402" y="1122" font-family="Arial, sans-serif" font-size="31" fill="rgba(255,255,255,.55)">${escapeXml(ratingCopy)}</text>
+    <line x1="112" y1="1146" x2="968" y2="1146" stroke="rgba(255,255,255,.1)" stroke-width="3" />
+    ${statColumn(230, String(goals), "Gols")}
+    <line x1="384" y1="1168" x2="384" y2="1260" stroke="rgba(255,255,255,.1)" stroke-width="3" />
+    ${statColumn(540, String(assists), "Assist.")}
+    <line x1="696" y1="1168" x2="696" y2="1260" stroke="rgba(255,255,255,.1)" stroke-width="3" />
+    ${statColumn(850, thirdStatValue, thirdStatLabel, isGold ? "#F4A11A" : "#9fe3b8")}
+
+    <text x="540" y="1402" text-anchor="middle" font-family="Arial, sans-serif" font-size="52" font-weight="800" fill="#fff">"${escapeXml(theme.punchline)}"</text>
+    <text x="540" y="1466" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" fill="rgba(255,255,255,.5)">${escapeXml(`${matchTitle} - ${dateLabel}`)}</text>
+
+    <line x1="64" y1="1642" x2="1016" y2="1642" stroke="rgba(255,255,255,.12)" stroke-width="3" />
+    <text x="540" y="1708" text-anchor="middle" font-family="Arial, sans-serif" font-size="44" font-weight="800" fill="#fff">Organize sua propria pelada</text>
+    <text x="540" y="1760" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" fill="rgba(255,255,255,.5)">Baixe o app Dono da Pelada</text>
+  </g>
+</svg>`;
+}
+
+export async function GET(_request: Request, { params }: { params: Promise<{ matchId: string; playerId: string }> }) {
   try {
     const user = await requireApiUser();
     const { matchId, playerId } = await params;
@@ -149,290 +258,46 @@ export async function GET(request: Request, { params }: { params: Promise<{ matc
     const ranking = [...voteCounts.entries()].sort((a, b) => b[1] - a[1]);
     const rankIndex = ranking.findIndex(([candidateId]) => candidateId === player.id);
     const voteRank = rankIndex >= 0 ? rankIndex + 1 : null;
-    const isCraqueWinner = poll?.status === "CLOSED" && poll.winnerId === player.id;
-
-    const isGold = averageRating != null && averageRating >= 4;
-    const isHumor = averageRating != null && averageRating < 2.5;
-    const punchline = isGold
-      ? "Hoje a pelada foi minha."
-      : isHumor
-        ? "Paguei a agua, ta pago."
-        : "Nao fiz gol, mas nao faltei.";
-    const ribbonLabel = isGold ? "Craque da pelada" : "Fechou a pelada";
+    const isGold = averageRating != null && averageRating >= 8;
     const showVoteRank = isGold && voteRank != null;
-    const thirdStatValue = showVoteRank ? `${voteRank}º` : String(presenceCount);
-    const thirdStatLabel = showVoteRank ? "na votacao" : "presenca";
-    const badgeLabel = showVoteRank ? `${voteRank}º` : `${presenceCount}ª`;
-    const filledStars = averageRating != null ? Math.min(5, Math.max(0, Math.round(averageRating))) : 0;
-    const isGoalkeeper = player.position === "GOLEIRO";
-    const dateLabel = formatShortDate(match.date);
 
-    const theme = isGold
-      ? {
-          bg: "linear-gradient(170deg, #0B4A29 0%, #0a3f23 55%, #062a17 100%)",
-          ribbonBg: "linear-gradient(90deg,#F4A11A,#ffc14d)",
-          ribbonColor: "#16261D",
-          photoRing: "linear-gradient(150deg,#F4A11A,#ffd98a)",
-          photoBg: "#0a3f23",
-          glow: "0 0 48px rgba(244,161,26,.55)",
-          accent: "#F4A11A",
-          sub: "#9fe3b8",
-          badgeBg: "#F4A11A",
-          badgeBorder: "#062a17"
-        }
-      : {
-          bg: "linear-gradient(170deg, #11643A 0%, #0B4A29 55%, #072d19 100%)",
-          ribbonBg: "rgba(255,255,255,.12)",
-          ribbonColor: "#ffffff",
-          photoRing: "linear-gradient(150deg,#1B9E4B,#9fe3b8)",
-          photoBg: "#0a3f23",
-          glow: "0 0 38px rgba(27,158,75,.4)",
-          accent: "#9fe3b8",
-          sub: "#9fe3b8",
-          badgeBg: "#1B9E4B",
-          badgeBorder: "#072d19"
-        };
+    const svg = renderStorySvg({
+      playerName: player.nickname,
+      peladaName: match.pelada.name,
+      matchTitle: match.title,
+      dateLabel: formatShortDate(match.date),
+      photoSrc: await getImageDataUrl(player.photoUrl),
+      isGoalkeeper: player.position === "GOLEIRO",
+      isGold,
+      isHumor: averageRating != null && averageRating < 5,
+      isCraqueWinner: poll?.status === "CLOSED" && poll.winnerId === player.id,
+      averageRating,
+      ratingsCount,
+      filledStars: averageRating != null ? Math.min(5, Math.max(0, Math.round(averageRating / 2))) : 0,
+      goals,
+      assists,
+      thirdStatValue: showVoteRank ? `${voteRank}o` : String(presenceCount),
+      thirdStatLabel: showVoteRank ? "na votacao" : "presenca",
+      badgeLabel: showVoteRank ? `${voteRank}o` : `${presenceCount}a`
+    });
 
-    const fonts = await getFonts();
-
-    return new ImageResponse(
-      (
-        <div
-          style={{
-            width: "1080px",
-            height: "1920px",
-            display: "flex",
-            flexDirection: "column",
-            position: "relative",
-            backgroundImage: theme.bg,
-            color: "#ffffff",
-            fontFamily: "Hanken Grotesk"
-          }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              top: "315px",
-              left: "50%",
-              transform: "translateX(-50%)",
-              width: "800px",
-              height: "800px",
-              borderRadius: "50%",
-              border: "4px solid rgba(255,255,255,0.07)"
-            }}
-          />
-
-          <div
-            style={{
-              position: "relative",
-              display: "flex",
-              flexDirection: "column",
-              flex: 1,
-              padding: "144px 64px 0",
-              alignItems: "center"
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "19px",
-                backgroundImage: theme.ribbonBg.startsWith("linear") ? theme.ribbonBg : undefined,
-                backgroundColor: theme.ribbonBg.startsWith("linear") ? undefined : theme.ribbonBg,
-                color: theme.ribbonColor,
-                fontFamily: "Saira Condensed",
-                fontWeight: 700,
-                fontSize: "37px",
-                letterSpacing: "5px",
-                textTransform: "uppercase",
-                padding: "21px 48px",
-                borderRadius: "80px"
-              }}
-            >
-              {isGold ? <SparkleIcon color={theme.ribbonColor} /> : <CheckIcon color={theme.sub} />}
-              {ribbonLabel}
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                marginTop: "37px",
-                position: "relative",
-                width: "336px",
-                height: "336px",
-                borderRadius: "85px",
-                padding: "11px",
-                backgroundImage: theme.photoRing,
-                boxShadow: theme.glow
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  width: "100%",
-                  height: "100%",
-                  borderRadius: "75px",
-                  overflow: "hidden",
-                  backgroundColor: isGoalkeeper ? "#DC8A1A" : theme.photoBg,
-                  alignItems: "center",
-                  justifyContent: "center"
-                }}
-              >
-                {player.photoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={player.photoUrl} width={336} height={336} style={{ objectFit: "cover" }} alt="" />
-                ) : (
-                  <span style={{ fontSize: "150px", fontWeight: 800, fontFamily: "Bricolage Grotesque" }}>
-                    {player.nickname.trim().slice(0, 1).toUpperCase() || "?"}
-                  </span>
-                )}
-              </div>
-              <div
-                style={{
-                  position: "absolute",
-                  bottom: "-21px",
-                  right: "-21px",
-                  width: "96px",
-                  height: "96px",
-                  borderRadius: "50%",
-                  backgroundColor: theme.badgeBg,
-                  border: `8px solid ${theme.badgeBorder}`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center"
-                }}
-              >
-                {isGold && isCraqueWinner ? (
-                  <TrophyIcon color="#16261D" />
-                ) : (
-                  <span style={{ fontFamily: "Saira Condensed", fontWeight: 700, fontSize: "37px", color: "#16261D" }}>
-                    {badgeLabel}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: "32px" }}>
-              <span style={{ fontFamily: "Bricolage Grotesque", fontWeight: 800, fontSize: "101px", letterSpacing: "-2px" }}>
-                {player.nickname}
-              </span>
-              <span
-                style={{
-                  fontFamily: "Saira Condensed",
-                  fontWeight: 600,
-                  fontSize: "35px",
-                  letterSpacing: "6px",
-                  textTransform: "uppercase",
-                  color: theme.sub,
-                  marginTop: "19px"
-                }}
-              >
-                {isGoalkeeper ? "Goleiro" : "Linha"} · {match.pelada.name}
-              </span>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                marginTop: "37px",
-                width: "100%",
-                backgroundColor: "rgba(255,255,255,0.07)",
-                border: "1px solid rgba(255,255,255,0.13)",
-                borderRadius: "59px",
-                padding: "40px 48px"
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "40px" }}>
-                <span
-                  style={{
-                    fontFamily: "Saira Condensed",
-                    fontWeight: 700,
-                    fontSize: "123px",
-                    color: isGold ? "#F4A11A" : "#ffffff",
-                    lineHeight: 0.85
-                  }}
-                >
-                  {averageRating != null ? averageRating.toFixed(1) : "-"}
-                </span>
-                <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-                  <span
-                    style={{
-                      fontFamily: "Saira Condensed",
-                      fontWeight: 600,
-                      fontSize: "29px",
-                      letterSpacing: "4px",
-                      textTransform: "uppercase",
-                      color: theme.sub
-                    }}
-                  >
-                    Nota da galera
-                  </span>
-                  <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
-                    {[0, 1, 2, 3, 4].map((index) => (
-                      <StarIcon key={index} filled={index < filledStars} color={isGold ? "#F4A11A" : "#9fe3b8"} />
-                    ))}
-                  </div>
-                  <span style={{ display: "flex", fontSize: "31px", color: "rgba(255,255,255,0.55)", marginTop: "13px" }}>
-                    {ratingsCount} {ratingsCount === 1 ? "jogador avaliou" : "jogadores avaliaram"}
-                  </span>
-                </div>
-              </div>
-              <div style={{ display: "flex", marginTop: "40px", paddingTop: "40px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
-                <StatColumn value={String(goals)} label="Gols" />
-                <div style={{ width: "1px", backgroundColor: "rgba(255,255,255,0.1)" }} />
-                <StatColumn value={String(assists)} label="Assist." />
-                <div style={{ width: "1px", backgroundColor: "rgba(255,255,255,0.1)" }} />
-                <StatColumn value={thirdStatValue} label={thirdStatLabel} color={isGold ? "#F4A11A" : "#9fe3b8"} />
-              </div>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", marginTop: "27px" }}>
-              <span style={{ fontFamily: "Bricolage Grotesque", fontWeight: 700, fontSize: "48px", lineHeight: 1.15 }}>
-                &ldquo;{punchline}&rdquo;
-              </span>
-              <span style={{ display: "flex", fontSize: "32px", color: "rgba(255,255,255,0.5)", marginTop: "16px" }}>
-                {match.title} · {dateLabel}
-              </span>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                marginTop: "auto",
-                paddingTop: "37px",
-                paddingBottom: "160px",
-                width: "100%"
-              }}
-            >
-              <div style={{ width: "100%", height: "1px", backgroundColor: "rgba(255,255,255,0.12)", marginBottom: "37px" }} />
-              <span style={{ fontFamily: "Bricolage Grotesque", fontWeight: 700, fontSize: "43px" }}>Organize sua propria pelada</span>
-              <span style={{ display: "flex", fontSize: "32px", color: "rgba(255,255,255,0.5)", marginTop: "8px" }}>
-                Baixe o app Dono da Pelada
-              </span>
-            </div>
-          </div>
-        </div>
-      ),
-      {
-        width: 1080,
-        height: 1920,
-        fonts: [
-          fonts.bricolage800 && ({ name: "Bricolage Grotesque", data: fonts.bricolage800, weight: 800, style: "normal" } as const),
-          fonts.bricolage700 && ({ name: "Bricolage Grotesque", data: fonts.bricolage700, weight: 700, style: "normal" } as const),
-          fonts.saira700 && ({ name: "Saira Condensed", data: fonts.saira700, weight: 700, style: "normal" } as const),
-          fonts.saira600 && ({ name: "Saira Condensed", data: fonts.saira600, weight: 600, style: "normal" } as const),
-          fonts.hanken500 && ({ name: "Hanken Grotesk", data: fonts.hanken500, weight: 500, style: "normal" } as const)
-        ].filter((font): font is NonNullable<typeof font> => Boolean(font))
+    return new Response(svg, {
+      headers: {
+        "Content-Type": "image/svg+xml; charset=utf-8",
+        "Cache-Control": "no-store"
       }
-    );
+    });
   } catch (error) {
     if (error instanceof ApiAuthError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
     console.error("Falha ao gerar story:", error);
-    return NextResponse.json({ error: "Erro ao gerar imagem." }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "Erro ao gerar imagem.",
+        detail: process.env.NODE_ENV === "production" ? undefined : error instanceof Error ? error.message : String(error)
+      },
+      { status: 500 }
+    );
   }
 }

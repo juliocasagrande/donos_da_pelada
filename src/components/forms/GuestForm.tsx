@@ -38,7 +38,7 @@ export function GuestForm({ matchId }: { matchId: string }) {
         <Label>Nome do convidado</Label>
         <Input name="name" required />
       </div>
-      <RatingSlider name="rating" label="Nota de 0 a 5" defaultValue={3} />
+      <RatingSlider name="rating" label="Nota de 0 a 10" defaultValue={5} />
       <div>
         <Label>Posicao</Label>
         <Select name="position" defaultValue="MEIA">
