@@ -56,9 +56,15 @@ function star(index: number, filledStars: number, color: string) {
 
 function statColumn(x: number, value: string, label: string, color = "#fff") {
   return `
-    <text x="${x}" y="1178" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="78" font-weight="700" fill="${color}">${escapeXml(value)}</text>
-    <text x="${x}" y="1238" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="27" font-weight="700" letter-spacing="3" fill="rgba(255,255,255,.55)">${escapeXml(label.toUpperCase())}</text>
+    <text x="${x}" y="1110" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="75" font-weight="700" fill="${color}">${escapeXml(value)}</text>
+    <text x="${x}" y="1168" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="27" font-weight="700" letter-spacing="3" fill="rgba(255,255,255,.55)">${escapeXml(label.toUpperCase())}</text>
   `;
+}
+
+function punchlineLines(value: string) {
+  if (value === "Hoje a pelada foi minha.") return ["Hoje a pelada", "foi minha."];
+  if (value === "Nao fiz gol, mas nao faltei.") return ["Nao fiz gol,", "mas nao faltei."];
+  return ["Paguei a agua,", "ta pago."];
 }
 
 function renderStorySvg({
@@ -134,6 +140,7 @@ function renderStorySvg({
   const initial = escapeXml(playerName.trim().slice(0, 1).toUpperCase() || "?");
   const ratingLabel = averageRating != null ? averageRating.toFixed(1) : "-";
   const ratingCopy = `${ratingsCount} ${ratingsCount === 1 ? "jogador avaliou" : "jogadores avaliaram"}`;
+  const [punchlineTop, punchlineBottom] = punchlineLines(theme.punchline);
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
@@ -158,54 +165,60 @@ function renderStorySvg({
       <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000000" flood-opacity=".20" />
     </filter>
     <clipPath id="photoClip">
-      <rect x="386" y="405" width="308" height="308" rx="76" />
+      <rect x="383" y="317" width="314" height="314" rx="75" />
     </clipPath>
   </defs>
 
   <rect width="1080" height="1920" fill="url(#bg)" />
   <rect width="1080" height="1920" fill="url(#fieldLines)" />
   <line x1="0" y1="256" x2="1080" y2="256" stroke="rgba(255,255,255,.07)" stroke-width="4" />
-  <circle cx="540" cy="630" r="400" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="4" />
-  <circle cx="540" cy="626" r="560" fill="url(#glow)" />
+  <circle cx="540" cy="714" r="400" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="4" />
+  <circle cx="540" cy="626" r="${isGold ? 587 : 560}" fill="url(#glow)" />
+  ${
+    isGold
+      ? `<polygon transform="translate(922 80) scale(20)" points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="rgba(244,161,26,.06)" />`
+      : ""
+  }
 
-  <g transform="translate(0 112)">
-    <rect x="336" y="48" width="408" height="86" rx="43" fill="${theme.ribbonBg}" stroke="rgba(255,255,255,.18)" />
-    <circle cx="383" cy="91" r="9" fill="${theme.accent}" />
-    <text x="540" y="103" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="36" font-weight="700" letter-spacing="5" fill="${theme.ribbonText}">${escapeXml(theme.ribbonLabel.toUpperCase())}</text>
+  <g>
+    <rect x="336" y="181" width="408" height="80" rx="40" fill="${theme.ribbonBg}" stroke="rgba(255,255,255,.18)" />
+    <circle cx="383" cy="221" r="9" fill="${theme.accent}" />
+    <text x="540" y="234" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="36" font-weight="700" letter-spacing="5" fill="${theme.ribbonText}">${escapeXml(theme.ribbonLabel.toUpperCase())}</text>
 
-    <rect x="374" y="393" width="332" height="332" rx="88" fill="url(#ring)" filter="url(#softShadow)" />
-    <rect x="386" y="405" width="308" height="308" rx="76" fill="${isGoalkeeper ? "#DC8A1A" : "#0a3f23"}" />
+    <rect x="372" y="306" width="336" height="336" rx="85" fill="url(#ring)" filter="url(#softShadow)" />
+    <rect x="383" y="317" width="314" height="314" rx="75" fill="${isGoalkeeper ? "#DC8A1A" : "#0a3f23"}" />
     ${
       photoSrc
-        ? `<image href="${photoSrc}" x="386" y="405" width="308" height="308" preserveAspectRatio="xMidYMid slice" clip-path="url(#photoClip)" />`
-        : `<text x="540" y="610" text-anchor="middle" font-family="Arial, sans-serif" font-size="150" font-weight="800" fill="#fff">${initial}</text>`
+        ? `<image href="${photoSrc}" x="383" y="317" width="314" height="314" preserveAspectRatio="xMidYMid slice" clip-path="url(#photoClip)" />`
+        : `<text x="540" y="522" text-anchor="middle" font-family="Arial, sans-serif" font-size="150" font-weight="800" fill="#fff">${initial}</text>`
     }
-    <circle cx="682" cy="704" r="51" fill="${theme.badgeBg}" stroke="${theme.bgEnd}" stroke-width="8" />
+    <circle cx="682" cy="615" r="48" fill="${theme.badgeBg}" stroke="${theme.bgEnd}" stroke-width="8" />
     ${
       isGold && isCraqueWinner
-        ? `<path d="M663 696h-8a15 15 0 0 1 0-30h8m34 30h8a15 15 0 0 0 0-30h-8M652 737h56M674 716v10c0 5-4 8-8 10-8 4-13 10-13 21m53 0c0-11-5-17-13-21-4-2-8-5-8-10v-10M697 656h-34v40a17 17 0 0 0 34 0v-40Z" fill="none" stroke="#16261D" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />`
-        : `<text x="682" y="718" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="38" font-weight="700" fill="${theme.badgeColor}">${escapeXml(badgeLabel)}</text>`
+        ? `<path d="M663 607h-8a15 15 0 0 1 0-30h8m34 30h8a15 15 0 0 0 0-30h-8M652 648h56M674 627v10c0 5-4 8-8 10-8 4-13 10-13 21m53 0c0-11-5-17-13-21-4-2-8-5-8-10v-10M697 567h-34v40a17 17 0 0 0 34 0v-40Z" fill="none" stroke="#16261D" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />`
+        : `<text x="682" y="629" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="38" font-weight="700" fill="${theme.badgeColor}">${escapeXml(badgeLabel)}</text>`
     }
 
-    <text x="540" y="823" text-anchor="middle" font-family="Arial, sans-serif" font-size="104" font-weight="800" fill="#fff">${safeName}</text>
-    <text x="540" y="884" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="36" font-weight="700" letter-spacing="6" fill="${theme.sub}">${escapeXml(`${isGoalkeeper ? "Goleiro" : "Linha"} - ${peladaName}`.toUpperCase())}</text>
+    <text x="540" y="776" text-anchor="middle" font-family="Arial, sans-serif" font-size="101" font-weight="800" fill="#fff">${safeName}</text>
+    <text x="540" y="836" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="35" font-weight="700" letter-spacing="6" fill="${theme.sub}">${escapeXml(`${isGoalkeeper ? "Goleiro" : "Linha"} - ${peladaName}`.toUpperCase())}</text>
 
-    <rect x="64" y="940" width="952" height="352" rx="60" fill="rgba(255,255,255,.07)" stroke="rgba(255,255,255,.13)" />
-    <text x="166" y="1072" font-family="Arial Narrow, Arial, sans-serif" font-size="124" font-weight="700" fill="${isGold ? "#F4A11A" : "#ffffff"}">${escapeXml(ratingLabel)}</text>
-    <text x="402" y="1018" font-family="Arial Narrow, Arial, sans-serif" font-size="30" font-weight="700" letter-spacing="4" fill="${theme.sub}">NOTA DA GALERA</text>
-    <g transform="translate(402 1046)">
+    <rect x="64" y="870" width="952" height="352" rx="59" fill="rgba(255,255,255,.07)" stroke="rgba(255,255,255,.13)" />
+    <text x="166" y="1002" font-family="Arial Narrow, Arial, sans-serif" font-size="123" font-weight="700" fill="${isGold ? "#F4A11A" : "#ffffff"}">${escapeXml(ratingLabel)}</text>
+    <text x="402" y="948" font-family="Arial Narrow, Arial, sans-serif" font-size="29" font-weight="700" letter-spacing="4" fill="${theme.sub}">NOTA DA GALERA</text>
+    <g transform="translate(402 976)">
       ${[0, 1, 2, 3, 4].map((index) => star(index, filledStars, isGold ? "#F4A11A" : "#9fe3b8")).join("")}
     </g>
-    <text x="402" y="1122" font-family="Arial, sans-serif" font-size="31" fill="rgba(255,255,255,.55)">${escapeXml(ratingCopy)}</text>
-    <line x1="112" y1="1146" x2="968" y2="1146" stroke="rgba(255,255,255,.1)" stroke-width="3" />
+    <text x="402" y="1052" font-family="Arial, sans-serif" font-size="31" fill="rgba(255,255,255,.55)">${escapeXml(ratingCopy)}</text>
+    <line x1="112" y1="1076" x2="968" y2="1076" stroke="rgba(255,255,255,.1)" stroke-width="3" />
     ${statColumn(230, String(goals), "Gols")}
-    <line x1="384" y1="1168" x2="384" y2="1260" stroke="rgba(255,255,255,.1)" stroke-width="3" />
+    <line x1="384" y1="1098" x2="384" y2="1190" stroke="rgba(255,255,255,.1)" stroke-width="3" />
     ${statColumn(540, String(assists), "Assist.")}
-    <line x1="696" y1="1168" x2="696" y2="1260" stroke="rgba(255,255,255,.1)" stroke-width="3" />
+    <line x1="696" y1="1098" x2="696" y2="1190" stroke="rgba(255,255,255,.1)" stroke-width="3" />
     ${statColumn(850, thirdStatValue, thirdStatLabel, isGold ? "#F4A11A" : "#9fe3b8")}
 
-    <text x="540" y="1402" text-anchor="middle" font-family="Arial, sans-serif" font-size="52" font-weight="800" fill="#fff">"${escapeXml(theme.punchline)}"</text>
-    <text x="540" y="1466" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" fill="rgba(255,255,255,.5)">${escapeXml(`${matchTitle} - ${dateLabel}`)}</text>
+    <text x="540" y="1294" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" font-weight="800" fill="#fff">"${escapeXml(punchlineTop)}</text>
+    <text x="540" y="1350" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" font-weight="800" fill="#fff">${escapeXml(punchlineBottom)}"</text>
+    <text x="540" y="1418" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" fill="rgba(255,255,255,.5)">${escapeXml(`${matchTitle} - ${dateLabel}`)}</text>
 
     <line x1="64" y1="1642" x2="1016" y2="1642" stroke="rgba(255,255,255,.12)" stroke-width="3" />
     <text x="540" y="1708" text-anchor="middle" font-family="Arial, sans-serif" font-size="44" font-weight="800" fill="#fff">Organize sua propria pelada</text>

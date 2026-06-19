@@ -193,7 +193,7 @@ export async function approveMatchGuestRequest(requestId: string) {
     }
   }
 
-  if (await hasConflictingConfirmedMatch(request.userId, request.match.date, request.matchId)) {
+  if (await hasConflictingConfirmedMatch(request.userId, request.match.date, request.matchId, request.match.peladaId)) {
     redirect(
       `/admins/radar?radarErro=${encodeURIComponent("Esse jogador ja tem outra pelada confirmada com menos de 30 min de diferenca.")}`
     );

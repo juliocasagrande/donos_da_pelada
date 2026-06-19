@@ -729,15 +729,22 @@ export async function toggleAttendance(matchId: string, playerId: string, presen
   revalidatePath(`/matches/${matchId}/attendance`);
 }
 
-export async function toggleOwnAttendance(matchId: string, present: boolean) {
+type OwnAttendanceActionResult =
+  | { ok: true; status: "CONFIRMED" | "WAITLIST" | "OUT" }
+  | { ok: false; error: string };
+
+export async function updateOwnAttendanceStatus(matchId: string, present: boolean): Promise<OwnAttendanceActionResult> {
   const user = await requireUser();
   const match = await prisma.match.findFirst({ where: { id: matchId, peladaId: user.peladaId!, deletedAt: null } });
   const player = await prisma.player.findFirst({ where: { userId: user.id, peladaId: user.peladaId! } });
-  if (!match || !player) return;
-  if (match.status === MatchStatus.CLOSED) return;
+  if (!match) return { ok: false, error: "Pelada nao encontrada." };
+  if (!player) return { ok: false, error: "Complete seu perfil de jogador antes de confirmar presenca." };
+  if (match.status === MatchStatus.CLOSED) return { ok: false, error: "Esta pelada ja foi fechada." };
 
   const isAdmin = isPeladaAdmin(user);
-  if (!isAdmin && player.membershipStatus !== "MENSALISTA") return;
+  if (!isAdmin && player.membershipStatus !== "MENSALISTA") {
+    return { ok: false, error: "Apenas mensalistas podem confirmar presenca diretamente." };
+  }
 
   if (!present) {
     await prisma.attendance.upsert({
@@ -748,15 +755,17 @@ export async function toggleOwnAttendance(matchId: string, present: boolean) {
     await promoteNextFromWaitlist(matchId);
     revalidatePath(`/matches/${matchId}/attendance`);
     revalidatePath("/dashboard");
-    return;
+    return { ok: true, status: "OUT" };
   }
 
-  if (await hasConflictingConfirmedMatch(user.id, match.date, matchId)) {
-    return;
+  if (await hasConflictingConfirmedMatch(user.id, match.date, matchId, match.peladaId)) {
+    return { ok: false, error: "Voce ja confirmou presenca em outra pelada neste horario." };
   }
 
+  let attendanceStatus: "CONFIRMED" | "WAITLIST" = "CONFIRMED";
   await prisma.$transaction(async (tx) => {
     const status = await getAttendanceStatusForPlayer(matchId, player.position, match.date, tx);
+    attendanceStatus = status;
     await tx.attendance.upsert({
       where: { matchId_playerId: { matchId, playerId: player.id } },
       update: { present: status === "CONFIRMED", status, confirmedAt: status === "CONFIRMED" ? new Date() : null },
@@ -765,6 +774,11 @@ export async function toggleOwnAttendance(matchId: string, present: boolean) {
   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   revalidatePath(`/matches/${matchId}/attendance`);
   revalidatePath("/dashboard");
+  return { ok: true, status: attendanceStatus };
+}
+
+export async function toggleOwnAttendance(matchId: string, present: boolean) {
+  await updateOwnAttendanceStatus(matchId, present);
 }
 
 export async function createGuestForMatch(matchId: string, formData: FormData) {

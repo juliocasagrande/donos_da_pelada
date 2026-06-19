@@ -2,7 +2,6 @@ import Link from "next/link";
 import {
   CalendarCheck,
   CalendarPlus,
-  Check,
   ChevronRight,
   Clock,
   Radar as RadarIcon,
@@ -13,11 +12,11 @@ import {
   Ticket,
   Trash2,
   UserCheck,
-  Users,
-  X
+  Users
 } from "lucide-react";
 import { DeletionVoteValue } from "@prisma/client";
 import { AppShell } from "@/components/layout/AppShell";
+import { DashboardAttendanceActions } from "@/components/dashboard/DashboardAttendanceActions";
 import { CraqueRevealCard } from "@/components/dashboard/CraqueRevealCard";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -25,14 +24,13 @@ import { StatTile } from "@/components/ui/StatTile";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { LocationLinks } from "@/components/matches/LocationLinks";
 import { DeveloperCredit } from "@/components/layout/DeveloperCredit";
-import { closeExpiredCraquePolls, toggleOwnAttendance } from "@/lib/actions";
-import { SubmitButton } from "@/components/forms/SubmitButton";
+import { closeExpiredCraquePolls } from "@/lib/actions";
 import { approveMatchGuestRequest, rejectMatchGuestRequest } from "@/lib/radarActions";
 import { voteDeletionRequest } from "@/lib/deletionVotingActions";
 import { haversineKm } from "@/lib/geo";
 import { prisma } from "@/lib/prisma";
 import { isPeladaAdmin, requireUser } from "@/lib/session";
-import { cn, formatDate, formatTime } from "@/lib/utils";
+import { formatDate, formatTime } from "@/lib/utils";
 
 export default async function DashboardPage() {
   const user = await requireUser();
@@ -60,7 +58,13 @@ export default async function DashboardPage() {
     prisma.player.count({ where: { peladaId, active: true, membershipStatus: "MENSALISTA" } }),
     prisma.match.findFirst({
       where: { peladaId, status: "OPEN", deletedAt: null },
-      include: { attendances: { where: { present: true }, take: 3 } },
+      include: {
+        _count: {
+          select: {
+            attendances: { where: { status: "CONFIRMED" } }
+          }
+        }
+      },
       orderBy: { date: "asc" }
     }),
     prisma.goal.aggregate({
@@ -168,7 +172,6 @@ export default async function DashboardPage() {
           select: { status: true }
         })
       : null;
-  const amGoingToNextMatch = myNextMatchAttendance?.status === "CONFIRMED" || myNextMatchAttendance?.status === "WAITLIST";
   const isGuest = linkedPlayer?.membershipStatus === "CONVIDADO";
   const displayName = linkedPlayer?.nickname || user.name?.split(" ")[0] || "Craque";
   const visibleCraquePoll = visibleCraquePolls.find((poll) => poll.status === "OPEN") ?? visibleCraquePolls[0];
@@ -404,12 +407,7 @@ export default async function DashboardPage() {
 
       {nextMatch ? (
         <Card className="field-hero relative mb-4 rounded-[22px] p-5 text-white">
-          <Link
-            href={`/matches/${nextMatch.id}/attendance`}
-            className="absolute inset-0 z-0 rounded-[22px]"
-            aria-label="Ajustar minha participacao na pelada"
-          />
-          <div className="relative z-10">
+          <div className="pointer-events-none relative z-20">
             <div className="flex items-center justify-between gap-2">
               <p className="flex items-center gap-2 font-jersey text-sm font-semibold uppercase tracking-[.12em] text-green-200">
                 <span className="pulse-dot h-2 w-2 rounded-full bg-craque" /> Proxima pelada
@@ -423,46 +421,21 @@ export default async function DashboardPage() {
             <h2 className="mt-2 font-display text-2xl font-bold">{nextMatch.title}</h2>
             <div className="mt-2 flex flex-wrap gap-4 text-sm text-green-100">
               <span className="flex items-center gap-1.5"><Clock size={15} /> {formatDate(nextMatch.date)} as {formatTime(nextMatch.date)}</span>
-              <LocationLinks location={nextMatch.location} />
+              <LocationLinks location={nextMatch.location} className="pointer-events-auto relative z-30" />
             </div>
-            <div className="mt-4 flex gap-2">
-              {isGuest ? (
-                <Link href={`/matches/${nextMatch.id}/attendance`} className="flex-1">
-                  <Button className="w-full bg-craque text-tinta shadow-none">Aguardar convite</Button>
-                </Link>
-              ) : (
-                <>
-                  <form action={toggleOwnAttendance.bind(null, nextMatch.id, true)} className="flex-1">
-                    <SubmitButton
-                      className={cn(
-                        "w-full gap-1.5 uppercase shadow-none",
-                        amGoingToNextMatch ? "bg-craque text-tinta" : "border border-white/25 bg-transparent text-white"
-                      )}
-                      pendingLabel="Confirmando..."
-                    >
-                      {amGoingToNextMatch ? <Check size={15} /> : null}
-                      {myNextMatchAttendance?.status === "WAITLIST" ? "Na espera" : "Vou jogar"}
-                    </SubmitButton>
-                  </form>
-                  <form action={toggleOwnAttendance.bind(null, nextMatch.id, false)} className="flex-1">
-                    <SubmitButton
-                      className={cn(
-                        "w-full gap-1.5 uppercase shadow-none",
-                        !amGoingToNextMatch && myNextMatchAttendance
-                          ? "bg-ausente text-white"
-                          : "border border-white/25 bg-transparent text-white"
-                      )}
-                      pendingLabel="Salvando..."
-                    >
-                      {!amGoingToNextMatch && myNextMatchAttendance ? <X size={15} /> : null}
-                      Nao vou
-                    </SubmitButton>
-                  </form>
-                </>
-              )}
-            </div>
-            <p className="mt-3 text-xs text-green-200">{nextMatch.attendances.length} confirmados</p>
           </div>
+          {isGuest ? (
+            <div className="relative z-30 mt-4">
+              <Link href={`/matches/${nextMatch.id}/attendance`} className="block">
+                <Button className="w-full bg-craque text-tinta shadow-none">Aguardar convite</Button>
+              </Link>
+            </div>
+          ) : (
+            <DashboardAttendanceActions matchId={nextMatch.id} attendanceStatus={myNextMatchAttendance?.status ?? null} />
+          )}
+          <p className="pointer-events-none relative z-20 mt-3 text-xs text-green-200">
+            {nextMatch._count.attendances} confirmados
+          </p>
         </Card>
       ) : null}
 
