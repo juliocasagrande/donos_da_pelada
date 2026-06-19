@@ -291,6 +291,30 @@ export async function changePassword(formData: FormData) {
   return { ok: true };
 }
 
+export async function createLocalPassword(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user || !user.active) return { ok: false, error: "Sessao invalida. Faca login novamente." };
+
+  const newPassword = value(formData, "newPassword");
+  const parsedPassword = passwordSchema.safeParse(newPassword);
+  if (!parsedPassword.success) {
+    return { ok: false, error: parsedPassword.error.issues[0]?.message || "Senha invalida." };
+  }
+
+  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { passwordHash: true } });
+  if (dbUser?.passwordHash) {
+    return { ok: false, error: "Esta conta ja possui senha. Use a alteracao de senha." };
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash: await bcrypt.hash(newPassword, 12) }
+  });
+
+  revalidatePath("/perfil");
+  return { ok: true };
+}
+
 export async function createPlayerAccount(formData: FormData) {
   const parsed = signupSchema.safeParse({
     name: value(formData, "name").trim(),

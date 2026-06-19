@@ -6,9 +6,9 @@ import { KeyRound } from "lucide-react";
 import { PasswordRequirements } from "@/components/forms/PasswordRequirements";
 import { Button } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Input";
-import { changePassword } from "@/lib/actions";
+import { changePassword, createLocalPassword } from "@/lib/actions";
 
-export function ChangePasswordForm() {
+export function ChangePasswordForm({ hasPassword = true }: { hasPassword?: boolean }) {
   const [newPassword, setNewPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -27,12 +27,12 @@ export function ChangePasswordForm() {
     }
 
     startTransition(async () => {
-      const result = await changePassword(formData);
+      const result = hasPassword ? await changePassword(formData) : await createLocalPassword(formData);
       if (!result.ok) {
-        setError(result.error || "Nao foi possivel alterar a senha.");
+        setError(result.error || (hasPassword ? "Nao foi possivel alterar a senha." : "Nao foi possivel criar a senha."));
         return;
       }
-      setSuccess("Senha alterada com sucesso.");
+      setSuccess(hasPassword ? "Senha alterada com sucesso." : "Senha criada com sucesso. Agora voce pode entrar com email e senha.");
       setNewPassword("");
       event.currentTarget.reset();
     });
@@ -45,17 +45,23 @@ export function ChangePasswordForm() {
           <KeyRound size={18} />
         </div>
         <div>
-          <p className="text-sm font-bold text-tinta">Alterar senha</p>
-          <p className="mt-0.5 text-xs text-musgo">Use sua senha atual para definir uma nova senha de acesso.</p>
+          <p className="text-sm font-bold text-tinta">{hasPassword ? "Alterar senha" : "Criar senha de acesso"}</p>
+          <p className="mt-0.5 text-xs text-musgo">
+            {hasPassword
+              ? "Use sua senha atual para definir uma nova senha de acesso."
+              : "Defina uma senha local para entrar quando o login social nao estiver disponivel."}
+          </p>
         </div>
       </div>
       <form onSubmit={handleSubmit} className="space-y-3">
+        {hasPassword ? (
+          <div>
+            <Label>Senha atual</Label>
+            <Input name="currentPassword" type="password" autoComplete="current-password" required />
+          </div>
+        ) : null}
         <div>
-          <Label>Senha atual</Label>
-          <Input name="currentPassword" type="password" autoComplete="current-password" required />
-        </div>
-        <div>
-          <Label>Nova senha</Label>
+          <Label>{hasPassword ? "Nova senha" : "Senha"}</Label>
           <Input
             name="newPassword"
             type="password"
@@ -76,7 +82,7 @@ export function ChangePasswordForm() {
         {error ? <p className="rounded-[13px] bg-ausente/10 p-3 text-sm font-semibold text-ausente">{error}</p> : null}
         {success ? <p className="rounded-[13px] bg-campo/10 p-3 text-sm font-semibold text-campo">{success}</p> : null}
         <Button className="w-full" type="submit" disabled={isPending}>
-          {isPending ? "Salvando..." : "Salvar nova senha"}
+          {isPending ? "Salvando..." : hasPassword ? "Salvar nova senha" : "Criar senha"}
         </Button>
       </form>
     </div>

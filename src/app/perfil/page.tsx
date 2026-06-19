@@ -78,16 +78,7 @@ export default async function ProfilePage({
             <h2 className="text-sm font-extrabold uppercase tracking-[.08em] text-musgo">Seguranca</h2>
           </div>
           <Card>
-            {profile?.passwordHash ? (
-              <ChangePasswordForm />
-            ) : (
-              <div className="rounded-[13px] border-[1.5px] border-linha bg-[#F6F8F3] p-3">
-                <p className="text-sm font-bold text-tinta">Login social ativo</p>
-                <p className="mt-1 text-xs text-musgo">
-                  Esta conta entra por provedor social e ainda nao possui senha local para alterar.
-                </p>
-              </div>
-            )}
+            <ChangePasswordForm hasPassword={Boolean(profile?.passwordHash)} />
           </Card>
         </section>
 
