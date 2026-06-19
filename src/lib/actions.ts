@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { MatchStatus, PeladaRole, PollStatus, Prisma, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, isPeladaAdmin, requireAdmin, requireMaster, requireUser } from "@/lib/session";
-import { drawSchema, matchSchema, playerSchema, signupSchema } from "@/lib/validations";
+import { drawSchema, matchSchema, passwordSchema, playerSchema, signupSchema } from "@/lib/validations";
 import { balanceTeams } from "@/lib/balanceTeams";
 import { archiveUserPeladaStats } from "@/lib/careerStats";
 import { MENSALISTA_FREE_LIMIT, canAddMensalista, isPeladaIdPro } from "@/lib/plan";
@@ -259,6 +259,36 @@ export async function updateOwnProfile(formData: FormData) {
 
   revalidatePath("/perfil");
   redirect("/perfil?salvo=1");
+}
+
+export async function changePassword(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user || !user.active) return { ok: false, error: "Sessao invalida. Faca login novamente." };
+
+  const currentPassword = value(formData, "currentPassword");
+  const newPassword = value(formData, "newPassword");
+
+  const parsedPassword = passwordSchema.safeParse(newPassword);
+  if (!parsedPassword.success) {
+    return { ok: false, error: parsedPassword.error.issues[0]?.message || "Senha invalida." };
+  }
+
+  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { passwordHash: true } });
+  if (!dbUser?.passwordHash) {
+    return { ok: false, error: "Esta conta usa login social e nao tem senha para alterar." };
+  }
+
+  const matches = await bcrypt.compare(currentPassword, dbUser.passwordHash);
+  if (!matches) {
+    return { ok: false, error: "Senha atual incorreta." };
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash: await bcrypt.hash(newPassword, 12) }
+  });
+
+  return { ok: true };
 }
 
 export async function createPlayerAccount(formData: FormData) {

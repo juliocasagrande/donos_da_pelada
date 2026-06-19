@@ -6,6 +6,7 @@ import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { Ticket } from "lucide-react";
 import { AuthButtons, CredentialsLogin } from "@/components/forms/AuthButtons";
+import { PasswordRequirements } from "@/components/forms/PasswordRequirements";
 import { Button } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Input";
 
@@ -20,6 +21,7 @@ export function LoginPanel({
 }) {
   const [playerView, setPlayerView] = useState<PlayerView>("login");
   const [signupError, setSignupError] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
 
   async function handlePlayerSignup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -83,7 +85,18 @@ export function LoginPanel({
               </div>
               <div>
                 <Label>Senha</Label>
-                <Input name="password" type="password" autoComplete="new-password" minLength={6} required />
+                <Input
+                  name="password"
+                  type="password"
+                  autoComplete="new-password"
+                  minLength={8}
+                  required
+                  value={signupPassword}
+                  onChange={(event) => setSignupPassword(event.target.value)}
+                />
+                <div className="mt-1.5">
+                  <PasswordRequirements password={signupPassword} />
+                </div>
               </div>
               {signupError ? (
                 <p className="rounded-[13px] border border-ausente/30 bg-ausente/10 p-3 text-sm font-semibold text-ausente">

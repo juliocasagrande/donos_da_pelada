@@ -18,23 +18,27 @@ function configuredProviders() {
       async authorize(credentials) {
         if (!credentials?.email || !credentials.password) return null;
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email.toLowerCase() }
-        });
+        try {
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email.toLowerCase() }
+          });
 
-        if (!user?.passwordHash || !user.active) return null;
+          if (!user?.passwordHash || !user.active) return null;
 
-        const passwordOk = await bcrypt.compare(credentials.password, user.passwordHash);
-        if (!passwordOk) return null;
+          const passwordOk = await bcrypt.compare(credentials.password, user.passwordHash);
+          if (!passwordOk) return null;
 
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          image: user.image,
-          role: user.role,
-          onboarded: user.onboarded
-        };
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            image: user.image,
+            role: user.role,
+            onboarded: user.onboarded
+          };
+        } catch {
+          return null;
+        }
       }
     })
   ];
@@ -73,27 +77,36 @@ export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
   pages: {
-    signIn: "/login"
+    signIn: "/login",
+    error: "/auth/erro"
   },
   providers: configuredProviders(),
   callbacks: {
     async signIn({ user }) {
       if (!user.email) return true;
-      const dbUser = await prisma.user.findUnique({ where: { email: user.email } });
-      return dbUser?.active ?? true;
+      try {
+        const dbUser = await prisma.user.findUnique({ where: { email: user.email } });
+        return dbUser?.active ?? true;
+      } catch {
+        return false;
+      }
     },
     async jwt({ token, user }) {
       const email = user?.email || token.email;
       if (email) {
-        const dbUser = await prisma.user.findUnique({
-          where: { email },
-          select: { id: true, role: true, onboarded: true, active: true }
-        });
-        if (dbUser) {
-          token.sub = dbUser.id;
-          token.role = dbUser.role;
-          token.onboarded = dbUser.onboarded;
-          token.active = dbUser.active;
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { email },
+            select: { id: true, role: true, onboarded: true, active: true }
+          });
+          if (dbUser) {
+            token.sub = dbUser.id;
+            token.role = dbUser.role;
+            token.onboarded = dbUser.onboarded;
+            token.active = dbUser.active;
+          }
+        } catch {
+          // Keep the existing token if the database is temporarily unreachable.
         }
       }
       return token;

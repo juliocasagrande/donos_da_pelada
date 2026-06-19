@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { LogOut, Shield, Users } from "lucide-react";
+import { Bell, KeyRound, LogOut, Shield, UserRound, Users } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PlayerForm } from "@/components/forms/PlayerForm";
+import { ChangePasswordForm } from "@/components/profile/ChangePasswordForm";
 import { PushPreferenceSettings } from "@/components/profile/PushPreferenceSettings";
 import { Card } from "@/components/ui/Card";
 import { updateOwnProfile } from "@/lib/actions";
@@ -18,7 +19,7 @@ export default async function ProfilePage({
   const player = await prisma.player.findFirst({ where: { userId: user.id, peladaId: user.peladaId! } });
   const profile = await prisma.user.findUnique({
     where: { id: user.id },
-    select: { whatsapp: true, whatsappChatEnabled: true, pushNotificationsEnabled: true }
+    select: { whatsapp: true, whatsappChatEnabled: true, pushNotificationsEnabled: true, passwordHash: true }
   });
 
   return (
@@ -40,38 +41,83 @@ export default async function ProfilePage({
         </div>
       ) : null}
 
-      <Card className="mx-auto max-w-md">
-        <PlayerForm
-          action={updateOwnProfile}
-          player={player ? { ...player, ...profile } : profile ? {
-            name: user.name || "",
-            nickname: null,
-            photoUrl: user.image || null,
-            position: "MEIA",
-            rating: 0,
-            whatsapp: profile.whatsapp,
-            whatsappChatEnabled: profile.whatsappChatEnabled
-          } : undefined}
-          submitLabel="Salvar alteracoes"
-          canEditRating={false}
-          showWhatsapp
-        />
-      </Card>
+      <div className="mx-auto grid max-w-md gap-4">
+        <section>
+          <div className="mb-2 flex items-center gap-2 px-1">
+            <UserRound size={17} className="text-campo" />
+            <h2 className="text-sm font-extrabold uppercase tracking-[.08em] text-musgo">Dados do perfil</h2>
+          </div>
+          <Card>
+            <PlayerForm
+              action={updateOwnProfile}
+              player={
+                player
+                  ? { ...player, ...profile }
+                  : profile
+                    ? {
+                        name: user.name || "",
+                        nickname: null,
+                        photoUrl: user.image || null,
+                        position: "MEIA",
+                        rating: 0,
+                        whatsapp: profile.whatsapp,
+                        whatsappChatEnabled: profile.whatsappChatEnabled
+                      }
+                    : undefined
+              }
+              submitLabel="Salvar alteracoes"
+              canEditRating={false}
+              showWhatsapp
+            />
+          </Card>
+        </section>
 
-      <Card className="mx-auto mt-4 max-w-md divide-y divide-linha p-0">
-        <Link href="/peladas" className="flex items-center gap-3 p-3.5">
-          <Users className="text-campo" size={18} />
-          <span className="flex-1 font-semibold">Gerenciar peladas</span>
-        </Link>
-        <Link href="/logout" className="flex items-center gap-3 p-3.5 text-ausente">
-          <LogOut size={18} />
-          <span className="flex-1 font-semibold">Sair da conta</span>
-        </Link>
-      </Card>
+        <section>
+          <div className="mb-2 flex items-center gap-2 px-1">
+            <KeyRound size={17} className="text-campo" />
+            <h2 className="text-sm font-extrabold uppercase tracking-[.08em] text-musgo">Seguranca</h2>
+          </div>
+          <Card>
+            {profile?.passwordHash ? (
+              <ChangePasswordForm />
+            ) : (
+              <div className="rounded-[13px] border-[1.5px] border-linha bg-[#F6F8F3] p-3">
+                <p className="text-sm font-bold text-tinta">Login social ativo</p>
+                <p className="mt-1 text-xs text-musgo">
+                  Esta conta entra por provedor social e ainda nao possui senha local para alterar.
+                </p>
+              </div>
+            )}
+          </Card>
+        </section>
 
-      <Card className="mx-auto mt-4 max-w-md">
-        <PushPreferenceSettings initialEnabled={Boolean(profile?.pushNotificationsEnabled)} />
-      </Card>
+        <section>
+          <div className="mb-2 flex items-center gap-2 px-1">
+            <Bell size={17} className="text-campo" />
+            <h2 className="text-sm font-extrabold uppercase tracking-[.08em] text-musgo">Notificacoes</h2>
+          </div>
+          <Card>
+            <PushPreferenceSettings initialEnabled={Boolean(profile?.pushNotificationsEnabled)} />
+          </Card>
+        </section>
+
+        <section>
+          <div className="mb-2 flex items-center gap-2 px-1">
+            <Users size={17} className="text-campo" />
+            <h2 className="text-sm font-extrabold uppercase tracking-[.08em] text-musgo">Conta</h2>
+          </div>
+          <Card className="divide-y divide-linha p-0">
+            <Link href="/peladas" className="flex items-center gap-3 p-3.5">
+              <Users className="text-campo" size={18} />
+              <span className="flex-1 font-semibold">Gerenciar peladas</span>
+            </Link>
+            <Link href="/logout" className="flex items-center gap-3 p-3.5 text-ausente">
+              <LogOut size={18} />
+              <span className="flex-1 font-semibold">Sair da conta</span>
+            </Link>
+          </Card>
+        </section>
+      </div>
     </AppShell>
   );
 }

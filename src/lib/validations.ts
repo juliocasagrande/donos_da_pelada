@@ -12,10 +12,23 @@ export const playerSchema = z.object({
   rating: z.coerce.number().min(0).max(5)
 });
 
+export const passwordRequirements = [
+  { id: "length", label: "Pelo menos 8 caracteres", test: (value: string) => value.length >= 8 },
+  { id: "letter", label: "Pelo menos uma letra", test: (value: string) => /[a-zA-Z]/.test(value) },
+  { id: "number", label: "Pelo menos um numero", test: (value: string) => /[0-9]/.test(value) },
+  { id: "special", label: "Pelo menos um caractere especial", test: (value: string) => /[^a-zA-Z0-9]/.test(value) }
+] as const;
+
+export const passwordSchema = z
+  .string()
+  .refine((value) => passwordRequirements.every((requirement) => requirement.test(value)), {
+    message: "A senha precisa ter pelo menos 8 caracteres, com letras, numeros e caracteres especiais."
+  });
+
 export const signupSchema = z.object({
   name: z.string().trim().min(2, "Informe seu nome."),
   email: z.string().trim().toLowerCase().email("Informe um e-mail valido."),
-  password: z.string().min(6, "A senha precisa ter pelo menos 6 caracteres.")
+  password: passwordSchema
 });
 
 export const surfaces = ["SOCIETY", "CAMPO", "QUADRA"] as const;
