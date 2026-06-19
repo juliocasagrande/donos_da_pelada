@@ -9,7 +9,7 @@ import { ShareMatchStoryButton } from "@/components/matches/ShareMatchStoryButto
 import { VoteCraqueForm } from "@/components/matches/VoteCraqueForm";
 import { closeExpiredCraquePolls } from "@/lib/actions";
 import { prisma } from "@/lib/prisma";
-import { isPeladaAdmin, requireUser } from "@/lib/session";
+import { requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { VOTING_WINDOW_HOURS } from "@/lib/attendance";
 
@@ -62,7 +62,6 @@ function VotingRuleStatus({
 
 export default async function StatsPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser();
-  const isAdmin = isPeladaAdmin(user);
   await closeExpiredCraquePolls(user.peladaId!);
   const { id } = await params;
   const [match, players, poll, linkedPlayer] = await Promise.all([
@@ -124,6 +123,8 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
     })
     .sort((a, b) => b.votes - a.votes || (b.averageRating ?? 0) - (a.averageRating ?? 0) || b.rating - a.rating);
   const leader = candidates[0];
+  const ownCandidate = linkedPlayer ? candidates.find((player) => player.id === linkedPlayer.id) ?? null : null;
+  const ownIsCraque = Boolean(poll?.status === "CLOSED" && ownCandidate && poll.winnerId === ownCandidate.id);
   const eligiblePlayers = players.filter((player) => player.userId && player.active);
   const eligibleUserIds = [...new Set(eligiblePlayers.map((player) => player.userId!).filter(Boolean))];
   const ownConfirmed = Boolean(ownPlayer?.matchSubmissions.some((submission) => submission.userId === user.id));
@@ -192,6 +193,38 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
       </section>
 
       <section className="-mt-5 mb-5 space-y-2.5">
+        {ownCandidate ? (
+          <Card
+            className={cn(
+              "border-2 p-4",
+              ownIsCraque ? "border-craque/50 bg-gradient-to-br from-[#fff4d8] to-[#eaf5ec]" : "border-campo/20 bg-[#EAF5EC]"
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <PlayerAvatar src={ownCandidate.photoUrl} name={ownCandidate.nickname} position={ownCandidate.position} size="lg" />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold uppercase text-musgo">Seu resumo dessa pelada</p>
+                <h2 className="truncate font-display text-xl font-extrabold">{ownCandidate.nickname}</h2>
+                <p className="mt-0.5 text-sm font-semibold text-musgo">
+                  {ownCandidate.summary} · nota {ownCandidate.averageRating?.toFixed(1) ?? "-"}
+                </p>
+                {ownIsCraque ? (
+                  <span className="mt-1.5 inline-flex items-center gap-1 rounded-[7px] bg-craque px-2 py-1 text-[10px] font-black uppercase text-mata">
+                    <Star size={11} fill="currentColor" /> Craque da pelada
+                  </span>
+                ) : null}
+              </div>
+            </div>
+            <ShareMatchStoryButton
+              matchId={id}
+              playerId={ownCandidate.id}
+              fileLabel={ownCandidate.nickname}
+              label="Compartilhar no story"
+              className="mt-3 w-full py-2.5 text-sm"
+            />
+          </Card>
+        ) : null}
+
         {poll && canVote && votingOpen && (ownCraqueVote || ownConfirmed || ownStatsSent) ? (
           <Card className="border border-campo/20 bg-[#EAF5EC]">
             <p className="text-sm font-bold text-mata">
@@ -269,7 +302,6 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
 
             {candidates.map((player) => {
               const selected = ownCraqueVote?.playerId === player.id;
-              const canShare = linkedPlayer?.id === player.id || isAdmin;
               return (
                 <Card key={player.id} className={cn("p-3", selected && "border-2 border-campo bg-[#EAF5EC]")}>
                   <div className="flex items-center gap-3">
@@ -286,7 +318,6 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
                     {selected ? (
                       <span className="rounded-[10px] bg-campo px-3 py-2 text-xs font-bold text-white">Seu voto</span>
                     ) : null}
-                    {canShare ? <ShareMatchStoryButton matchId={id} playerId={player.id} fileLabel={player.nickname} /> : null}
                   </div>
                 </Card>
               );

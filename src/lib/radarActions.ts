@@ -91,7 +91,7 @@ export async function openMatchToGuests(matchId: string, formData: FormData) {
   }
 
   if (guestLatitude == null || guestLongitude == null) {
-    redirect(`/matches/${matchId}/edit?radarErro=${encodeURIComponent("Nao foi possivel localizar o endereco da pelada para o radar.")}`);
+    redirect(`/matches/${matchId}/attendance?radarErro=${encodeURIComponent("Nao foi possivel localizar o endereco da pelada para o radar.")}`);
   }
 
   await prisma.match.update({
@@ -111,9 +111,9 @@ export async function openMatchToGuests(matchId: string, formData: FormData) {
     }
   });
 
-  revalidatePath(`/matches/${matchId}/edit`);
+  revalidatePath(`/matches/${matchId}/attendance`);
   revalidatePath("/radar");
-  redirect(`/matches/${matchId}/edit?radarAberto=1`);
+  redirect(`/matches/${matchId}/attendance?radarAberto=1`);
 }
 
 export async function closeMatchToGuests(matchId: string) {
@@ -126,7 +126,7 @@ export async function closeMatchToGuests(matchId: string) {
     data: { status: "REJECTED" }
   });
 
-  revalidatePath(`/matches/${matchId}/edit`);
+  revalidatePath(`/matches/${matchId}/attendance`);
   revalidatePath("/radar");
 }
 

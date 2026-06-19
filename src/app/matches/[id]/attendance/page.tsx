@@ -1,12 +1,14 @@
 import Link from "next/link";
-import { Check, Clock, UserCheck, UserMinus, Users } from "lucide-react";
+import { Check, Clock, Radar as RadarIcon, UserCheck, UserMinus, UserPlus, Users } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PlayerAvatar } from "@/components/players/PlayerAvatar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { GuestForm } from "@/components/forms/GuestForm";
 import { GuestRemoveForm } from "@/components/matches/GuestRemoveForm";
 import { LocationLinks } from "@/components/matches/LocationLinks";
+import { OpenToGuestsForm } from "@/components/forms/OpenToGuestsForm";
 import { toggleAttendance, toggleOwnAttendance } from "@/lib/actions";
 import { TOTAL_CAPACITY } from "@/lib/attendance";
 import { prisma } from "@/lib/prisma";
@@ -29,9 +31,16 @@ function getSaoPauloHour(date: Date) {
   );
 }
 
-export default async function AttendancePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function AttendancePage({
+  params,
+  searchParams
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ radarErro?: string; radarAberto?: string }>;
+}) {
   const user = await requireUser();
   const { id } = await params;
+  const { radarErro, radarAberto } = await searchParams;
   const [match, players] = await Promise.all([
     prisma.match.findFirst({ where: { id, peladaId: user.peladaId!, deletedAt: null } }),
     prisma.player.findMany({
@@ -54,6 +63,17 @@ export default async function AttendancePage({ params }: { params: Promise<{ id:
         getSaoPauloDate(new Date()) === getSaoPauloDate(match.date) &&
         getSaoPauloHour(new Date()) >= 14
     );
+
+  const approvedCounts =
+    isAdmin && match?.openToGuests
+      ? await prisma.matchGuestRequest.groupBy({
+          by: ["position"],
+          where: { matchId: id, status: "APPROVED" },
+          _count: true
+        })
+      : [];
+  const approvedLineCount = approvedCounts.find((row) => row.position === "LINHA")?._count ?? 0;
+  const approvedGoalkeeperCount = approvedCounts.find((row) => row.position === "GOLEIRO")?._count ?? 0;
 
   const groupedPlayers = {
     CONFIRMED: players.filter((player) => player.attendances[0]?.status === "CONFIRMED"),
@@ -257,11 +277,49 @@ export default async function AttendancePage({ params }: { params: Promise<{ id:
       </div>
 
       {canInviteGuest ? (
-        <Card className="mt-5">
-          <h2 className="mb-1 font-display text-lg font-bold">Chamar convidado</h2>
-          <p className="mb-3 text-sm text-musgo">Mensalistas podem adicionar convidados apos as 14h no dia da pelada.</p>
+        <CollapsibleCard
+          className="mt-5"
+          icon={UserPlus}
+          title="Chamar convidado"
+          description="Mensalistas podem adicionar convidados apos as 14h no dia da pelada."
+        >
           <GuestForm matchId={id} />
-        </Card>
+        </CollapsibleCard>
+      ) : null}
+
+      {isAdmin && match ? (
+        <CollapsibleCard
+          className="mt-3"
+          icon={RadarIcon}
+          title="Radar: abrir para externos"
+          description="Defina vagas, cobranca e nota minima para jogadores de fora encontrarem essa pelada."
+          defaultOpen={Boolean(radarAberto || radarErro)}
+        >
+          {radarAberto ? (
+            <div className="mb-3 rounded-[13px] border border-campo/30 bg-[#EAF5EC] p-3 text-sm font-semibold text-campo">
+              Pelada aberta para externos.
+            </div>
+          ) : null}
+          {radarErro ? (
+            <div className="mb-3 rounded-[13px] border border-ausente/30 bg-[#FBE9E6] p-3 text-sm font-semibold text-ausente">
+              {radarErro}
+            </div>
+          ) : null}
+          <OpenToGuestsForm
+            matchId={id}
+            openToGuests={match.openToGuests}
+            guestLineSlots={match.guestLineSlots}
+            guestGoalkeeperSlots={match.guestGoalkeeperSlots}
+            guestLineFeeMode={match.guestLineFeeMode}
+            guestGoalkeeperFeeMode={match.guestGoalkeeperFeeMode}
+            guestLineFeeAmount={match.guestLineFeeAmount}
+            guestGoalkeeperFeeAmount={match.guestGoalkeeperFeeAmount}
+            guestMinRating={match.guestMinRating}
+            guestMaxRating={match.guestMaxRating}
+            approvedLineCount={approvedLineCount}
+            approvedGoalkeeperCount={approvedGoalkeeperCount}
+          />
+        </CollapsibleCard>
       ) : null}
 
       {isAdmin ? (

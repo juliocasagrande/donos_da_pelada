@@ -396,6 +396,9 @@ export default async function DashboardPage() {
           title={craque.title}
           photoUrl={craque.winner.photoUrl}
           position={craque.winner.position}
+          matchId={craque.matchId}
+          playerId={craque.winner.id}
+          isViewer={linkedPlayer?.id === craque.winner.id}
         />
       ) : null}
 

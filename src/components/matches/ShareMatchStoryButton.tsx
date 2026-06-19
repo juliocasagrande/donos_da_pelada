@@ -7,11 +7,15 @@ import { Button } from "@/components/ui/Button";
 export function ShareMatchStoryButton({
   matchId,
   playerId,
-  fileLabel
+  fileLabel,
+  label = "Compartilhar",
+  className = "gap-1.5 py-1.5 text-[11px]"
 }: {
   matchId: string;
   playerId: string;
   fileLabel: string;
+  label?: string;
+  className?: string;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -45,14 +49,8 @@ export function ShareMatchStoryButton({
 
   return (
     <div className="shrink-0">
-      <Button
-        type="button"
-        variant="secondary"
-        className="gap-1.5 py-1.5 text-[11px]"
-        onClick={handleShare}
-        disabled={loading}
-      >
-        <Share2 size={13} /> {loading ? "Gerando..." : "Compartilhar"}
+      <Button type="button" variant="secondary" className={className} onClick={handleShare} disabled={loading}>
+        <Share2 size={13} /> {loading ? "Gerando..." : label}
       </Button>
       {error ? <p className="mt-1 text-[10px] font-semibold text-ausente">{error}</p> : null}
     </div>
