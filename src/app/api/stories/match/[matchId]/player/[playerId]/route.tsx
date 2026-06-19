@@ -63,8 +63,8 @@ function statColumn(x: number, value: string, label: string, color = "#fff") {
 
 function punchlineLines(value: string) {
   if (value === "Hoje a pelada foi minha.") return ["Hoje a pelada", "foi minha."];
-  if (value === "Nao fiz gol, mas nao faltei.") return ["Nao fiz gol,", "mas nao faltei."];
-  return ["Paguei a agua,", "ta pago."];
+  if (value === "Não fiz gol, mas não faltei.") return ["Não fiz gol,", "mas não faltei."];
+  return ["Paguei a água,", "tá pago."];
 }
 
 function renderStorySvg({
@@ -76,7 +76,6 @@ function renderStorySvg({
   isGoalkeeper,
   isGold,
   isHumor,
-  isCraqueWinner,
   averageRating,
   ratingsCount,
   filledStars,
@@ -94,7 +93,6 @@ function renderStorySvg({
   isGoalkeeper: boolean;
   isGold: boolean;
   isHumor: boolean;
-  isCraqueWinner: boolean;
   averageRating: number | null;
   ratingsCount: number;
   filledStars: number;
@@ -133,7 +131,7 @@ function renderStorySvg({
         ribbonBg: "rgba(255,255,255,.12)",
         ribbonText: "#ffffff",
         ribbonLabel: "Fechou a pelada",
-        punchline: isHumor ? "Paguei a agua, ta pago." : "Nao fiz gol, mas nao faltei."
+        punchline: isHumor ? "Paguei a água, tá pago." : "Não fiz gol, mas não faltei."
       };
 
   const safeName = escapeXml(playerName);
@@ -181,8 +179,12 @@ function renderStorySvg({
   }
 
   <g>
-    <rect x="336" y="181" width="408" height="80" rx="40" fill="${theme.ribbonBg}" stroke="rgba(255,255,255,.18)" />
-    <circle cx="383" cy="221" r="9" fill="${theme.accent}" />
+    <rect x="336" y="181" width="408" height="80" rx="40" fill="${theme.ribbonBg}" ${isGold ? "" : 'stroke="rgba(255,255,255,.18)" stroke-width="3"'} />
+    ${
+      isGold
+        ? `<polygon transform="translate(365 202) scale(1.55)" points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="#16261D" />`
+        : `<path d="m367 220 5 5 9-9" fill="none" stroke="#9fe3b8" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />`
+    }
     <text x="540" y="234" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="36" font-weight="700" letter-spacing="5" fill="${theme.ribbonText}">${escapeXml(theme.ribbonLabel.toUpperCase())}</text>
 
     <rect x="372" y="306" width="336" height="336" rx="85" fill="url(#ring)" filter="url(#softShadow)" />
@@ -194,15 +196,15 @@ function renderStorySvg({
     }
     <circle cx="682" cy="615" r="48" fill="${theme.badgeBg}" stroke="${theme.bgEnd}" stroke-width="8" />
     ${
-      isGold && isCraqueWinner
+      isGold
         ? `<path d="M663 607h-8a15 15 0 0 1 0-30h8m34 30h8a15 15 0 0 0 0-30h-8M652 648h56M674 627v10c0 5-4 8-8 10-8 4-13 10-13 21m53 0c0-11-5-17-13-21-4-2-8-5-8-10v-10M697 567h-34v40a17 17 0 0 0 34 0v-40Z" fill="none" stroke="#16261D" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />`
         : `<text x="682" y="629" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="38" font-weight="700" fill="${theme.badgeColor}">${escapeXml(badgeLabel)}</text>`
     }
 
     <text x="540" y="776" text-anchor="middle" font-family="Arial, sans-serif" font-size="101" font-weight="800" fill="#fff">${safeName}</text>
-    <text x="540" y="836" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="35" font-weight="700" letter-spacing="6" fill="${theme.sub}">${escapeXml(`${isGoalkeeper ? "Goleiro" : "Linha"} - ${peladaName}`.toUpperCase())}</text>
+    <text x="540" y="836" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="35" font-weight="700" letter-spacing="6" fill="${theme.sub}">${escapeXml(`${isGoalkeeper ? "Goleiro" : "Linha"} · ${peladaName}`.toUpperCase())}</text>
 
-    <rect x="64" y="870" width="952" height="352" rx="59" fill="rgba(255,255,255,.07)" stroke="rgba(255,255,255,.13)" />
+    <rect x="64" y="870" width="952" height="352" rx="59" fill="rgba(255,255,255,.07)" stroke="rgba(255,255,255,.13)" stroke-width="3" />
     <text x="166" y="1002" font-family="Arial Narrow, Arial, sans-serif" font-size="123" font-weight="700" fill="${isGold ? "#F4A11A" : "#ffffff"}">${escapeXml(ratingLabel)}</text>
     <text x="402" y="948" font-family="Arial Narrow, Arial, sans-serif" font-size="29" font-weight="700" letter-spacing="4" fill="${theme.sub}">NOTA DA GALERA</text>
     <g transform="translate(402 976)">
@@ -218,10 +220,10 @@ function renderStorySvg({
 
     <text x="540" y="1294" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" font-weight="800" fill="#fff">"${escapeXml(punchlineTop)}</text>
     <text x="540" y="1350" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" font-weight="800" fill="#fff">${escapeXml(punchlineBottom)}"</text>
-    <text x="540" y="1418" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" fill="rgba(255,255,255,.5)">${escapeXml(`${matchTitle} - ${dateLabel}`)}</text>
+    <text x="540" y="1418" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" fill="rgba(255,255,255,.5)">${escapeXml(`${matchTitle} · ${dateLabel}`)}</text>
 
     <line x1="64" y1="1642" x2="1016" y2="1642" stroke="rgba(255,255,255,.12)" stroke-width="3" />
-    <text x="540" y="1708" text-anchor="middle" font-family="Arial, sans-serif" font-size="44" font-weight="800" fill="#fff">Organize sua propria pelada</text>
+    <text x="540" y="1708" text-anchor="middle" font-family="Arial, sans-serif" font-size="44" font-weight="800" fill="#fff">Organize sua própria pelada</text>
     <text x="540" y="1760" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" fill="rgba(255,255,255,.5)">Baixe o app Dono da Pelada</text>
   </g>
 </svg>`;
@@ -242,7 +244,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ mat
         include: {
           goals: { where: { matchId } },
           assists: { where: { matchId } },
-          ratings: { where: { matchId } }
+          ratings: { where: { matchId } },
+          user: { select: { image: true } }
         }
       })
     ]);
@@ -279,18 +282,17 @@ export async function GET(_request: Request, { params }: { params: Promise<{ mat
       peladaName: match.pelada.name,
       matchTitle: match.title,
       dateLabel: formatShortDate(match.date),
-      photoSrc: await getImageDataUrl(player.photoUrl),
+      photoSrc: await getImageDataUrl(player.photoUrl ?? player.user?.image ?? null),
       isGoalkeeper: player.position === "GOLEIRO",
       isGold,
       isHumor: averageRating != null && averageRating < 5,
-      isCraqueWinner: poll?.status === "CLOSED" && poll.winnerId === player.id,
       averageRating,
       ratingsCount,
       filledStars: averageRating != null ? Math.min(5, Math.max(0, Math.round(averageRating / 2))) : 0,
       goals,
       assists,
       thirdStatValue: showVoteRank ? `${voteRank}o` : String(presenceCount),
-      thirdStatLabel: showVoteRank ? "na votacao" : "presenca",
+      thirdStatLabel: showVoteRank ? "na votação" : "presença",
       badgeLabel: showVoteRank ? `${voteRank}o` : `${presenceCount}a`
     });
 
