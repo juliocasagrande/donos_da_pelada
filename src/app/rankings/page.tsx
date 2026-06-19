@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 
 const tabs = [
   { key: "artilharia", label: "Gols", field: "goalsTotal" },
+  { key: "assistencia", label: "Assist.", field: "assistsTotal" },
   { key: "presenca", label: "Pres.", field: "presenceTotal" },
   { key: "craque", label: "Craque", field: "craqueTotal" },
   { key: "notas", label: "Notas", field: "ratingAverage" }
@@ -98,6 +99,7 @@ export default async function RankingsPage({
     include: {
       pelada: { select: { name: true } },
       goals: { include: { match: { select: { kind: true } } } },
+      assists: { include: { match: { select: { kind: true } } } },
       defenses: { include: { match: { select: { kind: true } } } },
       pollWinners: { include: { match: { select: { kind: true } } } },
       attendances: { include: { match: { select: { kind: true } } } },
@@ -134,6 +136,7 @@ export default async function RankingsPage({
 
   const mapped = players.map((player) => {
     const goals = matchesKind(player.goals, activeKind.key);
+    const assists = matchesKind(player.assists, activeKind.key);
     const defenses = matchesKind(player.defenses, activeKind.key);
     const pollWinners = matchesKind(player.pollWinners, activeKind.key);
     const attendances = matchesKind(player.attendances, activeKind.key);
@@ -142,6 +145,7 @@ export default async function RankingsPage({
     return {
       ...player,
       goalsTotal: goals.reduce((sum, item) => sum + item.quantity, 0),
+      assistsTotal: assists.reduce((sum, item) => sum + item.quantity, 0),
       defensesTotal: defenses.reduce((sum, item) => sum + item.quantity, 0),
       presenceTotal: attendances.filter((attendance) => attendance.status === "CONFIRMED").length,
       craqueTotal: pollWinners.length,
@@ -204,13 +208,13 @@ export default async function RankingsPage({
         ))}
       </div>
 
-      <div className="mb-6 grid grid-cols-4 gap-1.5">
+      <div className="mb-6 grid grid-cols-5 gap-1">
         {tabs.map((tab) => (
           <Link
             key={tab.key}
             href={`/rankings?pelada=${activeScope}&tipo=${tab.key}&jogo=${activeKind.key}`}
             className={cn(
-              "flex min-h-9 items-center justify-center rounded-[10px] px-1 text-center text-[11px] font-bold shadow-sm transition active:scale-[.98]",
+              "flex min-h-9 items-center justify-center rounded-[10px] px-0.5 text-center text-[10px] font-bold shadow-sm transition active:scale-[.98]",
               activeTab.key === tab.key ? "bg-campo text-white" : "bg-white text-musgo"
             )}
           >

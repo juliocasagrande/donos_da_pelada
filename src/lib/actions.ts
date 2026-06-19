@@ -1051,13 +1051,27 @@ export async function updateStats(matchId: string, formData: FormData) {
 
   for (const playerId of playerIds) {
     const goals = Number(value(formData, `goals-${playerId}`) || 0);
+    const assists = Number(value(formData, `assists-${playerId}`) || 0);
     const defenses = Number(value(formData, `defenses-${playerId}`) || 0);
-    if (!Number.isFinite(goals) || goals < 0 || !Number.isFinite(defenses) || defenses < 0) continue;
+    if (
+      !Number.isFinite(goals) ||
+      goals < 0 ||
+      !Number.isFinite(assists) ||
+      assists < 0 ||
+      !Number.isFinite(defenses) ||
+      defenses < 0
+    )
+      continue;
 
     await prisma.goal.upsert({
       where: { matchId_playerId: { matchId, playerId } },
       update: { quantity: goals },
       create: { matchId, playerId, quantity: goals }
+    });
+    await prisma.assist.upsert({
+      where: { matchId_playerId: { matchId, playerId } },
+      update: { quantity: assists },
+      create: { matchId, playerId, quantity: assists }
     });
     await prisma.difficultSave.upsert({
       where: { matchId_playerId: { matchId, playerId } },
@@ -1112,6 +1126,7 @@ export async function submitOwnMatchStats(matchId: string, formData: FormData) {
     where: { userId: user.id, peladaId: user.peladaId!, active: true },
     include: {
       goals: { where: { matchId } },
+      assists: { where: { matchId } },
       defenses: { where: { matchId } }
     }
   });
@@ -1125,8 +1140,16 @@ export async function submitOwnMatchStats(matchId: string, formData: FormData) {
   }
 
   const goals = Number(value(formData, "goals") || 0);
+  const assists = Number(value(formData, "assists") || 0);
   const defenses = Number(value(formData, "defenses") || 0);
-  if (!Number.isFinite(goals) || goals < 0 || !Number.isFinite(defenses) || defenses < 0) {
+  if (
+    !Number.isFinite(goals) ||
+    goals < 0 ||
+    !Number.isFinite(assists) ||
+    assists < 0 ||
+    !Number.isFinite(defenses) ||
+    defenses < 0
+  ) {
     return { ok: false, error: "Informe numeros validos." };
   }
 
@@ -1135,6 +1158,11 @@ export async function submitOwnMatchStats(matchId: string, formData: FormData) {
       where: { matchId_playerId: { matchId, playerId: linkedPlayer.id } },
       update: { quantity: goals },
       create: { matchId, playerId: linkedPlayer.id, quantity: goals }
+    }),
+    prisma.assist.upsert({
+      where: { matchId_playerId: { matchId, playerId: linkedPlayer.id } },
+      update: { quantity: assists },
+      create: { matchId, playerId: linkedPlayer.id, quantity: assists }
     }),
     prisma.difficultSave.upsert({
       where: { matchId_playerId: { matchId, playerId: linkedPlayer.id } },

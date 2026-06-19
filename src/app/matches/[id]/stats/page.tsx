@@ -74,6 +74,7 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
       },
       include: {
         goals: { where: { matchId: id } },
+        assists: { where: { matchId: id } },
         defenses: { where: { matchId: id } },
         ratings: { where: { matchId: id }, include: { user: true } },
         matchSubmissions: { where: { matchId: id } }
@@ -107,6 +108,7 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
     .map((player) => {
       const votes = voteCounts.get(player.id) ?? 0;
       const goals = player.goals.reduce((sum, item) => sum + item.quantity, 0);
+      const assists = player.assists.reduce((sum, item) => sum + item.quantity, 0);
       const defenses = player.defenses.reduce((sum, item) => sum + item.quantity, 0);
       const viewerRating = player.ratings.find((rating) => rating.userId === user.id)?.value;
       const averageRating = player.ratings.length
@@ -118,7 +120,8 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
         percent: totalVotes ? Math.round((votes / totalVotes) * 100) : 0,
         averageRating,
         viewerRating,
-        summary: player.position === "GOLEIRO" ? `${defenses} defesas dificeis` : `${goals} gols`
+        summary:
+          player.position === "GOLEIRO" ? `${defenses} defesas dificeis` : `${goals} gols · ${assists} assist.`
       };
     })
     .sort((a, b) => b.votes - a.votes || (b.averageRating ?? 0) - (a.averageRating ?? 0) || b.rating - a.rating);
@@ -144,7 +147,7 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
   const ownRatingsPercent = ownRatingsTotal ? Math.round((ownRatingsCount / ownRatingsTotal) * 100) : 100;
   const canConfirmOwnVoting = canVote && votingOpen && ownStatsSent && Boolean(ownCraqueVote) && !ownConfirmed;
   const missingVotingSteps = [
-    !ownStatsSent ? "Salvar seus gols e defesas" : null,
+    !ownStatsSent ? "Salvar seus gols, assistencias e defesas" : null,
     !ownCraqueVote ? "Votar no craque" : null
   ].filter((step): step is string => Boolean(step));
   const confirmDisabledReason = missingVotingSteps.length
@@ -244,11 +247,12 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
             <p className="mb-3 text-sm text-musgo">
               {ownStatsSent
                 ? "Seus numeros estao salvos. Voce ainda pode ajustar antes de confirmar a votacao."
-                : "Informe seus gols e defesas antes de confirmar sua votacao."}
+                : "Informe seus gols, assistencias e defesas antes de confirmar sua votacao."}
             </p>
             <OwnMatchStatsForm
               matchId={id}
               goals={ownPlayer.goals[0]?.quantity || 0}
+              assists={ownPlayer.assists[0]?.quantity || 0}
               defenses={ownPlayer.defenses[0]?.quantity || 0}
               saved={ownStatsSent}
             />
@@ -259,10 +263,14 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
           <Card className="border border-campo/20 bg-[#EAF5EC]">
             <p className="text-sm font-bold text-mata">Sua votacao foi confirmada.</p>
             <p className="mt-1 text-xs text-musgo">Agora ela ja conta como finalizada para voce. Ajustes de numeros so podem ser feitos por admin.</p>
-            <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="mt-3 grid grid-cols-3 gap-2">
               <div className="rounded-[13px] bg-white/75 p-3">
                 <p className="text-xs font-bold uppercase text-musgo">Gols</p>
                 <p className="font-jersey text-3xl font-bold text-campo">{ownPlayer?.goals[0]?.quantity || 0}</p>
+              </div>
+              <div className="rounded-[13px] bg-white/75 p-3">
+                <p className="text-xs font-bold uppercase text-musgo">Assist.</p>
+                <p className="font-jersey text-3xl font-bold text-campo">{ownPlayer?.assists[0]?.quantity || 0}</p>
               </div>
               <div className="rounded-[13px] bg-white/75 p-3">
                 <p className="text-xs font-bold uppercase text-musgo">Defesas</p>
@@ -369,7 +377,11 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
               <VotingRuleStatus
                 done={ownStatsSent}
                 title="Numeros proprios"
-                description={ownStatsSent ? "Gols e defesas salvos." : "Salve seus gols e defesas para continuar."}
+                description={
+                  ownStatsSent
+                    ? "Gols, assistencias e defesas salvos."
+                    : "Salve seus gols, assistencias e defesas para continuar."
+                }
               />
               <VotingRuleStatus
                 done={Boolean(ownCraqueVote)}

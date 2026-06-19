@@ -42,6 +42,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
       where: { id, peladaId: user.peladaId! },
       include: {
         goals: true,
+        assists: true,
         defenses: true,
         attendances: true,
         pollWinners: true,
@@ -58,6 +59,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 
   const isGuest = player.membershipStatus === "CONVIDADO";
   const goals = isGuest ? 0 : player.goals.reduce((sum, item) => sum + item.quantity, 0);
+  const assists = isGuest ? 0 : player.assists.reduce((sum, item) => sum + item.quantity, 0);
   const saves = isGuest ? 0 : player.defenses.reduce((sum, item) => sum + item.quantity, 0);
   const presences = isGuest ? 0 : player.attendances.filter((attendance) => attendance.status === "CONFIRMED").length;
   const craque = isGuest ? 0 : player.pollWinners.length;
@@ -107,10 +109,14 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
         </div>
       </section>
 
-      <section className="stagger -mt-3 grid grid-cols-2 gap-2">
+      <section className="stagger -mt-3 grid grid-cols-3 gap-2">
         <div className="animate-card rounded-[13px] bg-white p-3 text-center shadow-card">
           <div className="font-jersey text-3xl font-bold">{player.position === "GOLEIRO" ? saves : goals}</div>
           <p className="text-xs text-musgo">{player.position === "GOLEIRO" ? "Defesas" : "Gols"}</p>
+        </div>
+        <div className="animate-card rounded-[13px] bg-white p-3 text-center shadow-card">
+          <div className="font-jersey text-3xl font-bold">{assists}</div>
+          <p className="text-xs text-musgo">Assist.</p>
         </div>
         <div className="animate-card rounded-[13px] bg-white p-3 text-center shadow-card">
           <div className="font-jersey text-3xl font-bold">{presences}</div>

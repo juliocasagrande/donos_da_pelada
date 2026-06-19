@@ -12,21 +12,25 @@ type ActionState = { ok: boolean; error?: string } | null;
 export function OwnMatchStatsForm({
   matchId,
   goals,
+  assists,
   defenses,
   saved = false
 }: {
   matchId: string;
   goals: number;
+  assists: number;
   defenses: number;
   saved?: boolean;
 }) {
   const toast = useToast();
   const [editing, setEditing] = useState(!saved);
   const [savedGoals, setSavedGoals] = useState(goals);
+  const [savedAssists, setSavedAssists] = useState(assists);
   const [savedDefenses, setSavedDefenses] = useState(defenses);
   const [state, formAction, isPending] = useActionState(
     (_prevState: ActionState, formData: FormData) => {
       setSavedGoals(Number(formData.get("goals") || 0));
+      setSavedAssists(Number(formData.get("assists") || 0));
       setSavedDefenses(Number(formData.get("defenses") || 0));
       return submitOwnMatchStats(matchId, formData);
     },
@@ -45,10 +49,14 @@ export function OwnMatchStatsForm({
   if (!editing) {
     return (
       <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <div className="rounded-[13px] bg-areia p-3">
             <p className="text-xs font-bold uppercase text-musgo">Gols</p>
             <p className="font-jersey text-3xl font-bold text-campo">{savedGoals}</p>
+          </div>
+          <div className="rounded-[13px] bg-areia p-3">
+            <p className="text-xs font-bold uppercase text-musgo">Assist.</p>
+            <p className="font-jersey text-3xl font-bold text-campo">{savedAssists}</p>
           </div>
           <div className="rounded-[13px] bg-areia p-3">
             <p className="text-xs font-bold uppercase text-musgo">Defesas</p>
@@ -65,10 +73,14 @@ export function OwnMatchStatsForm({
 
   return (
     <form action={formAction} className="space-y-3">
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         <label className="text-xs font-semibold text-musgo">
           Gols
           <Input name="goals" type="number" min={0} defaultValue={goals} />
+        </label>
+        <label className="text-xs font-semibold text-musgo">
+          Assist.
+          <Input name="assists" type="number" min={0} defaultValue={assists} />
         </label>
         <label className="text-xs font-semibold text-musgo">
           Defesas

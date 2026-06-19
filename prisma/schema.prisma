@@ -209,6 +209,7 @@ model UserCareerStats {
   id            String   @id @default(cuid())
   userId        String   @unique
   goalsTotal    Int      @default(0)
+  assistsTotal  Int      @default(0)
   presenceTotal Int      @default(0)
   craqueTotal   Int      @default(0)
   ratingSum     Float    @default(0)

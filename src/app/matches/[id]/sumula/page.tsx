@@ -19,6 +19,7 @@ export default async function MatchSumulaPage({ params }: { params: Promise<{ id
       },
       include: {
         goals: { where: { matchId: id } },
+        assists: { where: { matchId: id } },
         defenses: { where: { matchId: id } }
       },
       orderBy: { nickname: "asc" }
@@ -37,7 +38,7 @@ export default async function MatchSumulaPage({ params }: { params: Promise<{ id
     <AppShell>
       <div className="mb-5">
         <p className="font-jersey text-sm font-semibold uppercase tracking-[.14em] text-musgo">Sumula</p>
-        <h1 className="font-display text-3xl font-extrabold tracking-[-.02em]">Gols e defesas</h1>
+        <h1 className="font-display text-3xl font-extrabold tracking-[-.02em]">Gols, assistencias e defesas</h1>
         <p className="mt-1 text-sm text-musgo">{match.title}</p>
       </div>
 
@@ -76,6 +77,7 @@ export default async function MatchSumulaPage({ params }: { params: Promise<{ id
               photoUrl: player.photoUrl,
               position: player.position,
               goals: player.goals[0]?.quantity || 0,
+              assists: player.assists[0]?.quantity || 0,
               defenses: player.defenses[0]?.quantity || 0
             }))}
           />

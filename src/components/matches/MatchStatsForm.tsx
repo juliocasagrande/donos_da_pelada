@@ -15,6 +15,7 @@ type MatchStatsPlayer = {
   photoUrl: string | null;
   position: string;
   goals: number;
+  assists: number;
   defenses: number;
 };
 
@@ -39,10 +40,14 @@ export function MatchStatsForm({ matchId, players }: { matchId: string; players:
           <div>
             <h2 className="font-black">{player.nickname}</h2>
             <input type="hidden" name="playerId" value={player.id} />
-            <div className="mt-2 grid grid-cols-2 gap-2">
+            <div className="mt-2 grid grid-cols-3 gap-2">
               <label className="text-xs text-musgo">
                 Gols
                 <Input name={`goals-${player.id}`} type="number" min={0} defaultValue={player.goals} />
+              </label>
+              <label className="text-xs text-musgo">
+                Assist.
+                <Input name={`assists-${player.id}`} type="number" min={0} defaultValue={player.assists} />
               </label>
               <label className="text-xs text-musgo">
                 Defesas
