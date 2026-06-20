@@ -1,5 +1,6 @@
+import path from "path";
+import { Resvg } from "@resvg/resvg-js";
 import { NextResponse } from "next/server";
-import sharp from "sharp";
 import { ApiAuthError, isPeladaAdmin, requireApiUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 
@@ -7,6 +8,23 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+const FONTS_DIR = path.join(process.cwd(), "src/assets/fonts");
+const FONT_FILES = ["Inter-Regular.ttf", "Inter-SemiBold.ttf", "Inter-Bold.ttf", "Inter-ExtraBold.ttf"].map((file) =>
+  path.join(FONTS_DIR, file)
+);
+
+function svgToPng(svg: string) {
+  const resvg = new Resvg(svg, {
+    font: {
+      fontFiles: FONT_FILES,
+      loadSystemFonts: false,
+      defaultFontFamily: "Inter"
+    },
+    fitTo: { mode: "zoom", value: 2 }
+  });
+  return resvg.render().asPng();
+}
 
 function escapeXml(value: string) {
   return value
@@ -68,8 +86,8 @@ function star(index: number, filledStars: number, color: string) {
 
 function statColumn(x: number, value: string, label: string, color = "#fff") {
   return `
-    <text x="${x}" y="1150" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="75" font-weight="700" fill="${color}">${escapeXml(value)}</text>
-    <text x="${x}" y="1208" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="27" font-weight="700" letter-spacing="3" fill="rgba(255,255,255,.55)">${escapeXml(label.toUpperCase())}</text>
+    <text x="${x}" y="1150" text-anchor="middle" font-family="Inter" font-size="75" font-weight="700" fill="${color}">${escapeXml(value)}</text>
+    <text x="${x}" y="1208" text-anchor="middle" font-family="Inter" font-size="27" font-weight="700" letter-spacing="3" fill="rgba(255,255,255,.55)">${escapeXml(label.toUpperCase())}</text>
   `;
 }
 
@@ -231,20 +249,20 @@ function renderAmistosoStorySvg({
   <g>
     <rect x="290" y="181" width="500" height="80" rx="40" fill="${theme.ribbonFill}" ${theme.ribbonStroke ? `stroke="${theme.ribbonStroke}" stroke-width="3"` : ""} />
     ${ballIcon(330, 207, 1.2)}
-    <text x="560" y="234" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="36" font-weight="700" letter-spacing="5" fill="${theme.ribbonText}">AMISTOSO</text>
+    <text x="560" y="234" text-anchor="middle" font-family="Inter" font-size="36" font-weight="700" letter-spacing="5" fill="${theme.ribbonText}">AMISTOSO</text>
 
-    <text x="540" y="372" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="6" fill="${theme.sub}">${escapeXml(peladaName.toUpperCase())}</text>
+    <text x="540" y="372" text-anchor="middle" font-family="Inter" font-size="34" font-weight="700" letter-spacing="6" fill="${theme.sub}">${escapeXml(peladaName.toUpperCase())}</text>
 
-    <text x="430" y="540" text-anchor="end" font-family="Arial, sans-serif" font-size="160" font-weight="800" fill="${theme.homeColor}" letter-spacing="-4">${escapeXml(homeLabel)}</text>
-    <text x="540" y="520" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="70" font-weight="600" fill="rgba(255,255,255,.28)">x</text>
-    <text x="650" y="540" text-anchor="start" font-family="Arial, sans-serif" font-size="160" font-weight="800" fill="${theme.awayColor}" letter-spacing="-4">${escapeXml(awayLabel)}</text>
+    <text x="430" y="540" text-anchor="end" font-family="Inter" font-size="160" font-weight="800" fill="${theme.homeColor}" letter-spacing="-4">${escapeXml(homeLabel)}</text>
+    <text x="540" y="520" text-anchor="middle" font-family="Inter" font-size="70" font-weight="600" fill="rgba(255,255,255,.28)">x</text>
+    <text x="650" y="540" text-anchor="start" font-family="Inter" font-size="160" font-weight="800" fill="${theme.awayColor}" letter-spacing="-4">${escapeXml(awayLabel)}</text>
 
-    <text x="540" y="600" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="6" fill="rgba(255,255,255,.55)">${escapeXml(opponentName.toUpperCase())}</text>
+    <text x="540" y="600" text-anchor="middle" font-family="Inter" font-size="34" font-weight="700" letter-spacing="6" fill="rgba(255,255,255,.55)">${escapeXml(opponentName.toUpperCase())}</text>
 
     <g transform="translate(540 660)">
       <rect x="-130" y="-26" width="260" height="52" rx="26" fill="${theme.pillBg}" stroke="${theme.pillBorder}" stroke-width="2" />
       <circle cx="-95" cy="0" r="6" fill="${theme.pillText}" />
-      <text x="-72" y="7" font-family="Arial Narrow, Arial, sans-serif" font-size="26" font-weight="700" letter-spacing="3" fill="${theme.pillText}">${escapeXml(theme.pillLabel.toUpperCase())}</text>
+      <text x="-72" y="7" font-family="Inter" font-size="26" font-weight="700" letter-spacing="3" fill="${theme.pillText}">${escapeXml(theme.pillLabel.toUpperCase())}</text>
     </g>
 
     <line x1="64" y1="744" x2="1016" y2="744" stroke="rgba(255,255,255,.1)" stroke-width="3" />
@@ -254,28 +272,28 @@ function renderAmistosoStorySvg({
     ${
       photoSrc
         ? `<image href="${photoSrc}" xlink:href="${photoSrc}" x="152" y="752" width="160" height="160" preserveAspectRatio="xMidYMid slice" clip-path="url(#photoClip)" />`
-        : `<text x="232" y="864" text-anchor="middle" font-family="Arial, sans-serif" font-size="80" font-weight="800" fill="#fff">${initial}</text>`
+        : `<text x="232" y="864" text-anchor="middle" font-family="Inter" font-size="80" font-weight="800" fill="#fff">${initial}</text>`
     }
-    <text x="356" y="812" font-family="Arial, sans-serif" font-size="56" font-weight="800" fill="#fff">${safeName}</text>
-    <text x="356" y="858" font-family="Arial Narrow, Arial, sans-serif" font-size="26" font-weight="700" letter-spacing="4" fill="${theme.sub}">${escapeXml(`${isGoalkeeper ? "Goleiro" : "Linha"} · ${peladaName}`.toUpperCase())}</text>
+    <text x="356" y="812" font-family="Inter" font-size="56" font-weight="800" fill="#fff">${safeName}</text>
+    <text x="356" y="858" font-family="Inter" font-size="26" font-weight="700" letter-spacing="4" fill="${theme.sub}">${escapeXml(`${isGoalkeeper ? "Goleiro" : "Linha"} · ${peladaName}`.toUpperCase())}</text>
 
     <rect x="64" y="960" width="952" height="360" rx="59" fill="rgba(255,255,255,.07)" stroke="rgba(255,255,255,.13)" stroke-width="3" />
     ${ballIcon(329, 1010, 1.8)}
-    <text x="350" y="1130" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="80" font-weight="700" fill="#fff">${goals}</text>
-    <text x="350" y="1175" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="27" font-weight="700" letter-spacing="3" fill="rgba(255,255,255,.55)">GOLS</text>
+    <text x="350" y="1130" text-anchor="middle" font-family="Inter" font-size="80" font-weight="700" fill="#fff">${goals}</text>
+    <text x="350" y="1175" text-anchor="middle" font-family="Inter" font-size="27" font-weight="700" letter-spacing="3" fill="rgba(255,255,255,.55)">GOLS</text>
 
     <line x1="540" y1="1000" x2="540" y2="1280" stroke="rgba(255,255,255,.1)" stroke-width="3" />
 
     ${cleatIcon(707, 1010, 1.8)}
-    <text x="730" y="1130" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="80" font-weight="700" fill="#fff">${assists}</text>
-    <text x="730" y="1175" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="27" font-weight="700" letter-spacing="3" fill="rgba(255,255,255,.55)">ASSIST.</text>
+    <text x="730" y="1130" text-anchor="middle" font-family="Inter" font-size="80" font-weight="700" fill="#fff">${assists}</text>
+    <text x="730" y="1175" text-anchor="middle" font-family="Inter" font-size="27" font-weight="700" letter-spacing="3" fill="rgba(255,255,255,.55)">ASSIST.</text>
 
-    <text x="540" y="1420" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" fill="rgba(255,255,255,.5)">${escapeXml(`${dateLabel} · Amistoso`)}</text>
+    <text x="540" y="1420" text-anchor="middle" font-family="Inter" font-size="32" fill="rgba(255,255,255,.5)">${escapeXml(`${dateLabel} · Amistoso`)}</text>
 
     <line x1="64" y1="1642" x2="1016" y2="1642" stroke="rgba(255,255,255,.12)" stroke-width="3" />
-    <text x="540" y="1708" text-anchor="middle" font-family="Arial, sans-serif" font-size="44" font-weight="800" fill="#fff">Organize sua própria pelada</text>
-    <text x="540" y="1760" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" fill="rgba(255,255,255,.5)">Baixe o app Dono da Pelada</text>
-    <text x="540" y="1812" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" fill="rgba(255,255,255,.4)">Acesse em donos-da-pelada.vercel.app</text>
+    <text x="540" y="1708" text-anchor="middle" font-family="Inter" font-size="44" font-weight="800" fill="#fff">Organize sua própria pelada</text>
+    <text x="540" y="1760" text-anchor="middle" font-family="Inter" font-size="32" fill="rgba(255,255,255,.5)">Baixe o app Dono da Pelada</text>
+    <text x="540" y="1812" text-anchor="middle" font-family="Inter" font-size="28" fill="rgba(255,255,255,.4)">Acesse em donos-da-pelada.vercel.app</text>
   </g>
 </svg>`;
 }
@@ -404,32 +422,32 @@ function renderStorySvg({
         ? `<polygon transform="translate(269 202) scale(1.55)" points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="#16261D" />`
         : `<path d="m271 220 5 5 9-9" fill="none" stroke="#9fe3b8" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />`
     }
-    <text x="540" y="234" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="36" font-weight="700" letter-spacing="5" fill="${theme.ribbonText}">${escapeXml(theme.ribbonLabel.toUpperCase())}</text>
+    <text x="540" y="234" text-anchor="middle" font-family="Inter" font-size="36" font-weight="700" letter-spacing="5" fill="${theme.ribbonText}">${escapeXml(theme.ribbonLabel.toUpperCase())}</text>
 
     <rect x="372" y="306" width="336" height="336" rx="85" fill="url(#ring)" filter="url(#softShadow)" />
     <rect x="383" y="317" width="314" height="314" rx="75" fill="${isGoalkeeper ? "#DC8A1A" : "#0a3f23"}" />
     ${
       photoSrc
         ? `<image href="${photoSrc}" xlink:href="${photoSrc}" x="383" y="317" width="314" height="314" preserveAspectRatio="xMidYMid slice" clip-path="url(#photoClip)" />`
-        : `<text x="540" y="522" text-anchor="middle" font-family="Arial, sans-serif" font-size="150" font-weight="800" fill="#fff">${initial}</text>`
+        : `<text x="540" y="522" text-anchor="middle" font-family="Inter" font-size="150" font-weight="800" fill="#fff">${initial}</text>`
     }
     <circle cx="682" cy="615" r="48" fill="${theme.badgeBg}" stroke="${theme.bgEnd}" stroke-width="8" />
     ${
       isGold
         ? `<path d="M663 607h-8a15 15 0 0 1 0-30h8m34 30h8a15 15 0 0 0 0-30h-8M652 648h56M674 627v10c0 5-4 8-8 10-8 4-13 10-13 21m53 0c0-11-5-17-13-21-4-2-8-5-8-10v-10M697 567h-34v40a17 17 0 0 0 34 0v-40Z" fill="none" stroke="#16261D" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />`
-        : `<text x="682" y="629" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="38" font-weight="700" fill="${theme.badgeColor}">${escapeXml(badgeLabel)}</text>`
+        : `<text x="682" y="629" text-anchor="middle" font-family="Inter" font-size="38" font-weight="700" fill="${theme.badgeColor}">${escapeXml(badgeLabel)}</text>`
     }
 
-    <text x="540" y="776" text-anchor="middle" font-family="Arial, sans-serif" font-size="101" font-weight="800" fill="#fff">${safeName}</text>
-    <text x="540" y="836" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="35" font-weight="700" letter-spacing="6" fill="${theme.sub}">${escapeXml(`${isGoalkeeper ? "Goleiro" : "Linha"} · ${peladaName}`.toUpperCase())}</text>
+    <text x="540" y="776" text-anchor="middle" font-family="Inter" font-size="101" font-weight="800" fill="#fff">${safeName}</text>
+    <text x="540" y="836" text-anchor="middle" font-family="Inter" font-size="35" font-weight="700" letter-spacing="6" fill="${theme.sub}">${escapeXml(`${isGoalkeeper ? "Goleiro" : "Linha"} · ${peladaName}`.toUpperCase())}</text>
 
     <rect x="64" y="870" width="952" height="400" rx="59" fill="rgba(255,255,255,.07)" stroke="rgba(255,255,255,.13)" stroke-width="3" />
-    <text x="166" y="1002" font-family="Arial Narrow, Arial, sans-serif" font-size="123" font-weight="700" fill="${isGold ? "#F4A11A" : "#ffffff"}">${escapeXml(ratingLabel)}</text>
-    <text x="402" y="948" font-family="Arial Narrow, Arial, sans-serif" font-size="29" font-weight="700" letter-spacing="4" fill="${theme.sub}">NOTA DA GALERA</text>
+    <text x="166" y="1002" font-family="Inter" font-size="123" font-weight="700" fill="${isGold ? "#F4A11A" : "#ffffff"}">${escapeXml(ratingLabel)}</text>
+    <text x="402" y="948" font-family="Inter" font-size="29" font-weight="700" letter-spacing="4" fill="${theme.sub}">NOTA DA GALERA</text>
     <g transform="translate(402 976)">
       ${[0, 1, 2, 3, 4].map((index) => star(index, filledStars, isGold ? "#F4A11A" : "#9fe3b8")).join("")}
     </g>
-    <text x="402" y="1052" font-family="Arial, sans-serif" font-size="31" fill="rgba(255,255,255,.55)">${escapeXml(ratingCopy)}</text>
+    <text x="402" y="1052" font-family="Inter" font-size="31" fill="rgba(255,255,255,.55)">${escapeXml(ratingCopy)}</text>
     <line x1="112" y1="1076" x2="968" y2="1076" stroke="rgba(255,255,255,.1)" stroke-width="3" />
     ${statColumn(230, String(goals), "Gols")}
     <line x1="384" y1="1100" x2="384" y2="1230" stroke="rgba(255,255,255,.1)" stroke-width="3" />
@@ -437,14 +455,14 @@ function renderStorySvg({
     <line x1="696" y1="1100" x2="696" y2="1230" stroke="rgba(255,255,255,.1)" stroke-width="3" />
     ${statColumn(850, thirdStatValue, thirdStatLabel, isGold ? "#F4A11A" : "#9fe3b8")}
 
-    <text x="540" y="1362" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" font-weight="800" fill="#fff">"${escapeXml(punchlineTop)}</text>
-    <text x="540" y="1418" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" font-weight="800" fill="#fff">${escapeXml(punchlineBottom)}"</text>
-    <text x="540" y="1486" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" fill="rgba(255,255,255,.5)">${escapeXml(`${matchTitle} · ${dateLabel}`)}</text>
+    <text x="540" y="1362" text-anchor="middle" font-family="Inter" font-size="48" font-weight="800" fill="#fff">"${escapeXml(punchlineTop)}</text>
+    <text x="540" y="1418" text-anchor="middle" font-family="Inter" font-size="48" font-weight="800" fill="#fff">${escapeXml(punchlineBottom)}"</text>
+    <text x="540" y="1486" text-anchor="middle" font-family="Inter" font-size="32" fill="rgba(255,255,255,.5)">${escapeXml(`${matchTitle} · ${dateLabel}`)}</text>
 
     <line x1="64" y1="1642" x2="1016" y2="1642" stroke="rgba(255,255,255,.12)" stroke-width="3" />
-    <text x="540" y="1708" text-anchor="middle" font-family="Arial, sans-serif" font-size="44" font-weight="800" fill="#fff">Organize sua própria pelada</text>
-    <text x="540" y="1760" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" fill="rgba(255,255,255,.5)">Baixe o app Dono da Pelada</text>
-    <text x="540" y="1812" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" fill="rgba(255,255,255,.4)">Acesse em donos-da-pelada.vercel.app</text>
+    <text x="540" y="1708" text-anchor="middle" font-family="Inter" font-size="44" font-weight="800" fill="#fff">Organize sua própria pelada</text>
+    <text x="540" y="1760" text-anchor="middle" font-family="Inter" font-size="32" fill="rgba(255,255,255,.5)">Baixe o app Dono da Pelada</text>
+    <text x="540" y="1812" text-anchor="middle" font-family="Inter" font-size="28" fill="rgba(255,255,255,.4)">Acesse em donos-da-pelada.vercel.app</text>
   </g>
 </svg>`;
 }
@@ -531,7 +549,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ mat
             badgeLabel: showVoteRank ? `${voteRank}o` : `${presenceCount}a`
           });
 
-    const png = await sharp(Buffer.from(svg), { density: 144 }).png().toBuffer();
+    const png = svgToPng(svg);
 
     return new Response(new Uint8Array(png), {
       headers: {
