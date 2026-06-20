@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Saira+Condensed:wght@400;600;700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin:0; background:#f0ede8; font-family:'Hanken Grotesk',sans-serif; color:#16261D; }
+    * { box-sizing:border-box; }
+  </style>
+</helmet>
+
+<div style="min-width:100%; width:max-content; min-height:100vh; background:#f0ede8; padding:48px 56px 80px; box-sizing:border-box;">
+
+  <!-- HEADER -->
+  <div style="margin-bottom:48px;">
+    <div style="display:flex; align-items:center; gap:16px; margin-bottom:6px;">
+      <div style="width:36px; height:36px; background:#1B9E4B; border-radius:10px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(27,158,75,.3);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6m12 5h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22m7-7.34V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+      </div>
+      <div>
+        <div style="font-family:'Bricolage Grotesque'; font-weight:800; font-size:26px; letter-spacing:-.02em; color:#16261D;">Story · Amistoso</div>
+        <div style="font-size:13px; color:#69786D; margin-top:1px;">Dono da Pelada · Partidas amistosas entre grupos · Jun 2026</div>
+      </div>
+    </div>
+    <div style="height:2px; background:linear-gradient(90deg,#1B9E4B,#9fe3b8,transparent); margin-top:18px; border-radius:2px;"></div>
+  </div>
+
+  <!-- INTRO BOX -->
+  <div style="background:#fff; border-radius:16px; padding:20px 26px; margin-bottom:40px; border-left:4px solid #1B9E4B; box-shadow:0 1px 4px rgba(0,0,0,.06); max-width:760px;">
+    <div style="font-family:'Saira Condensed'; font-weight:700; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#1B9E4B; margin-bottom:8px;">Novo formato · Amistosos</div>
+    <div style="font-size:14px; line-height:1.7; color:#16261D;">Story gerado ao fim de uma partida amistosa entre dois grupos. Exibe o <strong>adversário</strong>, o <strong>placar final</strong> e as estatísticas individuais do jogador — com
+      <span style="display:inline-flex; align-items:center; gap:4px; background:#f0f8f3; border-radius:6px; padding:1px 7px; font-size:13px;">
+        <!-- ball inline -->
+        <svg width="12" height="12" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#16261D"/><circle cx="12" cy="12" r="7" fill="white"/><path d="M12 6 L13.8 8.5 L12.5 11 L11.5 11 L10.2 8.5 Z" fill="#16261D"/><path d="M17.5 12.5 L16 14.5 L13.5 13.5 L13 11 L15 10 Z" fill="#16261D"/><path d="M6.5 12.5 L9 10 L11 11 L10.5 13.5 L8 14.5 Z" fill="#16261D"/><path d="M14.5 17.5 L12 19 L9.5 17.5 L10.5 15 L11.5 13.5 L12.5 13.5 L13.5 15 Z" fill="#16261D"/></svg>
+        <strong>bola</strong> para gols
+      </span>
+      e
+      <span style="display:inline-flex; align-items:center; gap:4px; background:#f0f8f3; border-radius:6px; padding:1px 7px; font-size:13px;">
+        <svg width="13" height="12" viewBox="0 0 24 24"><path d="M4 19 L4 7 Q4 5 7.5 5 L12 5 L12 14 L19 14 Q22 14 22 17.5 L22 19 Z" fill="#1B9E4B"/><ellipse cx="7.5" cy="20.2" rx="1.5" ry="0.7" fill="#0a6632"/><ellipse cx="12.5" cy="20.2" rx="1.5" ry="0.7" fill="#0a6632"/><ellipse cx="18" cy="20.2" rx="1.5" ry="0.7" fill="#0a6632"/></svg>
+        <strong>chuteira</strong> para assistências
+      </span>.
+    </div>
+    <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+      <div style="background:#FEF3E2; border-radius:8px; padding:5px 12px; font-size:12px; font-weight:600; color:#C58207;">Vitória · Acento dourado</div>
+      <div style="background:#E8F5EE; border-radius:8px; padding:5px 12px; font-size:12px; font-weight:600; color:#2C6E49;">Empate · Acento menta</div>
+      <div style="background:#f8f6f2; border-radius:8px; padding:5px 12px; font-size:12px; font-weight:600; color:#8a857a;">Derrota · Tom neutro</div>
+    </div>
+  </div>
+
+  <!-- SECTION LABEL -->
+  <div style="font-family:'Saira Condensed'; font-weight:700; font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:#69786D; margin-bottom:18px;">Referência visual · mockup aprovado</div>
+
+  <!-- CARDS ROW -->
+  <div style="display:flex; gap:44px; align-items:flex-start;">
+
+    <!-- ==================== VITÓRIA ==================== -->
+    <div style="flex:none;">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+        <div style="width:10px; height:10px; border-radius:50%; background:#F4A11A;"></div>
+        <span style="font-weight:700; font-size:13px; color:#C58207;">Vitória</span>
+      </div>
+
+      <div style="position:relative; width:270px; height:480px; border-radius:20px; overflow:hidden; box-shadow:0 20px 50px -10px rgba(17,40,28,.55); font-family:'Hanken Grotesk',sans-serif; color:#fff;">
+
+        <!-- BG -->
+        <div style="position:absolute; inset:0; background:linear-gradient(170deg,#0B4A29 0%,#0a3f23 55%,#062a17 100%);"></div>
+        <div style="position:absolute; inset:0; background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.04) 0 1px,transparent 1px 28px);"></div>
+        <div style="position:absolute; top:90px; left:50%; transform:translateX(-50%); width:210px; height:210px; border:1px solid rgba(255,255,255,.06); border-radius:50%;"></div>
+        <div style="position:absolute; top:170px; left:50%; transform:translate(-50%,-50%); width:290px; height:290px; background:radial-gradient(circle,rgba(244,161,26,.3),transparent 62%);"></div>
+        <!-- Watermark bola dourada -->
+        <div style="position:absolute; right:-16px; top:20px; opacity:.07; pointer-events:none;">
+          <svg width="120" height="120" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" fill="#F4A11A"/>
+            <path d="M12 3 L14.5 6 L13 9.5 L11 9.5 L9.5 6 Z" fill="#062a17"/>
+            <path d="M19 9.5 L20.5 13 L17.5 15 L14.5 13 L14 9.5 L16.5 8 Z" fill="#062a17"/>
+            <path d="M5 9.5 L7.5 8 L10 9.5 L9.5 13 L6.5 15 L3.5 13 Z" fill="#062a17"/>
+            <path d="M15 19 L12 21 L9 19 L10 15 L13 15 Z" fill="#062a17"/>
+          </svg>
+        </div>
+
+        <!-- CONTENT -->
+        <div style="position:relative; height:100%; display:flex; flex-direction:column; padding:36px 18px 0;">
+
+          <!-- RIBBON -->
+          <div style="display:flex; justify-content:center; margin-top:9px;">
+            <div style="display:inline-flex; align-items:center; gap:6px; background:linear-gradient(90deg,#F4A11A,#ffc14d); color:#16261D; font-family:'Saira Condensed'; font-weight:700; font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; padding:5px 16px; border-radius:20px; box-shadow:0 7px 20px rgba(244,161,26,.45);">
+              <svg width="8" height="8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#16261D"/><circle cx="12" cy="12" r="6" fill="white"/><path d="M12 5 L13.5 8 L12.5 10 L11.5 10 L10.5 8 Z" fill="#16261D"/></svg>
+              Amistoso
+            </div>
+          </div>
+
+          <!-- SCORE BLOCK -->
+          <div style="text-align:center; margin-top:14px;">
+            <div style="font-family:'Saira Condensed'; font-weight:700; font-size:8.5px; letter-spacing:.2em; text-transform:uppercase; color:#9fe3b8; margin-bottom:3px;">Inimigos do Futebol</div>
+            <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin:2px 0 3px;">
+              <div style="font-family:'Bricolage Grotesque'; font-weight:800; font-size:54px; color:#fff; line-height:1; letter-spacing:-.04em;">3</div>
+              <div style="font-family:'Saira Condensed'; font-weight:600; font-size:20px; color:rgba(255,255,255,.28); line-height:1; padding-bottom:4px;">×</div>
+              <div style="font-family:'Bricolage Grotesque'; font-weight:800; font-size:54px; color:rgba(255,255,255,.35); line-height:1; letter-spacing:-.04em;">1</div>
+            </div>
+            <div style="font-family:'Saira Condensed'; font-weight:600; font-size:8.5px; letter-spacing:.16em; text-transform:uppercase; color:rgba(255,255,255,.4);">Real FC</div>
+            <div style="margin-top:8px;">
+              <span style="display:inline-flex; align-items:center; gap:4px; background:rgba(244,161,26,.18); border:1px solid rgba(244,161,26,.32); border-radius:20px; padding:3px 11px;">
+                <div style="width:4px; height:4px; background:#F4A11A; border-radius:50%;"></div>
+                <span style="font-family:'Saira Condensed'; font-weight:700; font-size:7.5px; letter-spacing:.14em; text-transform:uppercase; color:#F4A11A;">Vitória!</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- DIVIDER -->
+          <div style="height:1px; background:rgba(255,255,255,.1); margin:12px 0;"></div>
+
+          <!-- PLAYER -->
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="flex:none; width:44px; height:44px; border-radius:12px; padding:2px; background:linear-gradient(150deg,#F4A11A,#ffd98a); box-shadow:0 0 18px rgba(244,161,26,.4);">
+              <div style="width:100%; height:100%; border-radius:10px; overflow:hidden; background:#0a3f23; background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.07) 0 4px,rgba(255,255,255,.015) 4px 8px); display:flex; align-items:center; justify-content:center;">
+                <span style="font-family:'Saira Condensed'; font-size:6px; letter-spacing:.08em; color:rgba(255,255,255,.4); text-transform:uppercase;">foto</span>
+              </div>
+            </div>
+            <div>
+              <div style="font-family:'Bricolage Grotesque'; font-weight:800; font-size:18px; color:#fff; letter-spacing:-.01em; line-height:1.1;">Casagrande</div>
+              <div style="font-family:'Saira Condensed'; font-weight:600; font-size:7.5px; letter-spacing:.14em; text-transform:uppercase; color:#9fe3b8; margin-top:3px;">Meia · Inimigos do Futebol</div>
+            </div>
+          </div>
+
+          <!-- STATS CARD -->
+          <div style="margin-top:10px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.13); border-radius:14px; padding:12px 6px 10px;">
+            <div style="display:flex; align-items:center;">
+
+              <!-- GOLS -->
+              <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;">
+                <!-- Soccer ball SVG -->
+                <svg width="22" height="22" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" fill="white"/>
+                  <path d="M12 3 L14.5 6 L13 9.5 L11 9.5 L9.5 6 Z" fill="#16261D"/>
+                  <path d="M19.5 10 L21 13.5 L18 15.5 L14.5 13.5 L14.5 10 L17 8.5 Z" fill="#16261D"/>
+                  <path d="M4.5 10 L7 8.5 L9.5 10 L9.5 13.5 L6 15.5 L3 13.5 Z" fill="#16261D"/>
+                  <path d="M15 19.5 L12 21 L9 19.5 L10 15 L11.5 13.5 L12.5 13.5 L14 15 Z" fill="#16261D"/>
+                </svg>
+                <div style="font-family:'Saira Condensed'; font-weight:700; font-size:22px; color:#fff; line-height:1;">2</div>
+                <div style="font-family:'Saira Condensed'; font-weight:600; font-size:7px; letter-spacing:.1em; text-transform:uppercase; color:rgba(255,255,255,.5);">Gols</div>
+              </div>
+
+              <div style="width:1px; height:58px; background:rgba(255,255,255,.1);"></div>
+
+              <!-- ASSIST. -->
+              <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;">
+                <!-- Boot / cleat SVG -->
+                <svg width="24" height="22" viewBox="0 0 26 24">
+                  <path d="M4 20 L4 7 Q4 5 7.5 5 L12 5 L12 14.5 L19.5 14.5 Q23 14.5 23 18 L23 20 Z" fill="white" stroke="rgba(255,255,255,.15)" stroke-width="0.5"/>
+                  <ellipse cx="7.5" cy="21.2" rx="1.6" ry="0.75" fill="rgba(200,200,200,.88)"/>
+                  <ellipse cx="12.8" cy="21.2" rx="1.6" ry="0.75" fill="rgba(200,200,200,.88)"/>
+                  <ellipse cx="18.5" cy="21.2" rx="1.6" ry="0.75" fill="rgba(200,200,200,.88)"/>
+                </svg>
+                <div style="font-family:'Saira Condensed'; font-weight:700; font-size:22px; color:#fff; line-height:1;">1</div>
+                <div style="font-family:'Saira Condensed'; font-weight:600; font-size:7px; letter-spacing:.1em; text-transform:uppercase; color:rgba(255,255,255,.5);">Assist.</div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- DATE -->
+          <div style="text-align:center; margin-top:8px; font-family:'Saira Condensed'; font-weight:600; font-size:7.5px; letter-spacing:.12em; text-transform:uppercase; color:rgba(255,255,255,.35);">19 jun 2026 · Amistoso</div>
+
+          <!-- FOOTER -->
+          <div style="margin-top:auto; padding:9px 0 40px; text-align:center;">
+            <div style="height:1px; background:rgba(255,255,255,.12); margin-bottom:9px;"></div>
+            <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:10.5px;">Organize sua própria pelada</div>
+            <div style="font-size:8px; color:rgba(255,255,255,.5); margin-top:2px;">Dono da Pelada</div>
+          </div>
+
+        </div>
+
+        <!-- IG TOP -->
+        <div style="position:absolute; top:0; left:0; right:0; padding:7px 9px 30px; background:linear-gradient(180deg,rgba(0,0,0,.5),transparent);">
+          <div style="display:flex; gap:3px;"><div style="flex:1; height:1.7px; border-radius:2px; background:#fff;"></div><div style="flex:1; height:1.7px; border-radius:2px; background:rgba(255,255,255,.4);"></div><div style="flex:1; height:1.7px; border-radius:2px; background:rgba(255,255,255,.4);"></div></div>
+          <div style="display:flex; align-items:center; gap:6px; margin-top:9px;"><div style="width:20px; height:20px; border-radius:50%; background:#0a3f23; border:1px solid rgba(255,255,255,.55);"></div><span style="font-weight:700; font-size:9px; color:#fff;">casagrande9</span><span style="font-size:8.5px; color:rgba(255,255,255,.7);">2 h</span></div>
+        </div>
+        <!-- IG BOTTOM -->
+        <div style="position:absolute; bottom:0; left:0; right:0; padding:0 9px 9px;">
+          <div style="flex:1; border:1px solid rgba(255,255,255,.55); border-radius:16px; padding:8px 11px; font-size:8.5px; color:rgba(255,255,255,.8);">Enviar mensagem</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ==================== EMPATE ==================== -->
+    <div style="flex:none;">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+        <div style="width:10px; height:10px; border-radius:50%; background:#9fe3b8;"></div>
+        <span style="font-weight:700; font-size:13px; color:#2C6E49;">Empate</span>
+      </div>
+
+      <div style="position:relative; width:270px; height:480px; border-radius:20px; overflow:hidden; box-shadow:0 20px 50px -10px rgba(17,40,28,.5); font-family:'Hanken Grotesk',sans-serif; color:#fff;">
+
+        <div style="position:absolute; inset:0; background:linear-gradient(170deg,#11643A 0%,#0B4A29 55%,#072d19 100%);"></div>
+        <div style="position:absolute; inset:0; background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.04) 0 1px,transparent 1px 28px);"></div>
+        <div style="position:absolute; top:90px; left:50%; transform:translateX(-50%); width:210px; height:210px; border:1px solid rgba(255,255,255,.07); border-radius:50%;"></div>
+        <div style="position:absolute; top:170px; left:50%; transform:translate(-50%,-50%); width:280px; height:280px; background:radial-gradient(circle,rgba(159,227,184,.16),transparent 62%);"></div>
+
+        <div style="position:relative; height:100%; display:flex; flex-direction:column; padding:36px 18px 0;">
+
+          <!-- RIBBON -->
+          <div style="display:flex; justify-content:center; margin-top:9px;">
+            <div style="display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.2); color:#fff; font-family:'Saira Condensed'; font-weight:700; font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; padding:5px 16px; border-radius:20px;">
+              <svg width="8" height="8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="rgba(255,255,255,.4)"/><circle cx="12" cy="12" r="6" fill="rgba(255,255,255,.2)"/></svg>
+              Amistoso
+            </div>
+          </div>
+
+          <!-- SCORE BLOCK -->
+          <div style="text-align:center; margin-top:14px;">
+            <div style="font-family:'Saira Condensed'; font-weight:700; font-size:8.5px; letter-spacing:.2em; text-transform:uppercase; color:#9fe3b8; margin-bottom:3px;">Inimigos do Futebol</div>
+            <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin:2px 0 3px;">
+              <div style="font-family:'Bricolage Grotesque'; font-weight:800; font-size:54px; color:#fff; line-height:1; letter-spacing:-.04em;">1</div>
+              <div style="font-family:'Saira Condensed'; font-weight:600; font-size:20px; color:rgba(255,255,255,.28); line-height:1; padding-bottom:4px;">×</div>
+              <div style="font-family:'Bricolage Grotesque'; font-weight:800; font-size:54px; color:#fff; line-height:1; letter-spacing:-.04em;">1</div>
+            </div>
+            <div style="font-family:'Saira Condensed'; font-weight:600; font-size:8.5px; letter-spacing:.16em; text-transform:uppercase; color:rgba(255,255,255,.4);">Atlético Amigos</div>
+            <div style="margin-top:8px;">
+              <span style="display:inline-flex; align-items:center; gap:4px; background:rgba(159,227,184,.14); border:1px solid rgba(159,227,184,.28); border-radius:20px; padding:3px 11px;">
+                <div style="width:4px; height:4px; background:#9fe3b8; border-radius:50%;"></div>
+                <span style="font-family:'Saira Condensed'; font-weight:700; font-size:7.5px; letter-spacing:.14em; text-transform:uppercase; color:#9fe3b8;">Empate</span>
+              </span>
+            </div>
+          </div>
+
+          <div style="height:1px; background:rgba(255,255,255,.1); margin:12px 0;"></div>
+
+          <!-- PLAYER -->
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="flex:none; width:44px; height:44px; border-radius:12px; padding:2px; background:linear-gradient(150deg,#1B9E4B,#9fe3b8); box-shadow:0 0 14px rgba(27,158,75,.35);">
+              <div style="width:100%; height:100%; border-radius:10px; overflow:hidden; background:#0a3f23; background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.07) 0 4px,rgba(255,255,255,.015) 4px 8px); display:flex; align-items:center; justify-content:center;">
+                <span style="font-family:'Saira Condensed'; font-size:6px; letter-spacing:.08em; color:rgba(255,255,255,.4); text-transform:uppercase;">foto</span>
+              </div>
+            </div>
+            <div>
+              <div style="font-family:'Bricolage Grotesque'; font-weight:800; font-size:18px; color:#fff; letter-spacing:-.01em; line-height:1.1;">Casagrande</div>
+              <div style="font-family:'Saira Condensed'; font-weight:600; font-size:7.5px; letter-spacing:.14em; text-transform:uppercase; color:#9fe3b8; margin-top:3px;">Meia · Inimigos do Futebol</div>
+            </div>
+          </div>
+
+          <!-- STATS CARD -->
+          <div style="margin-top:10px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.13); border-radius:14px; padding:12px 6px 10px;">
+            <div style="display:flex; align-items:center;">
+
+              <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;">
+                <svg width="22" height="22" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" fill="white"/>
+                  <path d="M12 3 L14.5 6 L13 9.5 L11 9.5 L9.5 6 Z" fill="#16261D"/>
+                  <path d="M19.5 10 L21 13.5 L18 15.5 L14.5 13.5 L14.5 10 L17 8.5 Z" fill="#16261D"/>
+                  <path d="M4.5 10 L7 8.5 L9.5 10 L9.5 13.5 L6 15.5 L3 13.5 Z" fill="#16261D"/>
+                  <path d="M15 19.5 L12 21 L9 19.5 L10 15 L11.5 13.5 L12.5 13.5 L14 15 Z" fill="#16261D"/>
+                </svg>
+                <div style="font-family:'Saira Condensed'; font-weight:700; font-size:22px; color:#fff; line-height:1;">0</div>
+                <div style="font-family:'Saira Condensed'; font-weight:600; font-size:7px; letter-spacing:.1em; text-transform:uppercase; color:rgba(255,255,255,.5);">Gols</div>
+              </div>
+
+              <div style="width:1px; height:58px; background:rgba(255,255,255,.1);"></div>
+
+              <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;">
+                <svg width="24" height="22" viewBox="0 0 26 24">
+                  <path d="M4 20 L4 7 Q4 5 7.5 5 L12 5 L12 14.5 L19.5 14.5 Q23 14.5 23 18 L23 20 Z" fill="white" stroke="rgba(255,255,255,.15)" stroke-width="0.5"/>
+                  <ellipse cx="7.5" cy="21.2" rx="1.6" ry="0.75" fill="rgba(200,200,200,.88)"/>
+                  <ellipse cx="12.8" cy="21.2" rx="1.6" ry="0.75" fill="rgba(200,200,200,.88)"/>
+                  <ellipse cx="18.5" cy="21.2" rx="1.6" ry="0.75" fill="rgba(200,200,200,.88)"/>
+                </svg>
+                <div style="font-family:'Saira Condensed'; font-weight:700; font-size:22px; color:#fff; line-height:1;">1</div>
+                <div style="font-family:'Saira Condensed'; font-weight:600; font-size:7px; letter-spacing:.1em; text-transform:uppercase; color:rgba(255,255,255,.5);">Assist.</div>
+              </div>
+
+            </div>
+          </div>
+
+          <div style="text-align:center; margin-top:8px; font-family:'Saira Condensed'; font-weight:600; font-size:7.5px; letter-spacing:.12em; text-transform:uppercase; color:rgba(255,255,255,.35);">19 jun 2026 · Amistoso</div>
+
+          <div style="margin-top:auto; padding:9px 0 40px; text-align:center;">
+            <div style="height:1px; background:rgba(255,255,255,.12); margin-bottom:9px;"></div>
+            <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:10.5px;">Organize sua própria pelada</div>
+            <div style="font-size:8px; color:rgba(255,255,255,.5); margin-top:2px;">Dono da Pelada</div>
+          </div>
+
+        </div>
+
+        <div style="position:absolute; top:0; left:0; right:0; padding:7px 9px 30px; background:linear-gradient(180deg,rgba(0,0,0,.5),transparent);">
+          <div style="display:flex; gap:3px;"><div style="flex:1; height:1.7px; border-radius:2px; background:#fff;"></div><div style="flex:1; height:1.7px; border-radius:2px; background:rgba(255,255,255,.4);"></div><div style="flex:1; height:1.7px; border-radius:2px; background:rgba(255,255,255,.4);"></div></div>
+          <div style="display:flex; align-items:center; gap:6px; margin-top:9px;"><div style="width:20px; height:20px; border-radius:50%; background:#0a3f23; border:1px solid rgba(255,255,255,.55);"></div><span style="font-weight:700; font-size:9px; color:#fff;">casagrande9</span><span style="font-size:8.5px; color:rgba(255,255,255,.7);">2 h</span></div>
+        </div>
+        <div style="position:absolute; bottom:0; left:0; right:0; padding:0 9px 9px;">
+          <div style="flex:1; border:1px solid rgba(255,255,255,.55); border-radius:16px; padding:8px 11px; font-size:8.5px; color:rgba(255,255,255,.8);">Enviar mensagem</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ==================== DERROTA ==================== -->
+    <div style="flex:none;">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+        <div style="width:10px; height:10px; border-radius:50%; background:rgba(255,255,255,.3);"></div>
+        <span style="font-weight:700; font-size:13px; color:#8a857a;">Derrota</span>
+      </div>
+
+      <div style="position:relative; width:270px; height:480px; border-radius:20px; overflow:hidden; box-shadow:0 20px 50px -10px rgba(17,40,28,.45); font-family:'Hanken Grotesk',sans-serif; color:#fff;">
+
+        <div style="position:absolute; inset:0; background:linear-gradient(170deg,#062a17 0%,#041a0e 55%,#020c07 100%);"></div>
+        <div style="position:absolute; inset:0; background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.03) 0 1px,transparent 1px 28px);"></div>
+        <div style="position:absolute; top:90px; left:50%; transform:translateX(-50%); width:210px; height:210px; border:1px solid rgba(255,255,255,.05); border-radius:50%;"></div>
+        <div style="position:absolute; top:170px; left:50%; transform:translate(-50%,-50%); width:280px; height:280px; background:radial-gradient(circle,rgba(255,255,255,.05),transparent 62%);"></div>
+
+        <div style="position:relative; height:100%; display:flex; flex-direction:column; padding:36px 18px 0;">
+
+          <!-- RIBBON -->
+          <div style="display:flex; justify-content:center; margin-top:9px;">
+            <div style="display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); color:rgba(255,255,255,.7); font-family:'Saira Condensed'; font-weight:700; font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; padding:5px 16px; border-radius:20px;">
+              <svg width="8" height="8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="rgba(255,255,255,.25)"/></svg>
+              Amistoso
+            </div>
+          </div>
+
+          <!-- SCORE BLOCK (perderam: seu placar dim, adversário bright) -->
+          <div style="text-align:center; margin-top:14px;">
+            <div style="font-family:'Saira Condensed'; font-weight:700; font-size:8.5px; letter-spacing:.2em; text-transform:uppercase; color:rgba(255,255,255,.45); margin-bottom:3px;">Inimigos do Futebol</div>
+            <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin:2px 0 3px;">
+              <div style="font-family:'Bricolage Grotesque'; font-weight:800; font-size:54px; color:rgba(255,255,255,.35); line-height:1; letter-spacing:-.04em;">0</div>
+              <div style="font-family:'Saira Condensed'; font-weight:600; font-size:20px; color:rgba(255,255,255,.22); line-height:1; padding-bottom:4px;">×</div>
+              <div style="font-family:'Bricolage Grotesque'; font-weight:800; font-size:54px; color:rgba(255,255,255,.85); line-height:1; letter-spacing:-.04em;">2</div>
+            </div>
+            <div style="font-family:'Saira Condensed'; font-weight:600; font-size:8.5px; letter-spacing:.16em; text-transform:uppercase; color:rgba(255,255,255,.6);">Flamenguinho FC</div>
+            <div style="margin-top:8px;">
+              <span style="display:inline-flex; align-items:center; gap:4px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12); border-radius:20px; padding:3px 11px;">
+                <div style="width:4px; height:4px; background:rgba(255,255,255,.4); border-radius:50%;"></div>
+                <span style="font-family:'Saira Condensed'; font-weight:700; font-size:7.5px; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,.5);">Derrota</span>
+              </span>
+            </div>
+          </div>
+
+          <div style="height:1px; background:rgba(255,255,255,.08); margin:12px 0;"></div>
+
+          <!-- PLAYER -->
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="flex:none; width:44px; height:44px; border-radius:12px; padding:2px; background:linear-gradient(150deg,rgba(255,255,255,.25),rgba(255,255,255,.1));">
+              <div style="width:100%; height:100%; border-radius:10px; overflow:hidden; background:#062a17; background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.05) 0 4px,rgba(255,255,255,.01) 4px 8px); display:flex; align-items:center; justify-content:center;">
+                <span style="font-family:'Saira Condensed'; font-size:6px; letter-spacing:.08em; color:rgba(255,255,255,.3); text-transform:uppercase;">foto</span>
+              </div>
+            </div>
+            <div>
+              <div style="font-family:'Bricolage Grotesque'; font-weight:800; font-size:18px; color:rgba(255,255,255,.8); letter-spacing:-.01em; line-height:1.1;">Casagrande</div>
+              <div style="font-family:'Saira Condensed'; font-weight:600; font-size:7.5px; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,.4); margin-top:3px;">Meia · Inimigos do Futebol</div>
+            </div>
+          </div>
+
+          <!-- STATS CARD -->
+          <div style="margin-top:10px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.09); border-radius:14px; padding:12px 6px 10px;">
+            <div style="display:flex; align-items:center;">
+
+              <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;">
+                <svg width="22" height="22" viewBox="0 0 24 24" opacity="0.7">
+                  <circle cx="12" cy="12" r="10" fill="white"/>
+                  <path d="M12 3 L14.5 6 L13 9.5 L11 9.5 L9.5 6 Z" fill="#16261D"/>
+                  <path d="M19.5 10 L21 13.5 L18 15.5 L14.5 13.5 L14.5 10 L17 8.5 Z" fill="#16261D"/>
+                  <path d="M4.5 10 L7 8.5 L9.5 10 L9.5 13.5 L6 15.5 L3 13.5 Z" fill="#16261D"/>
+                  <path d="M15 19.5 L12 21 L9 19.5 L10 15 L11.5 13.5 L12.5 13.5 L14 15 Z" fill="#16261D"/>
+                </svg>
+                <div style="font-family:'Saira Condensed'; font-weight:700; font-size:22px; color:rgba(255,255,255,.6); line-height:1;">0</div>
+                <div style="font-family:'Saira Condensed'; font-weight:600; font-size:7px; letter-spacing:.1em; text-transform:uppercase; color:rgba(255,255,255,.38);">Gols</div>
+              </div>
+
+              <div style="width:1px; height:58px; background:rgba(255,255,255,.08);"></div>
+
+              <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;">
+                <svg width="24" height="22" viewBox="0 0 26 24" opacity="0.7">
+                  <path d="M4 20 L4 7 Q4 5 7.5 5 L12 5 L12 14.5 L19.5 14.5 Q23 14.5 23 18 L23 20 Z" fill="white" stroke="rgba(255,255,255,.15)" stroke-width="0.5"/>
+                  <ellipse cx="7.5" cy="21.2" rx="1.6" ry="0.75" fill="rgba(200,200,200,.88)"/>
+                  <ellipse cx="12.8" cy="21.2" rx="1.6" ry="0.75" fill="rgba(200,200,200,.88)"/>
+                  <ellipse cx="18.5" cy="21.2" rx="1.6" ry="0.75" fill="rgba(200,200,200,.88)"/>
+                </svg>
+                <div style="font-family:'Saira Condensed'; font-weight:700; font-size:22px; color:rgba(255,255,255,.6); line-height:1;">0</div>
+                <div style="font-family:'Saira Condensed'; font-weight:600; font-size:7px; letter-spacing:.1em; text-transform:uppercase; color:rgba(255,255,255,.38);">Assist.</div>
+              </div>
+
+            </div>
+          </div>
+
+          <div style="text-align:center; margin-top:8px; font-family:'Saira Condensed'; font-weight:600; font-size:7.5px; letter-spacing:.12em; text-transform:uppercase; color:rgba(255,255,255,.28);">19 jun 2026 · Amistoso</div>
+
+          <div style="margin-top:auto; padding:9px 0 40px; text-align:center;">
+            <div style="height:1px; background:rgba(255,255,255,.08); margin-bottom:9px;"></div>
+            <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:10.5px; color:rgba(255,255,255,.6);">Organize sua própria pelada</div>
+            <div style="font-size:8px; color:rgba(255,255,255,.35); margin-top:2px;">Dono da Pelada</div>
+          </div>
+
+        </div>
+
+        <div style="position:absolute; top:0; left:0; right:0; padding:7px 9px 30px; background:linear-gradient(180deg,rgba(0,0,0,.5),transparent);">
+          <div style="display:flex; gap:3px;"><div style="flex:1; height:1.7px; border-radius:2px; background:#fff;"></div><div style="flex:1; height:1.7px; border-radius:2px; background:rgba(255,255,255,.4);"></div><div style="flex:1; height:1.7px; border-radius:2px; background:rgba(255,255,255,.4);"></div></div>
+          <div style="display:flex; align-items:center; gap:6px; margin-top:9px;"><div style="width:20px; height:20px; border-radius:50%; background:#041a0e; border:1px solid rgba(255,255,255,.4);"></div><span style="font-weight:700; font-size:9px; color:#fff;">casagrande9</span><span style="font-size:8.5px; color:rgba(255,255,255,.7);">2 h</span></div>
+        </div>
+        <div style="position:absolute; bottom:0; left:0; right:0; padding:0 9px 9px;">
+          <div style="flex:1; border:1px solid rgba(255,255,255,.35); border-radius:16px; padding:8px 11px; font-size:8.5px; color:rgba(255,255,255,.6);">Enviar mensagem</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- LEGENDA ICONOGRAFIA -->
+  <div style="margin-top:56px; padding-top:28px; border-top:2px solid #e0dcd5;">
+    <div style="font-family:'Saira Condensed'; font-weight:700; font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:#69786D; margin-bottom:16px;">Iconografia · Gols e Assistências</div>
+    <div style="display:flex; gap:24px; flex-wrap:wrap;">
+
+      <div style="background:#fff; border-radius:16px; padding:20px 24px; box-shadow:0 1px 4px rgba(0,0,0,.06); min-width:220px;">
+        <div style="display:flex; align-items:center; gap:14px; margin-bottom:12px;">
+          <div style="width:44px; height:44px; background:#16261D; border-radius:12px; display:flex; align-items:center; justify-content:center;">
+            <svg width="26" height="26" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" fill="white"/>
+              <path d="M12 3 L14.5 6 L13 9.5 L11 9.5 L9.5 6 Z" fill="#16261D"/>
+              <path d="M19.5 10 L21 13.5 L18 15.5 L14.5 13.5 L14.5 10 L17 8.5 Z" fill="#16261D"/>
+              <path d="M4.5 10 L7 8.5 L9.5 10 L9.5 13.5 L6 15.5 L3 13.5 Z" fill="#16261D"/>
+              <path d="M15 19.5 L12 21 L9 19.5 L10 15 L11.5 13.5 L12.5 13.5 L14 15 Z" fill="#16261D"/>
+            </svg>
+          </div>
+          <div>
+            <div style="font-weight:700; font-size:14px; color:#16261D;">Bola</div>
+            <div style="font-family:'Saira Condensed'; font-weight:600; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#1B9E4B; margin-top:2px;">Gols marcados</div>
+          </div>
+        </div>
+        <div style="font-size:12.5px; color:#5A6E60; line-height:1.6;">Ícone de bola de futebol SVG nativo. Preenche branco com manchas pretas no padrão clássico. Aparece acima do número na coluna de gols.</div>
+      </div>
+
+      <div style="background:#fff; border-radius:16px; padding:20px 24px; box-shadow:0 1px 4px rgba(0,0,0,.06); min-width:220px;">
+        <div style="display:flex; align-items:center; gap:14px; margin-bottom:12px;">
+          <div style="width:44px; height:44px; background:#16261D; border-radius:12px; display:flex; align-items:center; justify-content:center;">
+            <svg width="28" height="26" viewBox="0 0 26 24">
+              <path d="M4 20 L4 7 Q4 5 7.5 5 L12 5 L12 14.5 L19.5 14.5 Q23 14.5 23 18 L23 20 Z" fill="white"/>
+              <ellipse cx="7.5" cy="21.2" rx="1.6" ry="0.75" fill="rgba(200,200,200,.9)"/>
+              <ellipse cx="12.8" cy="21.2" rx="1.6" ry="0.75" fill="rgba(200,200,200,.9)"/>
+              <ellipse cx="18.5" cy="21.2" rx="1.6" ry="0.75" fill="rgba(200,200,200,.9)"/>
+            </svg>
+          </div>
+          <div>
+            <div style="font-weight:700; font-size:14px; color:#16261D;">Chuteira</div>
+            <div style="font-family:'Saira Condensed'; font-weight:600; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#1B9E4B; margin-top:2px;">Assistências</div>
+          </div>
+        </div>
+        <div style="font-size:12.5px; color:#5A6E60; line-height:1.6;">Perfil de chuteira com 3 travas na sola. Preenche branco. Aparece acima do número na coluna de assistências.</div>
+      </div>
+
+      <div style="background:#fff; border-radius:16px; padding:20px 24px; box-shadow:0 1px 4px rgba(0,0,0,.06); flex:1; min-width:280px;">
+        <div style="font-family:'Saira Condensed'; font-weight:700; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#8a857a; margin-bottom:12px;">Hierarquia visual do placar</div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="display:flex; align-items:center; gap:10px; padding:8px 12px; background:#fffef7; border-radius:10px; border-left:3px solid #F4A11A;">
+            <div style="font-family:'Bricolage Grotesque'; font-weight:800; font-size:18px; color:#16261D;">3</div>
+            <div style="font-family:'Saira Condensed'; font-weight:600; font-size:12px; color:#C58207;">×</div>
+            <div style="font-family:'Bricolage Grotesque'; font-weight:800; font-size:18px; color:rgba(22,38,29,.3);">1</div>
+            <div style="margin-left:8px; font-size:12px; color:#69786D;">Vitória — seu placar em branco cheio, adversário em 35% opacidade</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; padding:8px 12px; background:#f0f8f3; border-radius:10px; border-left:3px solid #1B9E4B;">
+            <div style="font-family:'Bricolage Grotesque'; font-weight:800; font-size:18px; color:#16261D;">1</div>
+            <div style="font-family:'Saira Condensed'; font-weight:600; font-size:12px; color:#8a857a;">×</div>
+            <div style="font-family:'Bricolage Grotesque'; font-weight:800; font-size:18px; color:#16261D;">1</div>
+            <div style="margin-left:8px; font-size:12px; color:#69786D;">Empate — ambos os times em branco cheio</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; padding:8px 12px; background:#f8f6f2; border-radius:10px; border-left:3px solid #A7AFA1;">
+            <div style="font-family:'Bricolage Grotesque'; font-weight:800; font-size:18px; color:rgba(22,38,29,.3);">0</div>
+            <div style="font-family:'Saira Condensed'; font-weight:600; font-size:12px; color:#c0b8b0;">×</div>
+            <div style="font-family:'Bricolage Grotesque'; font-weight:800; font-size:18px; color:rgba(22,38,29,.7);">2</div>
+            <div style="margin-left:8px; font-size:12px; color:#69786D;">Derrota — adversário em branco cheio, seu placar em 35% opacidade</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+</x-dc>
+</body>
+</html>

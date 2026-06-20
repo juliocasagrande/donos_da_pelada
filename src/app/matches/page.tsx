@@ -3,6 +3,7 @@ import { CalendarDays, Clock, Dices, ListChecks, Pencil, Plus, Shirt, Trash2, Us
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { CloseFriendlyMatchForm } from "@/components/matches/CloseFriendlyMatchForm";
 import { LocationLinks } from "@/components/matches/LocationLinks";
 import { closeMatch, deleteMatch } from "@/lib/actions";
 import { TOTAL_CAPACITY } from "@/lib/attendance";
@@ -36,26 +37,48 @@ function MatchBadge({ kind }: { kind: string }) {
   return <span className="rounded-[7px] bg-craque/20 px-2 py-0.5 text-[11px] font-black text-mata">Amistoso</span>;
 }
 
-function AdminActions({ id, closed = false }: { id: string; closed?: boolean }) {
+function AdminActions({
+  id,
+  closed = false,
+  kind = "PELADA",
+  title = "",
+  opponentName
+}: {
+  id: string;
+  closed?: boolean;
+  kind?: string;
+  title?: string;
+  opponentName?: string | null;
+}) {
+  const isFriendlyOpen = !closed && kind === "AMISTOSO";
   return (
-    <div className="grid grid-cols-3 gap-2">
-      <Link href={`/matches/${id}/edit`} className="flex min-h-10 items-center justify-center gap-1 rounded-[11px] bg-white px-3 py-2 text-xs font-bold text-mata shadow-card">
-        <Pencil size={14} /> Editar
-      </Link>
-      {closed ? (
-        <Link href={`/matches/${id}/sumula`} className="flex min-h-10 items-center justify-center rounded-[11px] bg-areia px-3 py-2 text-xs font-bold">
-          Sumula
+    <div className="space-y-2">
+      <div className="grid grid-cols-3 gap-2">
+        <Link href={`/matches/${id}/edit`} className="flex min-h-10 items-center justify-center gap-1 rounded-[11px] bg-white px-3 py-2 text-xs font-bold text-mata shadow-card">
+          <Pencil size={14} /> Editar
         </Link>
-      ) : (
-        <form action={closeMatch.bind(null, id)}>
-          <Button variant="ghost" className="w-full py-2 text-xs">Encerrar</Button>
+        {closed ? (
+          <Link href={`/matches/${id}/sumula`} className="flex min-h-10 items-center justify-center rounded-[11px] bg-areia px-3 py-2 text-xs font-bold">
+            Sumula
+          </Link>
+        ) : isFriendlyOpen ? (
+          <span className="flex min-h-10 items-center justify-center rounded-[11px] bg-areia px-3 py-2 text-center text-[11px] font-bold text-musgo">
+            Placar abaixo
+          </span>
+        ) : (
+          <form action={closeMatch.bind(null, id)}>
+            <Button variant="ghost" className="w-full py-2 text-xs">Encerrar</Button>
+          </form>
+        )}
+        <form action={deleteMatch.bind(null, id)}>
+          <Button variant="danger" className="w-full py-2 text-xs">
+            <Trash2 size={14} /> Excluir
+          </Button>
         </form>
-      )}
-      <form action={deleteMatch.bind(null, id)}>
-        <Button variant="danger" className="w-full py-2 text-xs">
-          <Trash2 size={14} /> Excluir
-        </Button>
-      </form>
+      </div>
+      {isFriendlyOpen ? (
+        <CloseFriendlyMatchForm matchId={id} homeName={title} awayName={opponentName || "Adversario"} />
+      ) : null}
     </div>
   );
 }
@@ -189,7 +212,7 @@ export default async function MatchesPage({
             </div>
             {isAdmin ? (
               <div className="mt-2">
-                <AdminActions id={featured.id} />
+                <AdminActions id={featured.id} kind={featured.kind} title={featured.title} opponentName={featured.opponentName} />
               </div>
             ) : null}
           </div>
@@ -244,7 +267,13 @@ export default async function MatchesPage({
               </div>
               {isAdmin ? (
                 <div className="mt-2">
-                  <AdminActions id={match.id} closed={closed} />
+                  <AdminActions
+                    id={match.id}
+                    closed={closed}
+                    kind={match.kind}
+                    title={match.title}
+                    opponentName={match.opponentName}
+                  />
                 </div>
               ) : null}
             </Card>

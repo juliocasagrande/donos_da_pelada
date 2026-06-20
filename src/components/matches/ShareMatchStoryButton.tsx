@@ -15,29 +15,6 @@ function downloadBlob(blob: Blob, fileName: string) {
   URL.revokeObjectURL(url);
 }
 
-async function svgBlobToPngBlob(svgBlob: Blob) {
-  const url = URL.createObjectURL(svgBlob);
-  try {
-    const image = new Image();
-    image.decoding = "async";
-    image.src = url;
-    await image.decode();
-
-    const canvas = document.createElement("canvas");
-    canvas.width = 1080;
-    canvas.height = 1920;
-    const context = canvas.getContext("2d");
-    if (!context) throw new Error("Nao foi possivel preparar a imagem.");
-
-    context.drawImage(image, 0, 0, canvas.width, canvas.height);
-    const pngBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png", 0.95));
-    if (!pngBlob) throw new Error("Nao foi possivel converter a imagem.");
-    return pngBlob;
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-}
-
 export function ShareMatchStoryButton({
   matchId,
   playerId,
@@ -63,8 +40,7 @@ export function ShareMatchStoryButton({
         const payload = await response.json().catch(() => null);
         throw new Error(payload?.detail || payload?.error || "Falha ao gerar imagem.");
       }
-      const svgBlob = await response.blob();
-      const blob = await svgBlobToPngBlob(svgBlob);
+      const blob = await response.blob();
       const fileName = `pelada-${fileLabel}.png`;
       const file = new File([blob], fileName, { type: "image/png" });
 

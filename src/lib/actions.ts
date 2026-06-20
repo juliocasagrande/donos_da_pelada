@@ -669,12 +669,17 @@ export async function deleteMatch(matchId: string) {
   redirect("/matches");
 }
 
-export async function closeMatch(matchId: string) {
+export async function closeMatch(matchId: string, formData?: FormData) {
   const admin = await requireAdmin();
   await assertMatchInPelada(matchId, admin.peladaId!);
+  const existing = await prisma.match.findFirst({ where: { id: matchId }, select: { kind: true } });
+  const scoreData =
+    existing?.kind === "AMISTOSO" && formData
+      ? { homeScore: optionalInt(value(formData, "homeScore")), awayScore: optionalInt(value(formData, "awayScore")) }
+      : {};
   const match = await prisma.match.update({
     where: { id: matchId },
-    data: { status: MatchStatus.CLOSED },
+    data: { status: MatchStatus.CLOSED, ...scoreData },
     include: { polls: { where: { title: "Craque da pelada", status: PollStatus.OPEN } } }
   });
 
