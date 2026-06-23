@@ -7,12 +7,13 @@ import { getCurrentUser } from "@/lib/session";
 export default async function LoginPage({
   searchParams
 }: {
-  searchParams?: Promise<{ callbackUrl?: string }>;
+  searchParams?: Promise<{ callbackUrl?: string; signup?: string }>;
 }) {
   const user = await getCurrentUser();
   if (user) redirect("/dashboard");
   const query = await searchParams;
   const callbackUrl = query?.callbackUrl?.startsWith("/") ? query.callbackUrl : "/dashboard";
+  const defaultView = query?.signup === "1" ? "signup" : "login";
 
   const socialProviders = [
     process.env.GOOGLE_CLIENT_ID ? "google" : "",
@@ -38,7 +39,7 @@ export default async function LoginPage({
       <section className="relative z-10 -mt-[70px] px-5 pb-6">
         <div className="mx-auto w-full max-w-md">
           <Card className="rounded-t-[30px] p-5 shadow-[0_-10px_40px_rgba(17,40,28,.12)]">
-            <LoginPanel socialProviders={socialProviders} callbackUrl={callbackUrl} />
+            <LoginPanel socialProviders={socialProviders} callbackUrl={callbackUrl} defaultView={defaultView} />
           </Card>
           <DeveloperCredit className="mt-4" />
         </div>

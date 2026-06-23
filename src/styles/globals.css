@@ -251,7 +251,43 @@ textarea {
   animation: bounceTrend .7s ease-in-out;
 }
 
+/* Scroll reveal (componente Reveal) */
+.reveal {
+  opacity: 0;
+  transition:
+    opacity .65s ease,
+    transform .65s cubic-bezier(.22, 1, .36, 1);
+  will-change: opacity, transform;
+}
+.reveal[data-reveal="up"] { transform: translateY(28px); }
+.reveal[data-reveal="left"] { transform: translateX(-32px); }
+.reveal[data-reveal="right"] { transform: translateX(32px); }
+.reveal[data-reveal="zoom"] { transform: scale(.94); }
+.reveal[data-shown="true"] {
+  opacity: 1;
+  transform: none;
+}
+
+@keyframes floatSoft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+.float-soft { animation: floatSoft 6s ease-in-out infinite; }
+
+@keyframes floatSoftAlt {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  50% { transform: translateY(10px) translateX(-8px); }
+}
+.float-soft-alt { animation: floatSoftAlt 8s ease-in-out infinite; }
+
 @media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  .float-soft,
+  .float-soft-alt,
   .animate-card,
   .pulse-dot,
   .grow-bar,

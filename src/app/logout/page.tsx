@@ -10,9 +10,9 @@ export default async function LogoutPage({
   searchParams?: Promise<{ callbackUrl?: string }>;
 }) {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/");
   const query = await searchParams;
-  const callbackUrl = query?.callbackUrl?.startsWith("/") ? query.callbackUrl : "/login";
+  const callbackUrl = query?.callbackUrl?.startsWith("/") ? query.callbackUrl : "/";
 
   return (
     <main className="light-field-lines flex min-h-screen items-center bg-areia px-5 py-8 text-tinta">

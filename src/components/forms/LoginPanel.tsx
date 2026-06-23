@@ -14,12 +14,14 @@ type PlayerView = "login" | "signup";
 
 export function LoginPanel({
   socialProviders = [],
-  callbackUrl = "/dashboard"
+  callbackUrl = "/dashboard",
+  defaultView = "login"
 }: {
   socialProviders?: string[];
   callbackUrl?: string;
+  defaultView?: PlayerView;
 }) {
-  const [playerView, setPlayerView] = useState<PlayerView>("login");
+  const [playerView, setPlayerView] = useState<PlayerView>(defaultView);
   const [signupError, setSignupError] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
 
