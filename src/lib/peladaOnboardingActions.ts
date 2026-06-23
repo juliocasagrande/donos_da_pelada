@@ -6,6 +6,7 @@ import { PeladaRole } from "@prisma/client";
 import { ACTIVE_PELADA_COOKIE, getCurrentUser, requireAdmin } from "@/lib/session";
 import { createPeladaWithTrial } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
+import { sendPushToUsers } from "@/lib/push";
 import { cookies } from "next/headers";
 
 function slugify(name: string) {
@@ -153,7 +154,8 @@ export async function requestJoinPelada(peladaId: string) {
 export async function approveJoinRequest(requestId: string) {
   const admin = await requireAdmin();
   const request = await prisma.peladaJoinRequest.findFirst({
-    where: { id: requestId, peladaId: admin.peladaId! }
+    where: { id: requestId, peladaId: admin.peladaId! },
+    include: { pelada: { select: { name: true } } }
   });
   if (!request) return;
 
@@ -165,6 +167,12 @@ export async function approveJoinRequest(requestId: string) {
     }),
     prisma.peladaJoinRequest.update({ where: { id: requestId }, data: { status: "APPROVED" } })
   ]);
+
+  await sendPushToUsers([request.userId], {
+    title: "Pedido aprovado!",
+    body: `Voce foi aceito na pelada ${request.pelada.name}. Complete seu perfil para entrar no elenco.`,
+    url: "/perfil/onboarding"
+  });
 
   revalidatePath("/admins/solicitacoes");
 }
