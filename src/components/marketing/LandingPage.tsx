@@ -190,8 +190,14 @@ export function LandingPage() {
               Entrar
             </Link>
             <Link
+              href="/login"
+              className="inline-flex min-h-10 items-center justify-center rounded-[13px] bg-campo px-4 py-2.5 text-sm font-semibold text-white shadow-button transition active:scale-[.98] sm:hidden"
+            >
+              Login
+            </Link>
+            <Link
               href="/login?signup=1"
-              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-[13px] bg-campo px-4 py-2.5 text-sm font-semibold text-white shadow-button transition active:scale-[.98]"
+              className="hidden min-h-10 items-center justify-center gap-2 rounded-[13px] bg-campo px-4 py-2.5 text-sm font-semibold text-white shadow-button transition active:scale-[.98] sm:inline-flex"
             >
               Criar conta grátis
             </Link>
