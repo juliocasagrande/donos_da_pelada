@@ -15,30 +15,34 @@ export async function getCurrentUser() {
   const session = await getServerSession(authOptions);
   if (!session?.user) return null;
 
-  const dbUser = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: {
-      role: true,
-      active: true,
-      onboarded: true,
-      pushNotificationsEnabled: true,
-      pushPromptDismissed: true,
-      radarEnabled: true
-    }
-  });
-  if (!dbUser) return null;
-
   const cookieStore = await cookies();
   const requestedPeladaId = cookieStore.get(ACTIVE_PELADA_COOKIE)?.value;
-  let membership =
-    (requestedPeladaId &&
-      (await prisma.peladaMembership.findUnique({
-        where: { userId_peladaId: { userId: session.user.id, peladaId: requestedPeladaId } }
-      }))) ||
-    (await prisma.peladaMembership.findFirst({
+
+  const [dbUser, requestedMembership, firstMembership] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        role: true,
+        active: true,
+        onboarded: true,
+        pushNotificationsEnabled: true,
+        pushPromptDismissed: true,
+        radarEnabled: true
+      }
+    }),
+    requestedPeladaId
+      ? prisma.peladaMembership.findUnique({
+          where: { userId_peladaId: { userId: session.user.id, peladaId: requestedPeladaId } }
+        })
+      : Promise.resolve(null),
+    prisma.peladaMembership.findFirst({
       where: { userId: session.user.id },
       orderBy: { createdAt: "asc" }
-    }));
+    })
+  ]);
+  if (!dbUser) return null;
+
+  let membership = requestedMembership || firstMembership;
 
   const linkedPlayer = membership
     ? await prisma.player.findFirst({

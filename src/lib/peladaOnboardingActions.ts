@@ -4,10 +4,46 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { PeladaRole } from "@prisma/client";
 import { ACTIVE_PELADA_COOKIE, getCurrentUser, requireAdmin } from "@/lib/session";
-import { createPeladaWithTrial } from "@/lib/plan";
+import { canAddMensalista, createPeladaWithTrial } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
 import { sendPushToUsers } from "@/lib/push";
 import { cookies } from "next/headers";
+
+/**
+ * Reuses an already-onboarded user's profile (name/photo from User, position
+ * from their most recent Player elsewhere) to skip onboarding when joining
+ * another pelada. Returns false if the user has never onboarded before.
+ */
+async function autoCreatePlayerIfOnboarded(userId: string, peladaId: string) {
+  const dbUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { onboarded: true, name: true, image: true }
+  });
+  if (!dbUser?.onboarded) return false;
+
+  const priorPlayer = await prisma.player.findFirst({
+    where: { userId },
+    orderBy: { updatedAt: "desc" },
+    select: { nickname: true, photoUrl: true, position: true }
+  });
+
+  const membershipStatus = (await canAddMensalista(peladaId)) ? "MENSALISTA" : "CONVIDADO";
+
+  await prisma.player.upsert({
+    where: { userId_peladaId: { userId, peladaId } },
+    update: {},
+    create: {
+      userId,
+      peladaId,
+      nickname: priorPlayer?.nickname || dbUser.name || "Jogador",
+      photoUrl: priorPlayer?.photoUrl ?? dbUser.image ?? null,
+      position: priorPlayer?.position ?? "MEIA",
+      membershipStatus,
+      rating: 0
+    }
+  });
+  return true;
+}
 
 function slugify(name: string) {
   return name
@@ -127,8 +163,9 @@ export async function acceptInvite(code: string) {
     ]);
   }
 
+  const alreadyOnboarded = await autoCreatePlayerIfOnboarded(user.id, invite.peladaId);
   await setActivePeladaCookie(invite.peladaId);
-  redirect("/perfil/onboarding");
+  redirect(alreadyOnboarded ? "/dashboard" : "/perfil/onboarding");
 }
 
 export async function requestJoinPelada(peladaId: string) {
@@ -168,10 +205,14 @@ export async function approveJoinRequest(requestId: string) {
     prisma.peladaJoinRequest.update({ where: { id: requestId }, data: { status: "APPROVED" } })
   ]);
 
+  const alreadyOnboarded = await autoCreatePlayerIfOnboarded(request.userId, request.peladaId);
+
   await sendPushToUsers([request.userId], {
     title: "Pedido aprovado!",
-    body: `Voce foi aceito na pelada ${request.pelada.name}. Complete seu perfil para entrar no elenco.`,
-    url: "/perfil/onboarding"
+    body: alreadyOnboarded
+      ? `Voce foi aceito na pelada ${request.pelada.name}. Bora jogar!`
+      : `Voce foi aceito na pelada ${request.pelada.name}. Complete seu perfil para entrar no elenco.`,
+    url: alreadyOnboarded ? "/dashboard" : "/perfil/onboarding"
   });
 
   revalidatePath("/admins/solicitacoes");

@@ -200,11 +200,13 @@ export async function saveOnboarding(formData: FormData) {
   if (!user || !user.active) redirect("/login");
   if (!user.peladaId) redirect("/peladas");
   const currentPlayer = await prisma.player.findFirst({ where: { userId: user.id, peladaId: user.peladaId } });
+  const defaultMembershipStatus =
+    isPeladaAdmin(user) || (await canAddMensalista(user.peladaId)) ? "MENSALISTA" : "CONVIDADO";
   const parsed = playerSchema.parse({
     nickname: value(formData, "nickname"),
     photoUrl: value(formData, "photoUrl"),
     position: value(formData, "position"),
-    membershipStatus: currentPlayer?.membershipStatus || (isPeladaAdmin(user) ? "MENSALISTA" : "CONVIDADO"),
+    membershipStatus: currentPlayer?.membershipStatus || defaultMembershipStatus,
     rating: currentPlayer?.rating ?? 0
   });
 
@@ -231,11 +233,13 @@ export async function saveOnboarding(formData: FormData) {
 export async function updateOwnProfile(formData: FormData) {
   const user = await requireUser();
   const currentPlayer = await prisma.player.findFirst({ where: { userId: user.id, peladaId: user.peladaId! } });
+  const defaultMembershipStatus =
+    isPeladaAdmin(user) || (await canAddMensalista(user.peladaId!)) ? "MENSALISTA" : "CONVIDADO";
   const parsed = playerSchema.parse({
     nickname: value(formData, "nickname"),
     photoUrl: value(formData, "photoUrl"),
     position: value(formData, "position"),
-    membershipStatus: currentPlayer?.membershipStatus || "CONVIDADO",
+    membershipStatus: currentPlayer?.membershipStatus || defaultMembershipStatus,
     rating: currentPlayer?.rating ?? 0
   });
 

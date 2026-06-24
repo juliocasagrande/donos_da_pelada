@@ -134,16 +134,31 @@ export default async function RankingsPage({
   }
   const friendlySummaries = [...friendlySummaryMap.values()].filter((summary) => summary.matches > 0);
 
-  const mapped = players.map((player) => {
-    const goals = matchesKind(player.goals, activeKind.key);
-    const assists = matchesKind(player.assists, activeKind.key);
-    const defenses = matchesKind(player.defenses, activeKind.key);
-    const pollWinners = matchesKind(player.pollWinners, activeKind.key);
-    const attendances = matchesKind(player.attendances, activeKind.key);
-    const ratings = matchesKind(player.ratings, activeKind.key);
+  // When viewing "todas as minhas peladas", merge the same person's Player rows
+  // from different peladas into a single combined entry instead of listing them
+  // separately.
+  const groupsByKey = new Map<string, typeof players>();
+  for (const player of players) {
+    const key = activeScope === "todas" ? player.userId ?? `solo:${player.id}` : player.id;
+    groupsByKey.set(key, [...(groupsByKey.get(key) ?? []), player]);
+  }
+  const playerGroups = [...groupsByKey.values()];
+
+  const mapped = playerGroups.map((group) => {
+    const primary = group[0];
+    const goals = group.flatMap((player) => matchesKind(player.goals, activeKind.key));
+    const assists = group.flatMap((player) => matchesKind(player.assists, activeKind.key));
+    const defenses = group.flatMap((player) => matchesKind(player.defenses, activeKind.key));
+    const pollWinners = group.flatMap((player) => matchesKind(player.pollWinners, activeKind.key));
+    const attendances = group.flatMap((player) => matchesKind(player.attendances, activeKind.key));
+    const ratings = group.flatMap((player) => matchesKind(player.ratings, activeKind.key));
     const averages = matchAverages(ratings);
+    const peladaNames = [...new Set(group.map((player) => player.pelada.name))];
     return {
-      ...player,
+      ...primary,
+      id: primary.userId ?? primary.id,
+      pelada: { name: peladaNames.length > 1 ? `${peladaNames.length} peladas` : peladaNames[0] },
+      rating: average(group.map((player) => player.rating)),
       goalsTotal: goals.reduce((sum, item) => sum + item.quantity, 0),
       assistsTotal: assists.reduce((sum, item) => sum + item.quantity, 0),
       defensesTotal: defenses.reduce((sum, item) => sum + item.quantity, 0),
@@ -151,7 +166,7 @@ export default async function RankingsPage({
       craqueTotal: pollWinners.length,
       ratingAverage: average(averages.slice(0, 10)),
       previousRatingAverage: average(averages.slice(1, 11)),
-      overall: score({ ...player, goals })
+      overall: score({ rating: average(group.map((player) => player.rating)), goals })
     };
   });
 
