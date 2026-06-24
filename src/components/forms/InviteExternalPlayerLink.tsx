@@ -14,7 +14,7 @@ export function InviteExternalPlayerLink({
   whatsapp: string;
 }) {
   const url = typeof window !== "undefined" ? `${window.location.origin}/convite/${code}` : `/convite/${code}`;
-  const message = `Fala, ${playerName}! Quero te convidar para jogar na pelada ${peladaName} no Dono da Pelada. Entra por aqui: ${url}`;
+  const message = `Fala, ${playerName}! Quero te convidar para jogar na pelada ${peladaName} no Donos da Pelada. Entra por aqui: ${url}`;
   const whatsappUrl = `https://wa.me/${whatsapp}?text=${encodeURIComponent(message)}`;
 
   return (

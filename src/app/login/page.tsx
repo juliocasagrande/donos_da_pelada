@@ -31,7 +31,7 @@ export default async function LoginPage({
             <div className="absolute left-[-3px] right-[-3px] top-1/2 h-[3px] -translate-y-1/2 bg-mata" />
           </div>
         </div>
-        <h1 className="relative z-10 mt-2 font-display text-[25px] font-extrabold tracking-[-.02em]">Dono da Pelada</h1>
+        <h1 className="relative z-10 mt-2 font-display text-[25px] font-extrabold tracking-[-.02em]">Donos da Pelada</h1>
         <p className="relative z-10 mt-0.5 font-jersey text-xs font-semibold uppercase tracking-[.16em] text-green-200">
           Futebol sem planilha
         </p>

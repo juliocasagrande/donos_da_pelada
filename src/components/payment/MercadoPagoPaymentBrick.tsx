@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, CreditCard } from "lucide-react";
 import { formatCurrencyBRL } from "@/lib/financeUtils";
 import { PLAN_PRICES, type PlanInterval } from "@/lib/plan";
+import { useToast } from "@/components/ui/ToastProvider";
 
 declare global {
   interface Window {
@@ -41,6 +42,7 @@ function loadMercadoPagoSdk() {
 export function MercadoPagoPaymentBrick({ interval }: { interval: PlanInterval }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
   const brickRef = useRef<{ unmount: () => void } | null>(null);
   const publicKey = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY;
   const plan = PLAN_PRICES[interval];
@@ -93,17 +95,25 @@ export function MercadoPagoPaymentBrick({ interval }: { interval: PlanInterval }
             },
             onSubmit: async ({ formData }: { formData: Record<string, unknown> }) => {
               setError(null);
-              const response = await fetch("/api/mercadopago/authorize", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ interval, formData })
-              });
-              const result = await response.json().catch(() => ({}));
-              if (!response.ok || !result.ok) {
-                setError(result.error || "Pagamento recusado. Revise os dados e tente novamente.");
-                return;
+              try {
+                const response = await fetch("/api/mercadopago/authorize", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ interval, formData })
+                });
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok || !result.ok) {
+                  const message = result.error || "Nao foi possivel validar o cartao. Revise os dados e tente novamente.";
+                  setError(message);
+                  toast.error(message);
+                  return;
+                }
+                window.location.href = result.url || `/pagamento?flow=sucesso&plano=${interval}`;
+              } catch {
+                const message = "Nao foi possivel falar com o Mercado Pago. Verifique sua conexao e tente novamente.";
+                setError(message);
+                toast.error(message);
               }
-              window.location.href = result.url || `/pagamento?flow=sucesso&plano=${interval}`;
             }
           }
         });
@@ -122,7 +132,7 @@ export function MercadoPagoPaymentBrick({ interval }: { interval: PlanInterval }
       brickRef.current?.unmount();
       brickRef.current = null;
     };
-  }, [interval, plan.amount, publicKey]);
+  }, [interval, plan.amount, publicKey, toast]);
 
   return (
     <div className="rounded-[18px] border-[1.5px] border-campo bg-white p-[15px] shadow-[0_8px_22px_rgba(27,158,75,.12)]">

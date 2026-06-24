@@ -292,7 +292,7 @@ function renderAmistosoStorySvg({
 
     <line x1="64" y1="1642" x2="1016" y2="1642" stroke="rgba(255,255,255,.12)" stroke-width="3" />
     <text x="540" y="1708" text-anchor="middle" font-family="Inter" font-size="44" font-weight="800" fill="#fff">Organize sua própria pelada</text>
-    <text x="540" y="1760" text-anchor="middle" font-family="Inter" font-size="32" fill="rgba(255,255,255,.5)">Baixe o app Dono da Pelada</text>
+    <text x="540" y="1760" text-anchor="middle" font-family="Inter" font-size="32" fill="rgba(255,255,255,.5)">Baixe o app Donos da Pelada</text>
     <text x="540" y="1812" text-anchor="middle" font-family="Inter" font-size="28" fill="rgba(255,255,255,.4)">Acesse em donos-da-pelada.vercel.app</text>
   </g>
 </svg>`;
@@ -461,7 +461,7 @@ function renderStorySvg({
 
     <line x1="64" y1="1642" x2="1016" y2="1642" stroke="rgba(255,255,255,.12)" stroke-width="3" />
     <text x="540" y="1708" text-anchor="middle" font-family="Inter" font-size="44" font-weight="800" fill="#fff">Organize sua própria pelada</text>
-    <text x="540" y="1760" text-anchor="middle" font-family="Inter" font-size="32" fill="rgba(255,255,255,.5)">Baixe o app Dono da Pelada</text>
+    <text x="540" y="1760" text-anchor="middle" font-family="Inter" font-size="32" fill="rgba(255,255,255,.5)">Baixe o app Donos da Pelada</text>
     <text x="540" y="1812" text-anchor="middle" font-family="Inter" font-size="28" fill="rgba(255,255,255,.4)">Acesse em donos-da-pelada.vercel.app</text>
   </g>
 </svg>`;

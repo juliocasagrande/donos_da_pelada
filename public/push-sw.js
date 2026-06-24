@@ -1,6 +1,6 @@
 self.addEventListener("push", (event) => {
   const fallback = {
-    title: "Dono da Pelada",
+    title: "Donos da Pelada",
     body: "Tem novidade na pelada.",
     url: "/dashboard"
   };

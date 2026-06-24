@@ -7,7 +7,7 @@ import { WhatsappMark } from "@/components/ui/WhatsappMark";
 export function CopyInviteLink({ code, peladaName }: { code: string; peladaName: string }) {
   const [copied, setCopied] = useState(false);
   const url = typeof window !== "undefined" ? `${window.location.origin}/convite/${code}` : `/convite/${code}`;
-  const message = `Voce foi convidado para entrar na pelada ${peladaName} no Dono da Pelada. Toque no link para acessar: ${url}`;
+  const message = `Voce foi convidado para entrar na pelada ${peladaName} no Donos da Pelada. Toque no link para acessar: ${url}`;
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
 
   return (

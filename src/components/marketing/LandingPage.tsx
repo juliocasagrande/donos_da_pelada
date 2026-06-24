@@ -148,7 +148,7 @@ function LogoMark() {
           <span className="absolute left-[-2.5px] right-[-2.5px] top-1/2 h-[2.5px] -translate-y-1/2 bg-mata" />
         </span>
       </span>
-      <span className="font-display text-lg font-extrabold tracking-[-.02em] text-tinta">Dono da Pelada</span>
+      <span className="font-display text-lg font-extrabold tracking-[-.02em] text-tinta">Donos da Pelada</span>
     </span>
   );
 }
@@ -205,7 +205,7 @@ export function LandingPage() {
         <div className="relative hidden md:block">
           <img
             src="/hero-bg.png"
-            alt="Craques do futebol brasileiro ao lado do app Dono da Pelada"
+            alt="Craques do futebol brasileiro ao lado do app Donos da Pelada"
             className="block h-auto w-full"
             width={1672}
             height={941}
@@ -226,7 +226,7 @@ export function LandingPage() {
         <div className="md:hidden">
           <img
             src="/hero-bg.png"
-            alt="Craques do futebol brasileiro ao lado do app Dono da Pelada"
+            alt="Craques do futebol brasileiro ao lado do app Donos da Pelada"
             className="block h-auto w-full"
             width={1672}
             height={941}
@@ -345,7 +345,7 @@ export function LandingPage() {
               @donosdapelada
             </a>
             <p className="text-[13px] text-musgo">
-              © {new Date().getFullYear()} Dono da Pelada
+              © {new Date().getFullYear()} Donos da Pelada
             </p>
           </div>
         </div>

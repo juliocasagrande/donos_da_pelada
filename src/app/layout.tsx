@@ -24,7 +24,7 @@ const jersey = Saira_Condensed({
 });
 
 export const metadata: Metadata = {
-  title: "Dono da Pelada",
+  title: "Donos da Pelada",
   description: "Controle jogadores, peladas, gols e sorteie times balanceados.",
   manifest: "/manifest.webmanifest",
   icons: {

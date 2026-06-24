@@ -4,7 +4,7 @@ import { LandingPage } from "@/components/marketing/LandingPage";
 import { getCurrentUser } from "@/lib/session";
 
 export const metadata: Metadata = {
-  title: "Dono da Pelada — transforme sua pelada em jogo de craques",
+  title: "Donos da Pelada — transforme sua pelada em jogo de craques",
   description:
     "App de gestão de futebol amador: sorteio de times balanceados, ranking de estatísticas, votação de craque da pelada, radar de peladas, convites e presenças. Crie sua conta grátis."
 };

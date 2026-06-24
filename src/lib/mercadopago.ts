@@ -19,6 +19,7 @@ export type MpPayment = {
   status: "approved" | "pending" | "authorized" | "in_process" | "rejected" | "cancelled" | "refunded" | "charged_back";
   status_detail?: string;
   transaction_amount?: number;
+  currency_id?: string;
   external_reference?: string;
   metadata?: {
     pelada_id?: string;

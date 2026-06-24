@@ -44,6 +44,9 @@ export async function POST(request: Request) {
 
     const pelada = await prisma.pelada.findUnique({ where: { id: admin.peladaId! } });
     if (!pelada) return NextResponse.json({ error: "Pelada nao encontrada." }, { status: 404 });
+    if (pelada.plan === "PRO_IN_PROGRESS" && pelada.proCaptureAt && pelada.proCaptureAt > new Date()) {
+      return NextResponse.json({ error: "Ja existe um pagamento em validacao para esta pelada." }, { status: 409 });
+    }
 
     const interval = payload.data.interval as PlanInterval;
     const payment = await createAuthorizedPayment({
@@ -54,14 +57,11 @@ export async function POST(request: Request) {
       formData: payload.data.formData
     });
 
-    await syncPeladaFromPayment(payment);
-
     if (payment.status !== "authorized") {
       const message = failedStatusMessage(payment.status, payment.status_detail);
       await prisma.pelada.update({
         where: { id: pelada.id },
         data: {
-          mpPaymentId: String(payment.id),
           mpPaymentStatus: payment.status,
           mpPaymentStatusDetail: payment.status_detail || null,
           mpPaymentError: message,
@@ -72,6 +72,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: message, status: payment.status, statusDetail: payment.status_detail }, { status: 402 });
     }
 
+    await syncPeladaFromPayment(payment, { allowNewPayment: true });
     return NextResponse.json({
       ok: true,
       status: payment.status,

@@ -45,7 +45,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
           <Link
             href="/dashboard"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-craque shadow-[0_6px_14px_rgba(244,161,26,.3)]"
-            title="Dono da Pelada"
+            title="Donos da Pelada"
           >
             <span className="relative h-[18px] w-[18px] rounded-full border-2 border-mata">
               <span className="absolute left-[-2px] right-[-2px] top-1/2 h-[2px] -translate-y-1/2 bg-mata" />
