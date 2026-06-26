@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { CloseFriendlyMatchForm } from "@/components/matches/CloseFriendlyMatchForm";
 import { LocationLinks } from "@/components/matches/LocationLinks";
+import { MatchWhatsappShareLink } from "@/components/matches/MatchWhatsappShareLink";
 import { closeMatch, deleteMatch } from "@/lib/actions";
 import { TOTAL_CAPACITY } from "@/lib/attendance";
 import { prisma } from "@/lib/prisma";
@@ -210,6 +211,13 @@ export default async function MatchesPage({
                 </Link>
               ) : null}
             </div>
+            <MatchWhatsappShareLink
+              matchId={featured.id}
+              title={featured.title}
+              time={dateParts(featured.date).time}
+              location={featured.location}
+              className="mt-2"
+            />
             {isAdmin ? (
               <div className="mt-2">
                 <AdminActions id={featured.id} kind={featured.kind} title={featured.title} opponentName={featured.opponentName} />
@@ -265,6 +273,15 @@ export default async function MatchesPage({
                   </Link>
                 ) : null}
               </div>
+              {!closed ? (
+                <MatchWhatsappShareLink
+                  matchId={match.id}
+                  title={match.title}
+                  time={parts.time}
+                  location={match.location}
+                  className="mt-2 text-xs"
+                />
+              ) : null}
               {isAdmin ? (
                 <div className="mt-2">
                   <AdminActions
