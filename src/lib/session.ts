@@ -27,7 +27,9 @@ export async function getCurrentUser() {
         onboarded: true,
         pushNotificationsEnabled: true,
         pushPromptDismissed: true,
-        radarEnabled: true
+        radarEnabled: true,
+        plan: true,
+        proRenewsAt: true
       }
     }),
     requestedPeladaId

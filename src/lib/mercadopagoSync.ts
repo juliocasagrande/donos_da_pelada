@@ -30,18 +30,18 @@ function paymentFailureMessage(payment: MpPayment) {
   return payment.status_detail || "O Mercado Pago nao confirmou a captura do pagamento.";
 }
 
-async function revokePendingPayment(pelada: {
+async function revokePendingPayment(user: {
   id: string;
   proCancelRollbackUntil: Date | null;
 }, payment: MpPayment) {
   const now = new Date();
-  const rollbackStillPro = Boolean(pelada.proCancelRollbackUntil && pelada.proCancelRollbackUntil > now);
+  const rollbackStillPro = Boolean(user.proCancelRollbackUntil && user.proCancelRollbackUntil > now);
 
-  return prisma.pelada.update({
-    where: { id: pelada.id },
+  return prisma.user.update({
+    where: { id: user.id },
     data: {
       plan: rollbackStillPro ? "PRO" : "FREE",
-      proRenewsAt: rollbackStillPro ? pelada.proCancelRollbackUntil : null,
+      proRenewsAt: rollbackStillPro ? user.proCancelRollbackUntil : null,
       proCancelUntil: null,
       proCancelRollbackUntil: null,
       proCaptureAt: null,
@@ -52,31 +52,31 @@ async function revokePendingPayment(pelada: {
   });
 }
 
-export async function activatePeladaFromPayment(paymentId: string) {
+export async function activateUserFromPayment(paymentId: string) {
   const payment = await getPayment(paymentId);
-  return syncPeladaFromPayment(payment);
+  return syncUserFromPayment(payment);
 }
 
 /**
- * Applies a Mercado Pago payment only when it belongs to the pelada that
+ * Applies a Mercado Pago payment only when it belongs to the user that
  * initiated it. New payment IDs are accepted exclusively by the authenticated
  * authorization endpoint; webhooks can only advance an already recorded ID.
  */
-export async function syncPeladaFromPayment(payment: MpPayment, options: { allowNewPayment?: boolean } = {}) {
-  const peladaId = payment.metadata?.pelada_id || payment.external_reference;
+export async function syncUserFromPayment(payment: MpPayment, options: { allowNewPayment?: boolean } = {}) {
+  const userId = payment.metadata?.user_id || payment.external_reference;
   const interval = payment.metadata?.plan_interval;
   const paymentId = String(payment.id);
 
-  if (!peladaId || !isPlanInterval(interval) || !isExpectedAmount(payment, interval)) return null;
-  if (payment.external_reference && payment.external_reference !== peladaId) return null;
+  if (!userId || !isPlanInterval(interval) || !isExpectedAmount(payment, interval)) return null;
+  if (payment.external_reference && payment.external_reference !== userId) return null;
 
-  const pelada = await prisma.pelada.findUnique({ where: { id: peladaId } });
-  if (!pelada) return null;
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) return null;
 
-  const isKnownPayment = pelada.mpPaymentId === paymentId;
+  const isKnownPayment = user.mpPaymentId === paymentId;
   if (!isKnownPayment && !options.allowNewPayment) return null;
   // Do not replace an active authorization with a different payment.
-  if (!isKnownPayment && pelada.plan === "PRO_IN_PROGRESS") return null;
+  if (!isKnownPayment && user.plan === "PRO_IN_PROGRESS") return null;
 
   const commonData = {
     mpPaymentId: paymentId,
@@ -90,13 +90,13 @@ export async function syncPeladaFromPayment(payment: MpPayment, options: { allow
   if (payment.status === "authorized") {
     // A duplicated webhook must not extend the cancellation/capture windows.
     if (isKnownPayment) {
-      return prisma.pelada.update({ where: { id: pelada.id }, data: commonData });
+      return prisma.user.update({ where: { id: user.id }, data: commonData });
     }
 
     const now = new Date();
-    const currentEnd = pelada.proRenewsAt && pelada.proRenewsAt > now ? pelada.proRenewsAt : now;
-    return prisma.pelada.update({
-      where: { id: pelada.id },
+    const currentEnd = user.proRenewsAt && user.proRenewsAt > now ? user.proRenewsAt : now;
+    return prisma.user.update({
+      where: { id: user.id },
       data: {
         ...commonData,
         plan: "PRO_IN_PROGRESS",
@@ -104,36 +104,34 @@ export async function syncPeladaFromPayment(payment: MpPayment, options: { allow
         proCancelRollbackUntil: currentEnd > now ? currentEnd : null,
         proCaptureAt: addDays(now, FREE_CANCEL_DAYS),
         proRenewsAt: addMonths(currentEnd, PLAN_PRICES[interval].frequency),
-        subscriptionCancelledAt: null,
-        trialEndsAt: null
+        subscriptionCancelledAt: null
       }
     });
   }
 
   if (payment.status === "approved") {
     // Only the scheduled capture may turn a pending authorization into Pro.
-    if (!isKnownPayment || pelada.plan !== "PRO_IN_PROGRESS") return null;
-    return prisma.pelada.update({
-      where: { id: pelada.id },
+    if (!isKnownPayment || user.plan !== "PRO_IN_PROGRESS") return null;
+    return prisma.user.update({
+      where: { id: user.id },
       data: {
         ...commonData,
         plan: "PRO",
         proCancelUntil: null,
         proCancelRollbackUntil: null,
         proCaptureAt: null,
-        subscriptionCancelledAt: null,
-        trialEndsAt: null
+        subscriptionCancelledAt: null
       }
     });
   }
 
-  if (isKnownPayment && pelada.plan === "PRO_IN_PROGRESS" && TERMINAL_FAILURE_STATUSES.has(payment.status)) {
-    return revokePendingPayment(pelada, payment);
+  if (isKnownPayment && user.plan === "PRO_IN_PROGRESS" && TERMINAL_FAILURE_STATUSES.has(payment.status)) {
+    return revokePendingPayment(user, payment);
   }
 
   if (!isKnownPayment) return null;
-  return prisma.pelada.update({
-    where: { id: pelada.id },
+  return prisma.user.update({
+    where: { id: user.id },
     data: {
       mpPaymentStatus: payment.status,
       mpPaymentStatusDetail: payment.status_detail || null,
@@ -142,13 +140,13 @@ export async function syncPeladaFromPayment(payment: MpPayment, options: { allow
   });
 }
 
-export async function syncPeladaPaymentByPeladaId(peladaId: string, paymentId?: string | null) {
-  if (!paymentId) return prisma.pelada.findUnique({ where: { id: peladaId } });
-  return activatePeladaFromPayment(paymentId);
+export async function syncUserPaymentByUserId(userId: string, paymentId?: string | null) {
+  if (!paymentId) return prisma.user.findUnique({ where: { id: userId } });
+  return activateUserFromPayment(paymentId);
 }
 
 export async function captureDueProPayments(now = new Date()) {
-  const duePeladas = await prisma.pelada.findMany({
+  const dueUsers = await prisma.user.findMany({
     where: {
       plan: "PRO_IN_PROGRESS",
       proCaptureAt: { lte: now },
@@ -157,28 +155,28 @@ export async function captureDueProPayments(now = new Date()) {
   });
 
   const results = [];
-  for (const pelada of duePeladas) {
+  for (const user of dueUsers) {
     try {
-      const payment = await capturePayment(pelada.mpPaymentId!);
-      results.push(await syncPeladaFromPayment(payment));
+      const payment = await capturePayment(user.mpPaymentId!);
+      results.push(await syncUserFromPayment(payment));
     } catch (error) {
       // A timeout can mean that MP captured the card. Reconcile first and only
       // remove access when MP reports a terminal failure.
       const message = error instanceof Error ? error.message : "Falha ao efetivar pagamento.";
       try {
-        const payment = await getPayment(pelada.mpPaymentId!);
-        const synced = await syncPeladaFromPayment(payment);
+        const payment = await getPayment(user.mpPaymentId!);
+        const synced = await syncUserFromPayment(payment);
         if (payment.status === "authorized" || payment.status === "in_process" || payment.status === "pending") {
-          results.push(await prisma.pelada.update({
-            where: { id: pelada.id },
+          results.push(await prisma.user.update({
+            where: { id: user.id },
             data: { mpPaymentError: message, mpPaymentStatus: payment.status, mpPaymentStatusDetail: payment.status_detail || message }
           }));
         } else {
           results.push(synced);
         }
       } catch {
-        results.push(await prisma.pelada.update({
-          where: { id: pelada.id },
+        results.push(await prisma.user.update({
+          where: { id: user.id },
           data: { mpPaymentError: message, mpPaymentStatusDetail: message }
         }));
       }

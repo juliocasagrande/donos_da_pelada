@@ -34,9 +34,16 @@ export default async function AdminsPage({
         <p className="font-jersey text-sm font-semibold uppercase tracking-[.14em] text-musgo">Acesso restrito</p>
         <div className="flex items-center justify-between gap-3">
           <h1 className="font-display text-3xl font-extrabold tracking-[-.02em]">Administradores</h1>
-          <Link href="/admins/peladas" className="rounded-[11px] bg-white px-3 py-2 text-xs font-bold text-mata shadow-card">
-            Peladas
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/admins/peladas" className="rounded-[11px] bg-white px-3 py-2 text-xs font-bold text-mata shadow-card">
+              Peladas
+            </Link>
+            {current.role === "MASTER" ? (
+              <Link href="/admins/usuarios" className="rounded-[11px] bg-white px-3 py-2 text-xs font-bold text-mata shadow-card">
+                Usuarios
+              </Link>
+            ) : null}
+          </div>
         </div>
         <p className="mt-1 text-sm text-musgo">Gerencie quem pode administrar esta pelada.</p>
       </div>

@@ -26,13 +26,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
         orderBy: { createdAt: "asc" }
       })
     : [];
-  const activePelada = user?.peladaId
-    ? await prisma.pelada.findUnique({
-        where: { id: user.peladaId },
-        select: { plan: true, proRenewsAt: true }
-      })
-    : null;
-  const proDaysLeft = activePelada?.plan === "PRO" && activePelada.proRenewsAt ? daysUntil(activePelada.proRenewsAt) : null;
+  const proDaysLeft = user?.plan === "PRO" && user.proRenewsAt ? daysUntil(user.proRenewsAt) : null;
   const showProExpiryNotice = isAdmin && proDaysLeft !== null && proDaysLeft >= 0 && proDaysLeft <= 15;
   const displayName = user?.name || user?.email || "";
 

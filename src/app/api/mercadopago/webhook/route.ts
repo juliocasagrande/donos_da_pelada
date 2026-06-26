@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
-import { activatePeladaFromPayment } from "@/lib/mercadopagoSync";
+import { activateUserFromPayment } from "@/lib/mercadopagoSync";
 
 type WebhookPayload = { type?: string; action?: string; data?: { id?: string | number } };
 
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
   try {
     // The canonical payment is fetched from Mercado Pago; webhook fields are
     // used only to identify the event.
-    await activatePeladaFromPayment(paymentId);
+    await activateUserFromPayment(paymentId);
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Erro ao processar webhook do Mercado Pago:", error);

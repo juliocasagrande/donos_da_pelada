@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/Button";
 import { PeladaCrest } from "@/components/ui/PeladaCrest";
 import { formatCurrencyBRL } from "@/lib/financeUtils";
 import { cancelProPeriod } from "@/lib/mercadopagoActions";
-import { PLAN_PRICES, isPeladaPro, type PlanInterval } from "@/lib/plan";
+import { PLAN_PRICES, getOwnerProPeladaIds, isUserPro, type PlanInterval } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
-import { requireAdmin } from "@/lib/session";
-import { syncPeladaPaymentByPeladaId } from "@/lib/mercadopagoSync";
+import { requireUser } from "@/lib/session";
+import { syncUserPaymentByUserId } from "@/lib/mercadopagoSync";
 
 const planOrder: PlanInterval[] = ["anual", "trimestral", "mensal"];
 
@@ -90,11 +90,13 @@ function Header() {
 function ActivePeladaCard({
   name,
   status,
-  activeMensalistas
+  activeMensalistas,
+  proCoverage
 }: {
   name: string;
   status: string;
   activeMensalistas: number;
+  proCoverage?: string;
 }) {
   return (
     <div className="flex items-center gap-[13px] rounded-[18px] bg-white p-3.5 shadow-card">
@@ -107,6 +109,11 @@ function ActivePeladaCard({
         <p className="mt-0.5 text-[12px] text-musgo">
           Mensalistas ativos: <span className="font-semibold text-tinta">{activeMensalistas}</span>
         </p>
+        {proCoverage ? (
+          <p className="mt-0.5 text-[12px] text-musgo">
+            Peladas Pro: <span className="font-semibold text-tinta">{proCoverage}</span>
+          </p>
+        ) : null}
       </div>
       <span className="rounded-md bg-areia px-2.5 py-1 text-[10px] font-bold text-musgo">ATIVA</span>
     </div>
@@ -200,11 +207,10 @@ function SevenDayNotice() {
 }
 
 function SubscriptionPanel({
-  pelada
+  user
 }: {
-  pelada: {
+  user: {
     plan: string;
-    trialEndsAt: Date | null;
     proCancelUntil: Date | null;
     proRenewsAt: Date | null;
     subscriptionCancelledAt: Date | null;
@@ -212,11 +218,11 @@ function SubscriptionPanel({
   };
 }) {
   const now = Date.now();
-  const pro = isPeladaPro(pelada);
-  const inFreeCancellationPeriod = Boolean(pelada.proCancelUntil && pelada.proCancelUntil.getTime() > now);
-  const alreadyCancelled = Boolean(pelada.subscriptionCancelledAt);
+  const pro = isUserPro(user);
+  const inFreeCancellationPeriod = Boolean(user.proCancelUntil && user.proCancelUntil.getTime() > now);
+  const alreadyCancelled = Boolean(user.subscriptionCancelledAt);
 
-  if (!pro && !pelada.mpPaymentId && !alreadyCancelled) return null;
+  if (!pro && !user.mpPaymentId && !alreadyCancelled) return null;
 
   return (
     <div className="mt-3 rounded-[18px] border border-linha bg-white p-3.5 shadow-card">
@@ -232,9 +238,9 @@ function SubscriptionPanel({
             {alreadyCancelled && !pro
               ? "Periodo Pro cancelado dentro da janela gratuita."
               : inFreeCancellationPeriod
-                ? `Cancelamento gratuito disponivel ate ${formatDate(pelada.proCancelUntil!)}.`
-                : pelada.proRenewsAt
-                  ? `Fora do periodo gratuito. O Pro fica ativo ate ${formatDate(pelada.proRenewsAt)}.`
+                ? `Cancelamento gratuito disponivel ate ${formatDate(user.proCancelUntil!)}.`
+                : user.proRenewsAt
+                  ? `Fora do periodo gratuito. O Pro fica ativo ate ${formatDate(user.proRenewsAt)}.`
                   : "Periodo Pro sem cobranca recorrente."}
           </p>
         </div>
@@ -255,16 +261,17 @@ function SubscriptionPanel({
 }
 
 function PlansScreen({
-  pelada,
+  peladaName,
+  user,
   status,
   cancelado,
   selectedPlan,
-  activeMensalistas
+  activeMensalistas,
+  proCoverage
 }: {
-  pelada: {
-    name: string;
+  peladaName: string;
+  user: {
     plan: string;
-    trialEndsAt: Date | null;
     proCancelUntil: Date | null;
     proRenewsAt: Date | null;
     subscriptionCancelledAt: Date | null;
@@ -275,22 +282,23 @@ function PlansScreen({
   cancelado?: string;
   selectedPlan?: PlanInterval;
   activeMensalistas: number;
+  proCoverage?: string;
 }) {
   return (
     <PaymentShell>
       <Header />
       <div className="h-[716px] overflow-y-auto px-[22px] pb-5">
-        <ActivePeladaCard name={pelada.name} status={status} activeMensalistas={activeMensalistas} />
+        <ActivePeladaCard name={peladaName} status={status} activeMensalistas={activeMensalistas} proCoverage={proCoverage} />
         {cancelado ? (
           <div className="mt-3 rounded-[13px] border border-campo/20 bg-[#EAF5EC] px-3 py-2 text-center text-xs font-semibold text-mata">
             {cancelado === "erro"
-              ? pelada.mpPaymentError || "Nao foi possivel cancelar no Mercado Pago. Tente novamente."
+              ? user.mpPaymentError || "Nao foi possivel cancelar no Mercado Pago. Tente novamente."
               : cancelado === "gratis"
               ? "Periodo Pro cancelado dentro da janela gratuita."
               : "Fora do periodo gratuito. O Pro fica ativo ate o vencimento."}
           </div>
         ) : null}
-        <SubscriptionPanel pelada={pelada} />
+        <SubscriptionPanel user={user} />
         <div className="mb-[11px] mt-[18px] px-0.5 font-jersey text-xs font-semibold uppercase tracking-[.1em] text-[#8a857a]">
           Escolha o plano
         </div>
@@ -461,7 +469,7 @@ export default async function PagamentoPage({
     collection_status?: string;
   }>;
 }) {
-  const admin = await requireAdmin();
+  const currentUser = await requireUser();
   const query = await searchParams;
   const plan = normalizePlan(query?.plano);
   const paymentReturn =
@@ -471,16 +479,15 @@ export default async function PagamentoPage({
     Boolean(query?.payment_id || query?.collection_id);
 
   if (paymentReturn) {
-    await syncPeladaPaymentByPeladaId(admin.peladaId!, query?.payment_id || query?.collection_id);
+    await syncUserPaymentByUserId(currentUser.id, query?.payment_id || query?.collection_id);
   }
 
-  const [pelada, activeMensalistas] = await Promise.all([
-    prisma.pelada.findUnique({
-      where: { id: admin.peladaId! },
+  const [user, activePelada, activeMensalistas, ownedPeladasCount] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: currentUser.id },
       select: {
         name: true,
         plan: true,
-        trialEndsAt: true,
         proCancelUntil: true,
         proRenewsAt: true,
         subscriptionCancelledAt: true,
@@ -489,42 +496,53 @@ export default async function PagamentoPage({
         mpPaymentStatus: true
       }
     }),
-    prisma.player.count({
-      where: { peladaId: admin.peladaId!, active: true, membershipStatus: "MENSALISTA" }
-    })
+    currentUser.peladaId
+      ? prisma.pelada.findUnique({ where: { id: currentUser.peladaId }, select: { name: true, trialEndsAt: true } })
+      : Promise.resolve(null),
+    currentUser.peladaId
+      ? prisma.player.count({ where: { peladaId: currentUser.peladaId, active: true, membershipStatus: "MENSALISTA" } })
+      : Promise.resolve(0),
+    prisma.pelada.count({ where: { createdByUserId: currentUser.id } })
   ]);
 
-  if (!pelada) return null;
+  if (!user) return null;
+  const peladaName = activePelada?.name || user.name || "Sua pelada";
 
-  if (query?.status === "processando") return <ProcessingScreen peladaName={pelada.name} plan={plan} />;
-  const pro = isPeladaPro(pelada);
+  if (query?.status === "processando") return <ProcessingScreen peladaName={peladaName} plan={plan} />;
+  const pro = isUserPro(user);
   if (paymentReturn) {
-    if (!pro) return <ProcessingScreen peladaName={pelada.name} plan={plan} />;
+    if (!pro) return <ProcessingScreen peladaName={peladaName} plan={plan} />;
     return (
       <SuccessScreen
-        peladaName={pelada.name}
+        peladaName={peladaName}
         plan={plan}
-        proRenewsAt={pelada.proRenewsAt || nextRenewal(plan)}
+        proRenewsAt={user.proRenewsAt || nextRenewal(plan)}
       />
     );
   }
 
   const status = pro
-    ? pelada.plan === "PRO_IN_PROGRESS"
+    ? user.plan === "PRO_IN_PROGRESS"
       ? "Pro em andamento"
       : "Pro"
-    : pelada.trialEndsAt && pelada.trialEndsAt.getTime() > Date.now()
+    : activePelada?.trialEndsAt && activePelada.trialEndsAt.getTime() > Date.now()
       ? "Teste Pro"
       : "Gratis";
   const selectedPlan = query?.plano ? plan : undefined;
+  const proCoverage =
+    pro && ownedPeladasCount > 0
+      ? `${(await getOwnerProPeladaIds(currentUser.id)).size} de ${ownedPeladasCount}`
+      : undefined;
 
   return (
     <PlansScreen
-      pelada={pelada}
+      peladaName={peladaName}
+      user={user}
       status={status}
       cancelado={query?.cancelado}
       selectedPlan={selectedPlan}
       activeMensalistas={activeMensalistas}
+      proCoverage={proCoverage}
     />
   );
 }

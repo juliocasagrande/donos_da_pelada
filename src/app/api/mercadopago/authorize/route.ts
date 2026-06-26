@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createAuthorizedPayment, formatMercadoPagoError } from "@/lib/mercadopago";
-import { syncPeladaFromPayment } from "@/lib/mercadopagoSync";
+import { syncUserFromPayment } from "@/lib/mercadopagoSync";
 import { PLAN_PRICES, type PlanInterval } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
-import { ApiAuthError, requireApiAdmin } from "@/lib/session";
+import { ApiAuthError, requireApiUser } from "@/lib/session";
 
 const requestSchema = z.object({
   interval: z.enum(["mensal", "trimestral", "anual"]),
@@ -36,31 +36,31 @@ function failedStatusMessage(status?: string, statusDetail?: string) {
 
 export async function POST(request: Request) {
   try {
-    const admin = await requireApiAdmin();
+    const currentUser = await requireApiUser();
     const payload = requestSchema.safeParse(await request.json());
     if (!payload.success) {
       return NextResponse.json({ error: payload.error.issues[0]?.message || "Dados de pagamento invalidos." }, { status: 400 });
     }
 
-    const pelada = await prisma.pelada.findUnique({ where: { id: admin.peladaId! } });
-    if (!pelada) return NextResponse.json({ error: "Pelada nao encontrada." }, { status: 404 });
-    if (pelada.plan === "PRO_IN_PROGRESS" && pelada.proCaptureAt && pelada.proCaptureAt > new Date()) {
-      return NextResponse.json({ error: "Ja existe um pagamento em validacao para esta pelada." }, { status: 409 });
+    const user = await prisma.user.findUnique({ where: { id: currentUser.id } });
+    if (!user) return NextResponse.json({ error: "Usuario nao encontrado." }, { status: 404 });
+    if (user.plan === "PRO_IN_PROGRESS" && user.proCaptureAt && user.proCaptureAt > new Date()) {
+      return NextResponse.json({ error: "Ja existe um pagamento em validacao para sua conta." }, { status: 409 });
     }
 
     const interval = payload.data.interval as PlanInterval;
     const payment = await createAuthorizedPayment({
-      peladaId: pelada.id,
-      peladaName: pelada.name,
-      payerEmail: admin.email || payload.data.formData.payer?.email || "",
+      userId: user.id,
+      userName: user.name || user.email || "Usuario",
+      payerEmail: user.email || payload.data.formData.payer?.email || "",
       interval,
       formData: payload.data.formData
     });
 
     if (payment.status !== "authorized") {
       const message = failedStatusMessage(payment.status, payment.status_detail);
-      await prisma.pelada.update({
-        where: { id: pelada.id },
+      await prisma.user.update({
+        where: { id: user.id },
         data: {
           mpPaymentStatus: payment.status,
           mpPaymentStatusDetail: payment.status_detail || null,
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: message, status: payment.status, statusDetail: payment.status_detail }, { status: 402 });
     }
 
-    await syncPeladaFromPayment(payment, { allowNewPayment: true });
+    await syncUserFromPayment(payment, { allowNewPayment: true });
     return NextResponse.json({
       ok: true,
       status: payment.status,

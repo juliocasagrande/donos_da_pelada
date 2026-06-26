@@ -30,7 +30,12 @@ export function PushNotifications({
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    setAvailable("serviceWorker" in navigator && "PushManager" in window && Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY));
+    setAvailable(
+      "Notification" in window &&
+        "serviceWorker" in navigator &&
+        "PushManager" in window &&
+        Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY)
+    );
 
     navigator.serviceWorker?.ready
       .then((registration) => registration.pushManager.getSubscription())
@@ -46,56 +51,63 @@ export function PushNotifications({
       return;
     }
 
-    const permission = await Notification.requestPermission();
-    if (permission !== "granted") {
-      setMessage("Permissao de notificacao nao concedida.");
-      return;
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        setMessage("Permissao de notificacao nao concedida.");
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.ready;
+      const subscription =
+        (await registration.pushManager.getSubscription()) ||
+        (await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "")
+        }));
+
+      const response = await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(subscription)
+      });
+
+      if (!response.ok) {
+        setMessage("Nao foi possivel salvar este dispositivo.");
+        return;
+      }
+
+      setEnabled(true);
+      setDismissed(true);
+      setMessage("Notificacoes ativadas.");
+    } catch (error) {
+      console.error("Falha ao ativar notificacoes:", error);
+      setMessage("Nao foi possivel ativar as notificacoes neste dispositivo.");
     }
-
-    const registration = await navigator.serviceWorker.ready;
-    const subscription =
-      (await registration.pushManager.getSubscription()) ||
-      (await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "")
-      }));
-
-    const response = await fetch("/api/push/subscribe", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(subscription)
-    });
-
-    if (!response.ok) {
-      setMessage("Nao foi possivel salvar este dispositivo.");
-      return;
-    }
-
-    setEnabled(true);
-    setDismissed(true);
-    setMessage("Notificacoes ativadas.");
   }
 
   async function disableNotifications() {
     setMessage("");
-
-    const registration = await navigator.serviceWorker?.ready.catch(() => null);
-    const subscription = await registration?.pushManager.getSubscription();
-    await subscription?.unsubscribe().catch(() => null);
-
-    const response = await fetch("/api/push/preference", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ enabled: false })
-    });
-
-    if (!response.ok) {
-      setMessage("Nao foi possivel salvar sua preferencia.");
-      return;
-    }
-
     setEnabled(false);
     setDismissed(true);
+
+    try {
+      const registration = await navigator.serviceWorker?.ready.catch(() => null);
+      const subscription = await registration?.pushManager.getSubscription();
+      await subscription?.unsubscribe().catch(() => null);
+
+      const response = await fetch("/api/push/preference", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: false })
+      });
+
+      if (!response.ok) {
+        console.error("Falha ao salvar preferencia de notificacao:", response.status);
+      }
+    } catch (error) {
+      console.error("Falha ao desativar notificacoes:", error);
+    }
   }
 
   if (!available || enabled || dismissed) return null;

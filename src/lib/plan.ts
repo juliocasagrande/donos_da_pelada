@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 
 export const MENSALISTA_FREE_LIMIT = 20;
+export const MAX_PRO_PELADAS_PER_USER = 5;
 
 export const PLAN_PRICES = {
   mensal: { label: "Mensal", amount: 29.9, frequency: 1 },
@@ -11,33 +12,42 @@ export const PLAN_PRICES = {
 
 export type PlanInterval = keyof typeof PLAN_PRICES;
 
-export function isPeladaPro(pelada: {
-  plan: string;
-  trialEndsAt: Date | null;
-  proRenewsAt?: Date | null;
-  subscriptionCancelledAt?: Date | null;
-}) {
-  if (pelada.plan === "PRO" || pelada.plan === "PRO_IN_PROGRESS") {
-    return Boolean(pelada.proRenewsAt && pelada.proRenewsAt.getTime() > Date.now());
-  }
-  return Boolean(pelada.trialEndsAt && pelada.trialEndsAt.getTime() > Date.now());
+export function isUserPro(user: { plan: string; proRenewsAt: Date | null }) {
+  if (user.plan !== "PRO" && user.plan !== "PRO_IN_PROGRESS") return false;
+  return Boolean(user.proRenewsAt && user.proRenewsAt.getTime() > Date.now());
+}
+
+export async function getOwnerProPeladaIds(ownerId: string) {
+  const peladas = await prisma.pelada.findMany({
+    where: { createdByUserId: ownerId },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    select: { id: true },
+    take: MAX_PRO_PELADAS_PER_USER
+  });
+  return new Set(peladas.map((pelada) => pelada.id));
 }
 
 export async function isPeladaIdPro(peladaId: string) {
   const pelada = await prisma.pelada.findUnique({
     where: { id: peladaId },
-    select: { plan: true, trialEndsAt: true, proRenewsAt: true, subscriptionCancelledAt: true }
+    select: { trialEndsAt: true, createdByUserId: true }
   });
-  return Boolean(pelada && isPeladaPro(pelada));
+  if (!pelada) return false;
+  if (pelada.trialEndsAt && pelada.trialEndsAt.getTime() > Date.now()) return true;
+  if (!pelada.createdByUserId) return false;
+
+  const owner = await prisma.user.findUnique({
+    where: { id: pelada.createdByUserId },
+    select: { plan: true, proRenewsAt: true }
+  });
+  if (!owner || !isUserPro(owner)) return false;
+
+  const proPeladaIds = await getOwnerProPeladaIds(pelada.createdByUserId);
+  return proPeladaIds.has(peladaId);
 }
 
 export async function canAddMensalista(peladaId: string) {
-  const pelada = await prisma.pelada.findUnique({
-    where: { id: peladaId },
-    select: { plan: true, trialEndsAt: true, proRenewsAt: true, subscriptionCancelledAt: true }
-  });
-  if (!pelada) return false;
-  if (isPeladaPro(pelada)) return true;
+  if (await isPeladaIdPro(peladaId)) return true;
 
   const activeMensalistas = await prisma.player.count({
     where: { peladaId, active: true, membershipStatus: "MENSALISTA" }
@@ -46,11 +56,7 @@ export async function canAddMensalista(peladaId: string) {
 }
 
 export async function enforceFreeTierMensalistaLimit(peladaId: string) {
-  const pelada = await prisma.pelada.findUnique({
-    where: { id: peladaId },
-    select: { plan: true, trialEndsAt: true, proRenewsAt: true, subscriptionCancelledAt: true }
-  });
-  if (!pelada || isPeladaPro(pelada)) return { changed: 0 };
+  if (await isPeladaIdPro(peladaId)) return { changed: 0 };
 
   const activeMensalistas = await prisma.player.findMany({
     where: { peladaId, active: true, membershipStatus: "MENSALISTA" },

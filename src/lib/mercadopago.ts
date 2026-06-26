@@ -22,7 +22,7 @@ export type MpPayment = {
   currency_id?: string;
   external_reference?: string;
   metadata?: {
-    pelada_id?: string;
+    user_id?: string;
     plan_interval?: PlanInterval;
   };
 };
@@ -42,8 +42,8 @@ export type MercadoPagoPaymentFormData = {
 };
 
 export async function createPaymentCheckout(params: {
-  peladaId: string;
-  peladaName: string;
+  userId: string;
+  userName: string;
   payerEmail: string;
   interval: PlanInterval;
   backUrl: string;
@@ -60,16 +60,16 @@ export async function createPaymentCheckout(params: {
     body: JSON.stringify({
       items: [
         {
-          title: `Dono da Pelada - Plano Pro ${plan.label} - ${params.peladaName}`,
+          title: `Dono da Pelada - Plano Pro ${plan.label} - ${params.userName}`,
           quantity: 1,
           unit_price: plan.amount,
           currency_id: "BRL"
         }
       ],
       payer: { email: params.payerEmail },
-      external_reference: params.peladaId,
+      external_reference: params.userId,
       metadata: {
-        pelada_id: params.peladaId,
+        user_id: params.userId,
         plan_interval: params.interval
       },
       back_urls: {
@@ -107,8 +107,8 @@ export async function getPayment(paymentId: string): Promise<MpPayment> {
 }
 
 export async function createAuthorizedPayment(params: {
-  peladaId: string;
-  peladaName: string;
+  userId: string;
+  userName: string;
   payerEmail: string;
   interval: PlanInterval;
   formData: MercadoPagoPaymentFormData;
@@ -126,7 +126,7 @@ export async function createAuthorizedPayment(params: {
     body: JSON.stringify({
       transaction_amount: plan.amount,
       token: params.formData.token,
-      description: `Dono da Pelada - Plano Pro ${plan.label} - ${params.peladaName}`,
+      description: `Dono da Pelada - Plano Pro ${plan.label} - ${params.userName}`,
       installments: Math.min(Number(params.formData.installments || 1), 5),
       payment_method_id: params.formData.payment_method_id,
       issuer_id: params.formData.issuer_id,
@@ -135,9 +135,9 @@ export async function createAuthorizedPayment(params: {
         identification: params.formData.payer?.identification
       },
       capture: false,
-      external_reference: params.peladaId,
+      external_reference: params.userId,
       metadata: {
-        pelada_id: params.peladaId,
+        user_id: params.userId,
         plan_interval: params.interval
       },
       statement_descriptor: "DONO DA PELADA"

@@ -7,9 +7,18 @@ import { archiveUserPeladaStats } from "@/lib/careerStats";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, requireMaster } from "@/lib/session";
 
-export async function setPeladaPlanManually(peladaId: string, plan: PeladaPlan) {
+const MANUAL_PRO_GRANT_YEARS = 10;
+
+export async function setUserPlanManually(userId: string, plan: PeladaPlan) {
   await requireMaster();
-  await prisma.pelada.update({ where: { id: peladaId }, data: { plan, trialEndsAt: null } });
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      plan,
+      proRenewsAt: plan === "PRO" ? new Date(Date.now() + MANUAL_PRO_GRANT_YEARS * 365 * 24 * 60 * 60 * 1000) : null
+    }
+  });
+  revalidatePath("/admins/usuarios");
   revalidatePath("/admins/peladas");
 }
 
