@@ -436,6 +436,7 @@ model Match {
   updatedAt   DateTime          @updatedAt
 
   @@index([peladaId])
+  @@index([peladaId, status, date])
 }
 
 model MatchGuestRequest {
@@ -469,6 +470,7 @@ model Attendance {
   updatedAt DateTime @updatedAt
 
   @@unique([matchId, playerId])
+  @@index([playerId])
 }
 
 model Team {
@@ -491,6 +493,7 @@ model TeamPlayer {
   createdAt DateTime @default(now())
 
   @@unique([teamId, playerId])
+  @@index([playerId])
 }
 
 model Goal {
@@ -504,6 +507,7 @@ model Goal {
   updatedAt DateTime @updatedAt
 
   @@unique([matchId, playerId])
+  @@index([playerId])
 }
 
 model Assist {
@@ -517,6 +521,7 @@ model Assist {
   updatedAt DateTime @updatedAt
 
   @@unique([matchId, playerId])
+  @@index([playerId])
 }
 
 model DifficultSave {
@@ -530,6 +535,7 @@ model DifficultSave {
   updatedAt DateTime @updatedAt
 
   @@unique([matchId, playerId])
+  @@index([playerId])
 }
 
 model Poll {
@@ -556,6 +562,7 @@ model PollVote {
   createdAt DateTime @default(now())
 
   @@unique([pollId, userId])
+  @@index([playerId])
 }
 
 model PlayerRating {
@@ -571,6 +578,8 @@ model PlayerRating {
   updatedAt DateTime @updatedAt
 
   @@unique([matchId, playerId, userId])
+  @@index([playerId])
+  @@index([userId])
 }
 
 model PlayerMatchSubmission {
@@ -584,4 +593,6 @@ model PlayerMatchSubmission {
   createdAt DateTime @default(now())
 
   @@unique([matchId, playerId, userId])
+  @@index([playerId])
+  @@index([userId])
 }

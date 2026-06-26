@@ -103,7 +103,7 @@ export default async function RankingsPage({
       defenses: { include: { match: { select: { kind: true } } } },
       pollWinners: { include: { match: { select: { kind: true } } } },
       attendances: { include: { match: { select: { kind: true } } } },
-      ratings: { include: { match: true } }
+      ratings: { select: { value: true, match: { select: { date: true, kind: true } } } }
     }
   });
   const friendlyMatches = await prisma.match.findMany({
@@ -115,7 +115,12 @@ export default async function RankingsPage({
       homeScore: { not: null },
       awayScore: { not: null }
     },
-    include: { pelada: { select: { id: true, name: true } } }
+    select: {
+      peladaId: true,
+      homeScore: true,
+      awayScore: true,
+      pelada: { select: { id: true, name: true } }
+    }
   });
   const friendlySummaryMap = new Map(
     memberPeladas
