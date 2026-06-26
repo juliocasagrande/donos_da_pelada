@@ -135,9 +135,9 @@ export async function revokeInvite(inviteId: string) {
   revalidatePath("/admins/convites");
 }
 
-export async function acceptInvite(code: string) {
+export async function acceptInvite(code: string, matchId?: string) {
   const user = await getCurrentUser();
-  if (!user || !user.active) redirect(`/login?callbackUrl=${encodeURIComponent(`/convite/${code}`)}`);
+  if (!user || !user.active) redirect(`/login?callbackUrl=${encodeURIComponent(`/convite/${code}${matchId ? `?matchId=${encodeURIComponent(matchId)}` : ""}`)}`);
 
   const invite = await prisma.peladaInvite.findUnique({ where: { code } });
   const valid =
@@ -163,9 +163,15 @@ export async function acceptInvite(code: string) {
     ]);
   }
 
+  const targetMatch = matchId
+    ? await prisma.match.findFirst({
+        where: { id: matchId, peladaId: invite.peladaId, status: "OPEN", deletedAt: null },
+        select: { id: true }
+      })
+    : null;
   const alreadyOnboarded = await autoCreatePlayerIfOnboarded(user.id, invite.peladaId);
   await setActivePeladaCookie(invite.peladaId);
-  redirect(alreadyOnboarded ? "/dashboard" : "/perfil/onboarding");
+  redirect(alreadyOnboarded ? (targetMatch ? `/matches/${targetMatch.id}/attendance` : "/dashboard") : "/perfil/onboarding");
 }
 
 export async function requestJoinPelada(peladaId: string) {

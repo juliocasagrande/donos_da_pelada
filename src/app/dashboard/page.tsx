@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/Button";
 import { StatTile } from "@/components/ui/StatTile";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { LocationLinks } from "@/components/matches/LocationLinks";
+import { MatchWhatsappShareLink } from "@/components/matches/MatchWhatsappShareLink";
 import { DeveloperCredit } from "@/components/layout/DeveloperCredit";
 import { closeExpiredCraquePolls } from "@/lib/actions";
 import { approveMatchGuestRequest, rejectMatchGuestRequest } from "@/lib/radarActions";
@@ -433,6 +434,16 @@ export default async function DashboardPage() {
           ) : (
             <DashboardAttendanceActions matchId={nextMatch.id} attendanceStatus={myNextMatchAttendance?.status ?? null} />
           )}
+          {isAdmin ? (
+            <div className="relative z-30 mt-2">
+              <MatchWhatsappShareLink
+                matchId={nextMatch.id}
+                title={nextMatch.title}
+                time={`${formatDate(nextMatch.date)} as ${formatTime(nextMatch.date)}`}
+                location={nextMatch.location}
+              />
+            </div>
+          ) : null}
           <p className="pointer-events-none relative z-20 mt-3 text-xs text-green-200">
             {nextMatch._count.attendances} confirmados
           </p>

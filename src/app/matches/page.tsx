@@ -211,13 +211,15 @@ export default async function MatchesPage({
                 </Link>
               ) : null}
             </div>
-            <MatchWhatsappShareLink
-              matchId={featured.id}
-              title={featured.title}
-              time={dateParts(featured.date).time}
-              location={featured.location}
-              className="mt-2"
-            />
+            {isAdmin ? (
+              <MatchWhatsappShareLink
+                matchId={featured.id}
+                title={featured.title}
+                time={dateParts(featured.date).time}
+                location={featured.location}
+                className="mt-2"
+              />
+            ) : null}
             {isAdmin ? (
               <div className="mt-2">
                 <AdminActions id={featured.id} kind={featured.kind} title={featured.title} opponentName={featured.opponentName} />
@@ -273,7 +275,7 @@ export default async function MatchesPage({
                   </Link>
                 ) : null}
               </div>
-              {!closed ? (
+              {isAdmin && !closed ? (
                 <MatchWhatsappShareLink
                   matchId={match.id}
                   title={match.title}

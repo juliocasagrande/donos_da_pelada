@@ -13,12 +13,12 @@ export default async function ConviteCodePage({
   searchParams
 }: {
   params: Promise<{ code: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; matchId?: string }>;
 }) {
   const { code } = await params;
-  const { error } = await searchParams;
+  const { error, matchId } = await searchParams;
   const user = await getCurrentUser();
-  const invitePath = `/convite/${code}`;
+  const invitePath = `/convite/${code}${matchId ? `?matchId=${encodeURIComponent(matchId)}` : ""}`;
   const loginHref = `/login?callbackUrl=${encodeURIComponent(invitePath)}`;
   const logoutHref = `/logout?callbackUrl=${encodeURIComponent(invitePath)}`;
 
@@ -94,7 +94,7 @@ export default async function ConviteCodePage({
                 <p className="rounded-[13px] bg-areia p-3 text-sm font-semibold text-musgo">
                   Voce esta conectado como <span className="font-bold text-tinta">{user.name || user.email}</span>. O convite sera vinculado a esta conta.
                 </p>
-                <form action={acceptInvite.bind(null, code)}>
+                <form action={acceptInvite.bind(null, code, matchId)}>
                   <SubmitButton className="w-full" pendingLabel="Entrando...">
                     Entrar nesta pelada
                   </SubmitButton>
