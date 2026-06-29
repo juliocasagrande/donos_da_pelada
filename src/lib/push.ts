@@ -33,7 +33,9 @@ export async function sendPushToAll(payload: PushPayload) {
     return;
   }
 
-  const subscriptions = await prisma.pushSubscription.findMany();
+  const subscriptions = await prisma.pushSubscription.findMany({
+    select: { endpoint: true, p256dh: true, auth: true }
+  });
 
   await Promise.allSettled(
     subscriptions.map(async (subscription) => {
@@ -68,7 +70,8 @@ export async function sendPushToUsers(userIds: string[], payload: PushPayload) {
   if (!userIds.length || !configureWebPush()) return;
 
   const subscriptions = await prisma.pushSubscription.findMany({
-    where: { userId: { in: userIds } }
+    where: { userId: { in: userIds } },
+    select: { endpoint: true, p256dh: true, auth: true }
   });
 
   await Promise.allSettled(

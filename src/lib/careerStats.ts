@@ -6,7 +6,13 @@ type DbClient = typeof prisma | Prisma.TransactionClient;
 export async function archiveUserPeladaStats(userId: string, peladaId: string, db: DbClient = prisma) {
   const player = await db.player.findFirst({
     where: { userId, peladaId },
-    include: { goals: true, assists: true, pollWinners: true, attendances: true, ratings: true }
+    include: {
+      goals: { select: { quantity: true } },
+      assists: { select: { quantity: true } },
+      pollWinners: { select: { id: true } },
+      attendances: { select: { status: true } },
+      ratings: { select: { value: true } }
+    }
   });
   if (!player) return;
 

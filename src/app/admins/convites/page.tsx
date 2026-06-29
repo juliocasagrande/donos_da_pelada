@@ -56,7 +56,8 @@ export default async function ConvitesPage() {
       user: { select: { whatsapp: true } }
     },
     distinct: ["userId"],
-    orderBy: [{ nickname: "asc" }]
+    orderBy: [{ nickname: "asc" }],
+    take: 50
   });
 
   return (
