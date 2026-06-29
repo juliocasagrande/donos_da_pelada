@@ -141,7 +141,10 @@ export async function getAttendanceStatusForPlayer(
 
 async function promoteNextFromWaitlist(matchId: string) {
   const promoted = await prisma.$transaction(async (tx) => {
-    const match = await tx.match.findUnique({ where: { id: matchId } });
+    const match = await tx.match.findUnique({
+      where: { id: matchId },
+      include: { pelada: { select: { maxLinePlayers: true, maxGoalkeepers: true } } }
+    });
     if (!match) return null;
 
     const waitlist = await tx.attendance.findMany({
@@ -149,10 +152,21 @@ async function promoteNextFromWaitlist(matchId: string) {
       include: { player: { include: { user: true } } },
       orderBy: { createdAt: "asc" }
     });
+    if (!waitlist.length) return null;
+
+    // No one in the waitlist has been confirmed yet at this point, so the confirmed
+    // counts and capacity are the same for every candidate below - compute them once
+    // instead of re-querying the database on each iteration of the loop.
+    const counts = await getConfirmedCounts(matchId, tx);
+    const capacity = {
+      line: match.pelada.maxLinePlayers,
+      goalkeepers: match.pelada.maxGoalkeepers
+    };
+    const released = areGoalkeeperSlotsReleased(match.date);
 
     for (const attendance of waitlist) {
-      const status = await getAttendanceStatusForPlayer(matchId, attendance.player.position, match.date, tx);
-      if (status !== "CONFIRMED") continue;
+      const canConfirm = canConfirmPlayer(attendance.player.position, counts, released, capacity);
+      if (!canConfirm) continue;
 
       await tx.attendance.update({
         where: { id: attendance.id },
@@ -792,7 +806,10 @@ export async function toggleOwnAttendance(matchId: string, present: boolean) {
 
 export async function createGuestForMatch(matchId: string, formData: FormData) {
   const user = await requireUser();
-  const match = await prisma.match.findFirst({ where: { id: matchId, peladaId: user.peladaId!, deletedAt: null } });
+  const match = await prisma.match.findFirst({
+    where: { id: matchId, peladaId: user.peladaId!, deletedAt: null },
+    include: { pelada: { select: { restrictGuestInviteTime: true, guestInviteHour: true } } }
+  });
 
   if (!match) {
     return { ok: false, error: "Pelada nao encontrada." };
@@ -801,14 +818,16 @@ export async function createGuestForMatch(matchId: string, formData: FormData) {
   const isAdmin = isPeladaAdmin(user);
   const linkedPlayer = await prisma.player.findFirst({ where: { userId: user.id, peladaId: user.peladaId! } });
   const isMonthlyPlayer = linkedPlayer?.membershipStatus === "MENSALISTA";
+  const { restrictGuestInviteTime, guestInviteHour } = match.pelada;
   const saoPauloNow = getSaoPauloParts();
   const canInviteByTime =
-    isSameSaoPauloDate(new Date(), match.date) && saoPauloNow.hour >= 14;
+    !restrictGuestInviteTime ||
+    (isSameSaoPauloDate(new Date(), match.date) && saoPauloNow.hour >= guestInviteHour);
 
   if (!isAdmin && (!isMonthlyPlayer || !canInviteByTime)) {
     return {
       ok: false,
-      error: "Mensalistas so podem chamar convidados apos as 14h do dia da pelada."
+      error: `Mensalistas so podem chamar convidados apos as ${guestInviteHour}h do dia da pelada.`
     };
   }
 
@@ -886,6 +905,11 @@ export async function drawTeams(matchId: string, formData: FormData) {
     desiredPlayersPerTeam: value(formData, "desiredPlayersPerTeam")
   });
 
+  const pelada = await prisma.pelada.findUnique({
+    where: { id: admin.peladaId! },
+    select: { deprioritizeGuestsInDraw: true }
+  });
+
   const presentPlayers = await prisma.player.findMany({
     where: {
       peladaId: admin.peladaId!,
@@ -919,7 +943,12 @@ export async function drawTeams(matchId: string, formData: FormData) {
       membershipStatus
     }));
 
-  const teams = balanceTeams(selectedPlayers, parsed.numberOfTeams, parsed.desiredPlayersPerTeam);
+  const teams = balanceTeams(
+    selectedPlayers,
+    parsed.numberOfTeams,
+    parsed.desiredPlayersPerTeam,
+    pelada?.deprioritizeGuestsInDraw ?? true
+  );
 
   await prisma.team.deleteMany({ where: { matchId } });
   for (const team of teams) {
@@ -1024,7 +1053,17 @@ export async function drawTeamsForClient(matchId: string, formData: FormData) {
         membershipStatus
       }));
 
-    const teams = balanceTeams(selectedPlayers, parsed.numberOfTeams, parsed.desiredPlayersPerTeam);
+    const pelada = await prisma.pelada.findUnique({
+      where: { id: admin.peladaId! },
+      select: { deprioritizeGuestsInDraw: true }
+    });
+
+    const teams = balanceTeams(
+      selectedPlayers,
+      parsed.numberOfTeams,
+      parsed.desiredPlayersPerTeam,
+      pelada?.deprioritizeGuestsInDraw ?? true
+    );
 
     await prisma.team.deleteMany({ where: { matchId } });
     for (const team of teams) {

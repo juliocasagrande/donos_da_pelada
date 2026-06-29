@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Check, Plus, Search, Ticket } from "lucide-react";
+import { Check, Plus, Search, Settings, Ticket } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -76,6 +76,13 @@ export default async function PeladasHubPage({
                 </form>
               )}
               </div>
+              {active && (membership.role === "PRESIDENTE" || membership.role === "ADMIN") ? (
+                <Link href="/peladas/configuracoes">
+                  <Button type="button" variant="secondary" className="flex w-full items-center justify-center gap-2 py-2 text-xs">
+                    <Settings size={14} /> Configuracoes da pelada
+                  </Button>
+                </Link>
+              ) : null}
               <form action={leavePelada.bind(null, membership.peladaId)}>
                 <Button type="submit" variant="danger" className="w-full py-2 text-xs" disabled={onlyAdmin}>
                   {onlyAdmin ? "Adicione outro admin antes de sair" : "Sair desta pelada"}

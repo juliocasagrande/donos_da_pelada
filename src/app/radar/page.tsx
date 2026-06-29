@@ -59,7 +59,8 @@ export default async function RadarPage({
         date: { gte: new Date() }
       },
       include: { pelada: { select: { name: true } } },
-      orderBy: { date: "asc" }
+      orderBy: { date: "asc" },
+      take: 200
     }),
     prisma.matchGuestRequest.findMany({
       where: { userId: user.id },

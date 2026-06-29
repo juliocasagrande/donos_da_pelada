@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { PeladaPlan } from "@prisma/client";
 import { archiveUserPeladaStats } from "@/lib/careerStats";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser, requireMaster } from "@/lib/session";
+import { getCurrentUser, requireAdmin, requireMaster } from "@/lib/session";
 
 const MANUAL_PRO_GRANT_YEARS = 10;
 
@@ -52,4 +52,24 @@ export async function archiveAndDeletePelada(peladaId: string) {
   revalidatePath("/admins/peladas");
   revalidatePath("/peladas");
   redirect(user.role === "MASTER" ? "/admins/peladas" : "/peladas");
+}
+
+export async function updatePeladaGuestSettings(formData: FormData) {
+  const admin = await requireAdmin();
+
+  const restrictGuestInviteTime = formData.get("restrictGuestInviteTime") === "on";
+  const deprioritizeGuestsInDraw = formData.get("deprioritizeGuestsInDraw") === "on";
+  const guestInviteHour = Number(formData.get("guestInviteHour") || 14);
+
+  if (!Number.isInteger(guestInviteHour) || guestInviteHour < 0 || guestInviteHour > 23) {
+    redirect("/peladas/configuracoes?error=Horario invalido.");
+  }
+
+  await prisma.pelada.update({
+    where: { id: admin.peladaId! },
+    data: { restrictGuestInviteTime, guestInviteHour, deprioritizeGuestsInDraw }
+  });
+
+  revalidatePath("/peladas/configuracoes");
+  redirect("/peladas/configuracoes?success=1");
 }

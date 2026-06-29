@@ -129,7 +129,12 @@ function recalculate(team: BalancedTeam) {
   }
 }
 
-function selectPriorityPlayers(players: BalancePlayer[], totalCapacity: number, numberOfTeams: number) {
+function selectPriorityPlayers(
+  players: BalancePlayer[],
+  totalCapacity: number,
+  numberOfTeams: number,
+  deprioritizeGuests: boolean
+) {
   const shuffled = shuffle(players);
   const selected = new Map<string, BalancePlayer>();
   const addPlayers = (items: BalancePlayer[]) => {
@@ -141,9 +146,14 @@ function selectPriorityPlayers(players: BalancePlayer[], totalCapacity: number, 
 
   const goalkeepers = shuffled.filter((player) => player.position === "GOLEIRO");
   addPlayers(goalkeepers.slice(0, numberOfTeams));
-  addPlayers(shuffled.filter((player) => player.membershipStatus === "MENSALISTA"));
-  addPlayers(goalkeepers);
-  addPlayers(shuffled.filter((player) => player.membershipStatus !== "MENSALISTA"));
+  if (deprioritizeGuests) {
+    addPlayers(shuffled.filter((player) => player.membershipStatus === "MENSALISTA"));
+    addPlayers(goalkeepers);
+    addPlayers(shuffled.filter((player) => player.membershipStatus !== "MENSALISTA"));
+  } else {
+    addPlayers(goalkeepers);
+    addPlayers(shuffled);
+  }
 
   return [...selected.values()];
 }
@@ -211,7 +221,8 @@ function availablePriorityIndexes(teams: BalancedTeam[], targetSizes: number[], 
 export function balanceTeams(
   players: BalancePlayer[],
   numberOfTeams: number,
-  desiredPlayersPerTeam: number
+  desiredPlayersPerTeam: number,
+  deprioritizeGuests: boolean = true
 ): BalancedTeam[] {
   if (numberOfTeams < 2) {
     throw new Error("Escolha pelo menos 2 times.");
@@ -226,7 +237,7 @@ export function balanceTeams(
   }
 
   const totalCapacity = numberOfTeams * desiredPlayersPerTeam;
-  const selectedPlayers = selectPriorityPlayers(players, totalCapacity, numberOfTeams);
+  const selectedPlayers = selectPriorityPlayers(players, totalCapacity, numberOfTeams, deprioritizeGuests);
   const totalByPosition = countPlayersByPosition(selectedPlayers);
   const targetSizes = getTeamTargetSizes(selectedPlayers.length, numberOfTeams, desiredPlayersPerTeam);
   const priorityTeamIndexes = getPriorityTeamIndexes(numberOfTeams);
@@ -250,9 +261,11 @@ export function balanceTeams(
     recalculate(teams[index]);
   });
 
-  const monthlyLinePlayers = selectedPlayers
-    .filter((player) => !assigned.has(player.id) && player.membershipStatus === "MENSALISTA")
-    .sort((a, b) => b.rating - a.rating);
+  const monthlyLinePlayers = deprioritizeGuests
+    ? selectedPlayers
+        .filter((player) => !assigned.has(player.id) && player.membershipStatus === "MENSALISTA")
+        .sort((a, b) => b.rating - a.rating)
+    : [];
 
   for (const player of monthlyLinePlayers) {
     const priorityIndexes = availablePriorityIndexes(teams, targetSizes, numberOfTeams);

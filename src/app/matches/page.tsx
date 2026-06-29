@@ -104,7 +104,8 @@ export default async function MatchesPage({
     include: {
       attendances: { where: { status: "CONFIRMED" } }
     },
-    orderBy: { date: activeTab === "proximas" ? "asc" : "desc" }
+    orderBy: { date: activeTab === "proximas" ? "asc" : "desc" },
+    take: activeTab === "anteriores" ? 60 : undefined
   });
 
   const featured = activeTab === "proximas" ? matches[0] : null;

@@ -98,11 +98,11 @@ export default async function RankingsPage({
     where: { peladaId: { in: selectedPeladaIds }, active: true, membershipStatus: "MENSALISTA" },
     include: {
       pelada: { select: { name: true } },
-      goals: { include: { match: { select: { kind: true } } } },
-      assists: { include: { match: { select: { kind: true } } } },
-      defenses: { include: { match: { select: { kind: true } } } },
-      pollWinners: { include: { match: { select: { kind: true } } } },
-      attendances: { include: { match: { select: { kind: true } } } },
+      goals: { select: { quantity: true, match: { select: { kind: true } } } },
+      assists: { select: { quantity: true, match: { select: { kind: true } } } },
+      defenses: { select: { quantity: true, match: { select: { kind: true } } } },
+      pollWinners: { select: { match: { select: { kind: true } } } },
+      attendances: { select: { status: true, match: { select: { kind: true } } } },
       ratings: { select: { value: true, match: { select: { date: true, kind: true } } } }
     }
   });

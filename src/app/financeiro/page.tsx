@@ -71,22 +71,33 @@ export default async function FinancePage({
   const monthEnd = new Date(year, month, 1);
   const todayInput = now.toISOString().slice(0, 10);
 
-  const [feeConfig, players, allPayments, allTransactions] = await Promise.all([
+  // historyRows shows at most the last 12 months and the cashflow chart the last 6,
+  // so there is no need to load the pelada's entire payment/transaction history every render.
+  const historyWindowStart = new Date(now.getFullYear(), now.getMonth() - 13, 1);
+  const sinceMonthFilter = {
+    OR: [
+      { year: { gt: historyWindowStart.getFullYear() } },
+      { year: historyWindowStart.getFullYear(), month: { gte: historyWindowStart.getMonth() + 1 } }
+    ]
+  };
+
+  const [feeConfig, players, currentPayments, currentTransactions, historyPayments, historyTransactions] = await Promise.all([
     prisma.monthlyFeeConfig.findUnique({ where: { peladaId_year_month: { peladaId, year, month } } }),
     prisma.player.findMany({
       where: { peladaId, active: true, membershipStatus: "MENSALISTA" },
       orderBy: { nickname: "asc" }
     }),
-    prisma.monthlyPayment.findMany({ where: { peladaId } }),
-    prisma.transaction.findMany({ where: { peladaId }, orderBy: { date: "desc" } })
+    prisma.monthlyPayment.findMany({ where: { peladaId, year, month } }),
+    prisma.transaction.findMany({
+      where: { peladaId, date: { gte: monthStart, lt: monthEnd } },
+      orderBy: { date: "desc" }
+    }),
+    prisma.monthlyPayment.findMany({ where: { peladaId, ...sinceMonthFilter } }),
+    prisma.transaction.findMany({ where: { peladaId, date: { gte: historyWindowStart } } })
   ]);
 
-  const currentPayments = allPayments.filter((payment) => payment.year === year && payment.month === month);
   const paidPlayerIds = new Set(currentPayments.map((payment) => payment.playerId));
   const pendingPaymentCount = Math.max(0, players.length - paidPlayerIds.size);
-  const currentTransactions = allTransactions.filter(
-    (transaction) => transaction.date >= monthStart && transaction.date < monthEnd
-  );
 
   const receivedFromFees = currentPayments.reduce((sum, payment) => sum + payment.amount, 0);
   const incomeFromTransactions = currentTransactions
@@ -100,13 +111,13 @@ export default async function FinancePage({
   const paidPercent = players.length ? Math.round((paidPlayerIds.size / players.length) * 100) : 0;
 
   const history = new Map<string, { label: string; received: number; spent: number }>();
-  for (const payment of allPayments) {
+  for (const payment of historyPayments) {
     const key = monthKey(payment.year, payment.month);
     const entry = history.get(key) ?? { label: monthLabel(payment.year, payment.month), received: 0, spent: 0 };
     entry.received += payment.amount;
     history.set(key, entry);
   }
-  for (const transaction of allTransactions) {
+  for (const transaction of historyTransactions) {
     const key = monthKey(transaction.date.getFullYear(), transaction.date.getMonth() + 1);
     const entry = history.get(key) ?? {
       label: monthLabel(transaction.date.getFullYear(), transaction.date.getMonth() + 1),

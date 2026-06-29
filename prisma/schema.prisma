@@ -157,6 +157,9 @@ model Pelada {
   trialEndsAt     DateTime?
   maxLinePlayers   Int                @default(18)
   maxGoalkeepers   Int                @default(2)
+  restrictGuestInviteTime  Boolean    @default(true)
+  guestInviteHour          Int        @default(14)
+  deprioritizeGuestsInDraw Boolean    @default(true)
   memberships     PeladaMembership[]
   invites         PeladaInvite[]
   joinRequests    PeladaJoinRequest[]

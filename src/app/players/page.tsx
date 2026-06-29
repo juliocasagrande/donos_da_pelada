@@ -11,7 +11,11 @@ export default async function PlayersPage() {
   const isAdmin = isPeladaAdmin(user);
   const players = await prisma.player.findMany({
     where: { peladaId: user.peladaId!, active: true },
-    include: { goals: true, defenses: true, user: { select: { whatsapp: true, whatsappChatEnabled: true } } },
+    include: {
+      goals: { select: { quantity: true } },
+      defenses: { select: { quantity: true } },
+      user: { select: { whatsapp: true, whatsappChatEnabled: true } }
+    },
     orderBy: [{ nickname: "asc" }]
   });
 
