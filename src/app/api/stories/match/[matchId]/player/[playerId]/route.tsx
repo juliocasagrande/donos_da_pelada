@@ -512,7 +512,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ mat
     const ranking = [...voteCounts.entries()].sort((a, b) => b[1] - a[1]);
     const rankIndex = ranking.findIndex(([candidateId]) => candidateId === player.id);
     const voteRank = rankIndex >= 0 ? rankIndex + 1 : null;
-    const isGold = averageRating != null && averageRating >= 8;
+    const topVoteCount = ranking[0]?.[1] ?? 0;
+    const isCraqueDaPelada = topVoteCount > 0 && voteCounts.get(player.id) === topVoteCount;
+    const isGold = isCraqueDaPelada || (averageRating != null && averageRating >= 8);
     const showVoteRank = isGold && voteRank != null;
     const photoSrc = await getImageDataUrl(player.photoUrl ?? player.user?.image ?? null);
 
