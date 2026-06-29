@@ -9,7 +9,7 @@ import { ShareMatchStoryButton } from "@/components/matches/ShareMatchStoryButto
 import { VoteCraqueForm } from "@/components/matches/VoteCraqueForm";
 import { closeExpiredCraquePolls } from "@/lib/actions";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { isPeladaAdmin, requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { VOTING_WINDOW_HOURS } from "@/lib/attendance";
 
@@ -89,6 +89,7 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
     prisma.player.findFirst({ where: { userId: user.id, peladaId: user.peladaId! } })
   ]);
 
+  const isAdmin = isPeladaAdmin(user);
   const viewerAttendance = linkedPlayer
     ? await prisma.attendance.findUnique({ where: { matchId_playerId: { matchId: id, playerId: linkedPlayer.id } } })
     : null;
@@ -133,18 +134,6 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
   const ownConfirmed = Boolean(ownPlayer?.matchSubmissions.some((submission) => submission.userId === user.id));
   const ownStatsSent = Boolean(ownPlayer?.goals.length || ownPlayer?.defenses.length);
   const ownCraqueVote = poll?.votes.find((vote) => vote.userId === user.id);
-  const eligiblePlayerIds = players.map((player) => player.id);
-  const ownRatedPlayerIds = new Set(
-    players
-      .flatMap((candidate) => candidate.ratings)
-      .filter((rating) => rating.userId === user.id)
-      .map((rating) => rating.playerId)
-  );
-  const expectedOwnRatingIds = eligiblePlayerIds.filter((playerId) => playerId !== linkedPlayer?.id);
-  const ownRatedAll = expectedOwnRatingIds.every((playerId) => ownRatedPlayerIds.has(playerId));
-  const ownRatingsCount = expectedOwnRatingIds.filter((playerId) => ownRatedPlayerIds.has(playerId)).length;
-  const ownRatingsTotal = expectedOwnRatingIds.length;
-  const ownRatingsPercent = ownRatingsTotal ? Math.round((ownRatingsCount / ownRatingsTotal) * 100) : 100;
   const canConfirmOwnVoting = canVote && votingOpen && ownStatsSent && Boolean(ownCraqueVote) && !ownConfirmed;
   const missingVotingSteps = [
     !ownStatsSent ? "Salvar seus gols, assistencias e defesas" : null,
@@ -188,7 +177,7 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
         ) : null}
         <p className="mt-1 text-sm font-semibold text-green-100">
           {votingOpen
-            ? `Aberta ate ${votingEndsAt(poll?.createdAt)} para craque. Notas sao opcionais.`
+            ? `Aberta ate ${votingEndsAt(poll?.createdAt)} para craque.`
             : match?.status === "CLOSED"
               ? "A janela de 1 hora terminou ou todos responderam."
               : "A votacao abre automaticamente quando o admin fechar a pelada."}
@@ -333,38 +322,42 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
           </>
         ) : null}
 
-        <div className="mb-2">
-          <p className="font-jersey text-sm font-semibold uppercase tracking-[.14em] text-musgo">Notas</p>
-          <h2 className="font-display text-2xl font-extrabold tracking-[-.02em]">Avaliar jogadores</h2>
-        </div>
+        {isAdmin ? (
+          <>
+            <div className="mb-2">
+              <p className="font-jersey text-sm font-semibold uppercase tracking-[.14em] text-musgo">Notas</p>
+              <h2 className="font-display text-2xl font-extrabold tracking-[-.02em]">Avaliar jogadores</h2>
+            </div>
 
-        {poll ? (
-          <div className="space-y-2.5">
-            {candidates.map((player) => (
-              <Card key={player.id} className="p-3">
-                <div className="flex items-center gap-3">
-                  <PlayerAvatar src={player.photoUrl} name={player.nickname} position={player.position} />
-                  <div className="min-w-0 flex-1">
-                    <h2 className="truncate font-extrabold">{player.nickname}</h2>
-                    <p className="text-xs text-musgo">Nota media {player.averageRating?.toFixed(1) ?? "-"}</p>
-                  </div>
-                </div>
-                {canVote && votingOpen && linkedPlayer?.id !== player.id && player.viewerRating == null ? (
-                  <RatePlayerForm matchId={id} playerId={player.id} defaultValue={3} />
-                ) : null}
-                {canVote && player.viewerRating != null ? (
-                  <p className="mt-3 rounded-[10px] bg-areia px-3 py-2 text-xs font-bold text-musgo">
-                    Sua nota: {player.viewerRating.toFixed(1)}
-                  </p>
-                ) : null}
+            {poll ? (
+              <div className="space-y-2.5">
+                {candidates.map((player) => (
+                  <Card key={player.id} className="p-3">
+                    <div className="flex items-center gap-3">
+                      <PlayerAvatar src={player.photoUrl} name={player.nickname} position={player.position} />
+                      <div className="min-w-0 flex-1">
+                        <h2 className="truncate font-extrabold">{player.nickname}</h2>
+                        <p className="text-xs text-musgo">Nota media {player.averageRating?.toFixed(1) ?? "-"}</p>
+                      </div>
+                    </div>
+                    {votingOpen && player.viewerRating == null ? (
+                      <RatePlayerForm matchId={id} playerId={player.id} defaultValue={3} />
+                    ) : null}
+                    {player.viewerRating != null ? (
+                      <p className="mt-3 rounded-[10px] bg-areia px-3 py-2 text-xs font-bold text-musgo">
+                        Sua nota: {player.viewerRating.toFixed(1)}
+                      </p>
+                    ) : null}
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <p className="text-sm text-musgo">As notas ficam disponiveis quando a votacao for aberta.</p>
               </Card>
-            ))}
-          </div>
-        ) : (
-          <Card>
-            <p className="text-sm text-musgo">As notas ficam disponiveis quando a votacao for aberta.</p>
-          </Card>
-        )}
+            )}
+          </>
+        ) : null}
 
         {canVote && votingOpen && !ownConfirmed ? (
           <Card className={cn("border-2 p-4", canConfirmOwnVoting ? "border-campo" : "border-linha")}>
@@ -388,36 +381,8 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
                 title="Craque da pelada"
                 description={ownCraqueVote ? "Seu voto no craque foi salvo." : "Vote no craque antes de confirmar."}
               />
-              <div className="rounded-[11px] border border-linha bg-white px-3 py-2.5 text-musgo transition">
-                <div className="flex items-start gap-2">
-                  {ownRatedAll ? (
-                    <CheckCircle2 size={17} className="pop-scale mt-0.5 shrink-0 text-campo" fill="currentColor" />
-                  ) : (
-                    <Circle size={17} className="mt-0.5 shrink-0" />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-black text-tinta">Notas opcionais</p>
-                    <p className="text-xs font-semibold">
-                      {ownRatingsCount}/{ownRatingsTotal} jogadores avaliados.
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-areia">
-                  <div className="h-full rounded-full bg-campo transition-all duration-500" style={{ width: `${ownRatingsPercent}%` }} />
-                </div>
-              </div>
-              {!ownRatedAll ? (
-                <p className="text-xs font-semibold text-musgo">
-                  Se voce finalizar sem dar todas as notas, vamos pedir confirmacao antes de encerrar.
-                </p>
-              ) : null}
             </div>
-            <ConfirmVotingForm
-              matchId={id}
-              hasMissingRatings={!ownRatedAll}
-              disabled={!canConfirmOwnVoting}
-              disabledReason={confirmDisabledReason}
-            />
+            <ConfirmVotingForm matchId={id} disabled={!canConfirmOwnVoting} disabledReason={confirmDisabledReason} />
           </Card>
         ) : null}
       </section>

@@ -1366,7 +1366,7 @@ export async function voteCraque(pollId: string, playerId: string) {
 }
 
 export async function ratePlayerPerformance(matchId: string, playerId: string, formData: FormData) {
-  const user = await requireUser();
+  const admin = await requireAdmin();
   const poll = await prisma.poll.findFirst({
     where: { matchId, title: "Craque da pelada", status: PollStatus.OPEN }
   });
@@ -1375,19 +1375,10 @@ export async function ratePlayerPerformance(matchId: string, playerId: string, f
     return { ok: false, error: "A janela para dar notas ja foi encerrada." };
   }
 
-  const canVote = await canUserVoteInMatch(user.id, matchId);
-  if (!canVote) {
-    return { ok: false, error: "Voce nao pode dar nota nesta pelada." };
-  }
-
-  const linkedPlayer = await prisma.player.findFirst({ where: { userId: user.id, peladaId: user.peladaId! } });
-  if (linkedPlayer?.id === playerId) {
-    return { ok: false, error: "Voce nao pode dar nota para si mesmo." };
-  }
   const candidate = await prisma.player.findFirst({
     where: {
       id: playerId,
-      peladaId: user.peladaId!,
+      peladaId: admin.peladaId!,
       active: true,
       attendances: { some: { matchId, status: "CONFIRMED" } }
     }
@@ -1403,9 +1394,9 @@ export async function ratePlayerPerformance(matchId: string, playerId: string, f
 
   const rating = Math.round(Math.max(0, Math.min(10, raw)) * 2) / 2;
   await prisma.playerRating.upsert({
-    where: { matchId_playerId_userId: { matchId, playerId, userId: user.id } },
+    where: { matchId_playerId_userId: { matchId, playerId, userId: admin.id } },
     update: { value: rating },
-    create: { matchId, playerId, userId: user.id, value: rating }
+    create: { matchId, playerId, userId: admin.id, value: rating }
   });
 
   await closeCraquePollIfComplete(poll.id);

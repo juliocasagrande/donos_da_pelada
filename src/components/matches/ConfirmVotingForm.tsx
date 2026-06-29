@@ -8,12 +8,10 @@ import { confirmMatchVoting } from "@/lib/actions";
 
 export function ConfirmVotingForm({
   matchId,
-  hasMissingRatings = false,
   disabled = false,
   disabledReason
 }: {
   matchId: string;
-  hasMissingRatings?: boolean;
   disabled?: boolean;
   disabledReason?: string;
 }) {
@@ -30,15 +28,7 @@ export function ConfirmVotingForm({
   }, [state, toast]);
 
   return (
-    <form
-      action={formAction}
-      className="space-y-2"
-      onSubmit={(event) => {
-        if (!hasMissingRatings) return;
-        const confirmed = window.confirm("Voce ainda nao deu nota para todos os participantes. Finalizar a votacao mesmo assim?");
-        if (!confirmed) event.preventDefault();
-      }}
-    >
+    <form action={formAction} className="space-y-2">
       <Button type="submit" className="w-full" disabled={isPending || disabled}>
         {disabled ? <Lock size={16} /> : null}
         {isPending ? "Confirmando..." : "Confirmar votacao"}
