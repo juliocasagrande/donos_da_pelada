@@ -24,5 +24,6 @@ declare module "next-auth/jwt" {
     role?: "MASTER" | "ADMIN" | "PLAYER";
     onboarded?: boolean;
     active?: boolean;
+    userRefreshedAt?: number;
   }
 }

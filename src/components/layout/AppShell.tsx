@@ -3,7 +3,6 @@ import { Clock } from "lucide-react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { PeladaSwitcher } from "@/components/layout/PeladaSwitcher";
 import { PushNotificationsMount } from "@/components/layout/PushNotificationsMount";
-import { prisma } from "@/lib/prisma";
 import { getCurrentUser, isPeladaAdmin } from "@/lib/session";
 
 function daysUntil(date: Date) {
@@ -13,15 +12,7 @@ function daysUntil(date: Date) {
 export async function AppShell({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   const isAdmin = isPeladaAdmin(user);
-  const memberships = user
-    ? await prisma.peladaMembership.findMany({
-        where: { userId: user.id },
-        include: {
-          pelada: { select: { id: true, name: true, _count: { select: { memberships: true } } } }
-        },
-        orderBy: { createdAt: "asc" }
-      })
-    : [];
+  const memberships = user?.shellMemberships ?? [];
   const proDaysLeft = user?.plan === "PRO" && user.proRenewsAt ? daysUntil(user.proRenewsAt) : null;
   const showProExpiryNotice = isAdmin && proDaysLeft !== null && proDaysLeft >= 0 && proDaysLeft <= 15;
   const displayName = user?.name || user?.email || "";

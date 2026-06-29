@@ -19,7 +19,7 @@ export const getCurrentUser = cache(async () => {
   const cookieStore = await cookies();
   const requestedPeladaId = cookieStore.get(ACTIVE_PELADA_COOKIE)?.value;
 
-  const [dbUser, requestedMembership, firstMembership] = await Promise.all([
+  const [dbUser, memberships] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id },
       select: {
@@ -29,23 +29,27 @@ export const getCurrentUser = cache(async () => {
         pushNotificationsEnabled: true,
         pushPromptDismissed: true,
         radarEnabled: true,
+        radarRadiusKm: true,
+        latitude: true,
+        longitude: true,
         plan: true,
         proRenewsAt: true
       }
     }),
-    requestedPeladaId
-      ? prisma.peladaMembership.findUnique({
-          where: { userId_peladaId: { userId: session.user.id, peladaId: requestedPeladaId } }
-        })
-      : Promise.resolve(null),
-    prisma.peladaMembership.findFirst({
+    prisma.peladaMembership.findMany({
       where: { userId: session.user.id },
+      select: {
+        peladaId: true,
+        role: true,
+        createdAt: true,
+        pelada: { select: { id: true, name: true, _count: { select: { memberships: true } } } }
+      },
       orderBy: { createdAt: "asc" }
     })
   ]);
   if (!dbUser) return null;
 
-  let membership = requestedMembership || firstMembership;
+  const membership = memberships.find((item) => item.peladaId === requestedPeladaId) ?? memberships[0] ?? null;
 
   const linkedPlayer = membership
     ? await prisma.player.findFirst({
@@ -64,7 +68,8 @@ export const getCurrentUser = cache(async () => {
     ...dbUser,
     peladaId: membership?.peladaId ?? null,
     peladaRole: effectivePeladaRole,
-    hasPlayerProfile
+    hasPlayerProfile,
+    shellMemberships: memberships.map((item) => ({ role: item.role, pelada: item.pelada }))
   };
 });
 

@@ -24,34 +24,34 @@ const kindTabs = [
 ] as const;
 
 type RankingTab = (typeof tabs)[number];
+type RankingField = RankingTab["field"];
 type RankingKind = (typeof kindTabs)[number]["key"];
-
-function score(player: { rating: number; goals: { quantity: number }[] }) {
-  const goals = player.goals.reduce((sum, item) => sum + item.quantity, 0);
-  return goals * 3 + player.rating;
-}
-
-function matchesKind<T extends { match: { kind: string } }>(items: T[], kind: RankingKind) {
-  return kind === "todos" ? items : items.filter((item) => item.match.kind === kind);
-}
-
-function matchAverages(ratings: { value: number; match: { date: Date } }[]) {
-  const grouped = new Map<number, number[]>();
-  for (const rating of ratings) {
-    const key = rating.match.date.getTime();
-    grouped.set(key, [...(grouped.get(key) ?? []), rating.value]);
-  }
-
-  return [...grouped.entries()]
-    .sort(([left], [right]) => right - left)
-    .map(([, values]) => values.reduce((sum, value) => sum + value, 0) / values.length);
-}
+type PeladaOption = { id: string; name: string };
+type PlayerRow = {
+  id: string;
+  userId: string | null;
+  nickname: string;
+  photoUrl: string | null;
+  position: string;
+  rating: number;
+  pelada: { name: string };
+};
+type RankedPlayer = PlayerRow & {
+  pelada: { name: string };
+  goalsTotal: number;
+  assistsTotal: number;
+  presenceTotal: number;
+  craqueTotal: number;
+  ratingAverage: number;
+  previousRatingAverage: number;
+  overall: number;
+};
 
 function average(values: number[]) {
   return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
 }
 
-function formatValue(value: number, field: RankingTab["field"]) {
+function formatValue(value: number, field: RankingField) {
   return field === "ratingAverage" ? value.toFixed(1) : String(Math.round(value));
 }
 
@@ -68,6 +68,56 @@ function emptyFriendlySummary(peladaId: string, peladaName: string) {
   };
 }
 
+function matchFilter(kind: RankingKind) {
+  return kind === "todos" ? {} : { match: { kind } };
+}
+
+function sumRowsByPlayer(rows: { playerId: string; _sum: { quantity: number | null } }[]) {
+  return new Map(rows.map((row) => [row.playerId, row._sum.quantity ?? 0]));
+}
+
+function countRowsByPlayer(rows: { playerId?: string; winnerId?: string | null; _count: number | { _all: number } }[]) {
+  return new Map(
+    rows
+      .map((row) => [row.playerId ?? row.winnerId, typeof row._count === "number" ? row._count : row._count._all] as const)
+      .filter((row): row is readonly [string, number] => Boolean(row[0]))
+  );
+}
+
+function ratingAverages(rows: { playerId: string; value: number; match: { date: Date } }[]) {
+  const groupedByPlayer = new Map<string, Map<number, number[]>>();
+  for (const row of rows) {
+    const playerRatings = groupedByPlayer.get(row.playerId) ?? new Map<number, number[]>();
+    const key = row.match.date.getTime();
+    playerRatings.set(key, [...(playerRatings.get(key) ?? []), row.value]);
+    groupedByPlayer.set(row.playerId, playerRatings);
+  }
+
+  return new Map(
+    [...groupedByPlayer.entries()].map(([playerId, matchRatings]) => {
+      const averages = [...matchRatings.entries()]
+        .sort(([left], [right]) => right - left)
+        .map(([, values]) => average(values));
+      return [
+        playerId,
+        {
+          current: average(averages.slice(0, 10)),
+          previous: average(averages.slice(1, 11))
+        }
+      ];
+    })
+  );
+}
+
+function groupPlayers(players: PlayerRow[], activeScope: string) {
+  const groupsByKey = new Map<string, PlayerRow[]>();
+  for (const player of players) {
+    const key = activeScope === "todas" ? player.userId ?? `solo:${player.id}` : player.id;
+    groupsByKey.set(key, [...(groupsByKey.get(key) ?? []), player]);
+  }
+  return [...groupsByKey.values()];
+}
+
 export default async function RankingsPage({
   searchParams
 }: {
@@ -77,12 +127,10 @@ export default async function RankingsPage({
   const query = await searchParams;
   const activeTab: RankingTab = tabs.find((tab) => tab.key === query?.tipo) ?? tabs[0];
   const activeKind = kindTabs.find((tab) => tab.key === query?.jogo) ?? kindTabs[0];
-  const memberships = await prisma.peladaMembership.findMany({
-    where: { userId: user.id },
-    include: { pelada: { select: { id: true, name: true } } },
-    orderBy: { createdAt: "asc" }
-  });
-  const memberPeladas = memberships.map((membership) => membership.pelada);
+  const memberPeladas: PeladaOption[] = user.shellMemberships.map((membership) => ({
+    id: membership.pelada.id,
+    name: membership.pelada.name
+  }));
   const selectedPeladaExists = memberPeladas.some((pelada) => pelada.id === query?.pelada);
   const activeScope = query?.pelada === "todas" ? "todas" : selectedPeladaExists ? query!.pelada! : user.peladaId!;
   const selectedPeladaIds = activeScope === "todas" ? memberPeladas.map((pelada) => pelada.id) : [activeScope];
@@ -96,34 +144,72 @@ export default async function RankingsPage({
 
   const players = await prisma.player.findMany({
     where: { peladaId: { in: selectedPeladaIds }, active: true, membershipStatus: "MENSALISTA" },
-    include: {
-      pelada: { select: { name: true } },
-      goals: { select: { quantity: true, match: { select: { kind: true } } } },
-      assists: { select: { quantity: true, match: { select: { kind: true } } } },
-      defenses: { select: { quantity: true, match: { select: { kind: true } } } },
-      pollWinners: { select: { match: { select: { kind: true } } } },
-      attendances: { select: { status: true, match: { select: { kind: true } } } },
-      ...(activeTab.field === "ratingAverage"
-        ? { ratings: { select: { value: true, match: { select: { date: true, kind: true } } } } }
-        : {})
-    }
-  });
-  const friendlyMatches = await prisma.match.findMany({
-    where: {
-      peladaId: { in: selectedPeladaIds },
-      deletedAt: null,
-      kind: "AMISTOSO",
-      status: "CLOSED",
-      homeScore: { not: null },
-      awayScore: { not: null }
-    },
     select: {
-      peladaId: true,
-      homeScore: true,
-      awayScore: true,
-      pelada: { select: { id: true, name: true } }
+      id: true,
+      userId: true,
+      nickname: true,
+      photoUrl: true,
+      position: true,
+      rating: true,
+      pelada: { select: { name: true } }
     }
   });
+  const playerIds = players.map((player) => player.id);
+
+  const [goalTotals, assistTotals, presenceTotals, craqueTotals, ratingRows, friendlyMatches] = playerIds.length
+    ? await Promise.all([
+        prisma.goal.groupBy({
+          by: ["playerId"],
+          where: { playerId: { in: playerIds }, ...matchFilter(activeKind.key) },
+          _sum: { quantity: true }
+        }),
+        prisma.assist.groupBy({
+          by: ["playerId"],
+          where: { playerId: { in: playerIds }, ...matchFilter(activeKind.key) },
+          _sum: { quantity: true }
+        }),
+        prisma.attendance.groupBy({
+          by: ["playerId"],
+          where: { playerId: { in: playerIds }, status: "CONFIRMED", ...matchFilter(activeKind.key) },
+          _count: true
+        }),
+        prisma.poll.groupBy({
+          by: ["winnerId"],
+          where: { winnerId: { in: playerIds }, ...matchFilter(activeKind.key) },
+          _count: { _all: true }
+        }),
+        activeTab.field === "ratingAverage"
+          ? prisma.playerRating.findMany({
+              where: { playerId: { in: playerIds }, ...matchFilter(activeKind.key) },
+              select: { playerId: true, value: true, match: { select: { date: true } } },
+              orderBy: { match: { date: "desc" } }
+            })
+          : Promise.resolve([]),
+        prisma.match.findMany({
+          where: {
+            peladaId: { in: selectedPeladaIds },
+            deletedAt: null,
+            kind: "AMISTOSO",
+            status: "CLOSED",
+            homeScore: { not: null },
+            awayScore: { not: null }
+          },
+          select: {
+            peladaId: true,
+            homeScore: true,
+            awayScore: true,
+            pelada: { select: { id: true, name: true } }
+          }
+        })
+      ])
+    : [[], [], [], [], [], []];
+
+  const goalsByPlayerId = sumRowsByPlayer(goalTotals);
+  const assistsByPlayerId = sumRowsByPlayer(assistTotals);
+  const presenceByPlayerId = countRowsByPlayer(presenceTotals);
+  const craqueByPlayerId = countRowsByPlayer(craqueTotals);
+  const ratingsByPlayerId = ratingAverages(ratingRows);
+
   const friendlySummaryMap = new Map(
     memberPeladas
       .filter((pelada) => selectedPeladaIds.includes(pelada.id))
@@ -141,39 +227,31 @@ export default async function RankingsPage({
   }
   const friendlySummaries = [...friendlySummaryMap.values()].filter((summary) => summary.matches > 0);
 
-  // When viewing "todas as minhas peladas", merge the same person's Player rows
-  // from different peladas into a single combined entry instead of listing them
-  // separately.
-  const groupsByKey = new Map<string, typeof players>();
-  for (const player of players) {
-    const key = activeScope === "todas" ? player.userId ?? `solo:${player.id}` : player.id;
-    groupsByKey.set(key, [...(groupsByKey.get(key) ?? []), player]);
-  }
-  const playerGroups = [...groupsByKey.values()];
-
-  const mapped = playerGroups.map((group) => {
+  const mapped: RankedPlayer[] = groupPlayers(players, activeScope).map((group) => {
     const primary = group[0];
-    const goals = group.flatMap((player) => matchesKind(player.goals, activeKind.key));
-    const assists = group.flatMap((player) => matchesKind(player.assists, activeKind.key));
-    const defenses = group.flatMap((player) => matchesKind(player.defenses, activeKind.key));
-    const pollWinners = group.flatMap((player) => matchesKind(player.pollWinners, activeKind.key));
-    const attendances = group.flatMap((player) => matchesKind(player.attendances, activeKind.key));
-    const ratings: { value: number; match: { date: Date; kind: string } }[] = activeTab.field === "ratingAverage" ? group.flatMap((player) => matchesKind((player as any).ratings ?? [], activeKind.key)) : [];
-    const averages = matchAverages(ratings);
     const peladaNames = [...new Set(group.map((player) => player.pelada.name))];
+    const goalsTotal = group.reduce((sum, player) => sum + (goalsByPlayerId.get(player.id) ?? 0), 0);
+    const currentRatings = group
+      .map((player) => ratingsByPlayerId.get(player.id)?.current)
+      .filter((value): value is number => value !== undefined);
+    const previousRatings = group
+      .map((player) => ratingsByPlayerId.get(player.id)?.previous)
+      .filter((value): value is number => value !== undefined);
+    const ratingAverage = average(currentRatings);
+    const previousRatingAverage = average(previousRatings);
+
     return {
       ...primary,
       id: primary.userId ?? primary.id,
       pelada: { name: peladaNames.length > 1 ? `${peladaNames.length} peladas` : peladaNames[0] },
       rating: average(group.map((player) => player.rating)),
-      goalsTotal: goals.reduce((sum, item) => sum + item.quantity, 0),
-      assistsTotal: assists.reduce((sum, item) => sum + item.quantity, 0),
-      defensesTotal: defenses.reduce((sum, item) => sum + item.quantity, 0),
-      presenceTotal: attendances.filter((attendance) => attendance.status === "CONFIRMED").length,
-      craqueTotal: pollWinners.length,
-      ratingAverage: average(averages.slice(0, 10)),
-      previousRatingAverage: average(averages.slice(1, 11)),
-      overall: score({ rating: average(group.map((player) => player.rating)), goals })
+      goalsTotal,
+      assistsTotal: group.reduce((sum, player) => sum + (assistsByPlayerId.get(player.id) ?? 0), 0),
+      presenceTotal: group.reduce((sum, player) => sum + (presenceByPlayerId.get(player.id) ?? 0), 0),
+      craqueTotal: group.reduce((sum, player) => sum + (craqueByPlayerId.get(player.id) ?? 0), 0),
+      ratingAverage,
+      previousRatingAverage,
+      overall: goalsTotal * 3 + average(group.map((player) => player.rating))
     };
   });
 
@@ -207,10 +285,7 @@ export default async function RankingsPage({
         <span className="shrink-0 rounded-[13px] bg-white px-3 py-2 text-sm font-semibold shadow-card">Temporada 2026</span>
       </div>
 
-      <RankingPeladaSelect
-        options={memberPeladas}
-        activeValue={activeScope}
-      />
+      <RankingPeladaSelect options={memberPeladas} activeValue={activeScope} />
       <p className="mb-3 text-xs font-semibold text-musgo">
         Mostrando participantes de {selectedScopeLabel}.
       </p>

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import {
   CalendarCheck,
@@ -33,189 +34,75 @@ import { prisma } from "@/lib/prisma";
 import { isPeladaAdmin, requireUser } from "@/lib/session";
 import { formatDate, formatTime } from "@/lib/utils";
 
-export default async function DashboardPage() {
-  const user = await requireUser();
-  await closeExpiredCraquePolls(user.peladaId!);
-  const isAdmin = isPeladaAdmin(user);
-  const peladaId = user.peladaId!;
-  const recentClosedPollCutoff = new Date(Date.now() - 3 * 60 * 60 * 1000);
-  const [
-    linkedPlayer,
-    players,
-    nextMatch,
-    goals,
-    craque,
-    monthMatches,
-    pendingRatingPlayers,
-    pendingJoinRequestsCount,
-    visibleCraquePolls,
-    pendingDeletionRequests,
-    peladaAdminCount,
-    pendingGuestRequests,
-    radarProfile,
-    peladaOwner
-  ] = await Promise.all([
-    prisma.player.findFirst({ where: { userId: user.id, peladaId } }),
-    prisma.player.count({ where: { peladaId, active: true, membershipStatus: "MENSALISTA" } }),
-    prisma.match.findFirst({
-      where: { peladaId, status: "OPEN", deletedAt: null },
-      include: {
-        _count: {
-          select: {
-            attendances: { where: { status: "CONFIRMED" } }
-          }
-        }
-      },
-      orderBy: { date: "asc" }
-    }),
-    prisma.goal.aggregate({
-      where: { player: { peladaId, membershipStatus: "MENSALISTA" } },
-      _sum: { quantity: true }
-    }),
-    prisma.poll.findFirst({
-      where: { match: { peladaId, deletedAt: null }, status: "CLOSED", winnerId: { not: null }, winner: { membershipStatus: "MENSALISTA" } },
-      include: { winner: true },
-      orderBy: { updatedAt: "desc" }
-    }),
-    prisma.match.count({ where: { peladaId, deletedAt: null } }),
-    isAdmin
-      ? prisma.player.findMany({ where: { peladaId, active: true, ratingAssigned: false }, orderBy: { createdAt: "asc" } })
-      : Promise.resolve([]),
-    isAdmin
-      ? prisma.peladaJoinRequest.count({ where: { peladaId, status: "PENDING" } })
-      : Promise.resolve(0),
-    prisma.poll.findMany({
-      where: {
-        title: "Craque da pelada",
-        match: { peladaId, deletedAt: null },
-        OR: [
-          { status: "OPEN" },
-          { status: "CLOSED", updatedAt: { gte: recentClosedPollCutoff } }
-        ]
-      },
-      include: {
-        winner: true,
-        votes: { select: { userId: true, playerId: true } },
-        match: {
-          select: {
-            id: true,
-            title: true,
-            date: true,
-            playerSubmissions: { select: { userId: true } },
-            attendances: {
-              where: { status: "CONFIRMED" },
-              include: { player: { select: { id: true, userId: true, active: true } } }
-            }
-          }
-        }
-      },
-      orderBy: { updatedAt: "desc" },
-      take: 5
-    }),
-    isAdmin
-      ? prisma.deletionRequest.findMany({
-          where: { peladaId, status: "OPEN" },
-          include: {
-            createdByUser: { select: { name: true, email: true } },
-            votes: { include: { user: { select: { name: true, email: true } } }, orderBy: { createdAt: "asc" } }
-          },
-          orderBy: { createdAt: "desc" }
-        })
-      : Promise.resolve([]),
-    isAdmin
-      ? prisma.peladaMembership.count({
-          where: { peladaId, role: { in: ["PRESIDENTE", "ADMIN"] }, user: { active: true } }
-        })
-      : Promise.resolve(0),
-    isAdmin
-      ? prisma.matchGuestRequest.findMany({
-          where: { status: "PENDING", match: { peladaId, deletedAt: null } },
-          include: { user: true, match: true },
-          orderBy: { createdAt: "asc" },
-          take: 5
-        })
-      : Promise.resolve([]),
-    prisma.user.findUnique({
-      where: { id: user.id },
-      select: { radarEnabled: true, radarRadiusKm: true, latitude: true, longitude: true }
-    }),
-    prisma.peladaMembership.findFirst({
-      where: { peladaId, role: "PRESIDENTE" },
-      include: { user: { select: { name: true, email: true } } },
-      orderBy: { createdAt: "asc" }
-    })
-  ]);
+type DashboardStats = {
+  players: number;
+  goals: number;
+  monthMatches: number;
+  craqueCount: number;
+};
 
-  let nearbyOpenMatchesCount = 0;
-  if (radarProfile?.radarEnabled && radarProfile.latitude != null && radarProfile.longitude != null) {
-    const latitudeDelta = radarProfile.radarRadiusKm / 111;
-    const longitudeDelta = radarProfile.radarRadiusKm / (111 * Math.max(0.2, Math.cos((radarProfile.latitude * Math.PI) / 180)));
-    const openMatches = await prisma.match.findMany({
-      where: {
-        deletedAt: null,
-        status: "OPEN",
-        openToGuests: true,
-        peladaId: { not: peladaId },
-        guestLatitude: {
-          gte: radarProfile.latitude - latitudeDelta,
-          lte: radarProfile.latitude + latitudeDelta
-        },
-        guestLongitude: {
-          gte: radarProfile.longitude - longitudeDelta,
-          lte: radarProfile.longitude + longitudeDelta
-        },
-        date: { gte: new Date() }
-      },
-      select: { guestLatitude: true, guestLongitude: true }
-    });
-    nearbyOpenMatchesCount = openMatches.filter(
-      (match) =>
-        haversineKm(radarProfile.latitude!, radarProfile.longitude!, match.guestLatitude!, match.guestLongitude!) <=
-        radarProfile.radarRadiusKm
-    ).length;
-  }
-  const myNextMatchAttendance =
-    nextMatch && linkedPlayer
-      ? await prisma.attendance.findUnique({
-          where: { matchId_playerId: { matchId: nextMatch.id, playerId: linkedPlayer.id } },
-          select: { status: true }
-        })
-      : null;
-  const isGuest = linkedPlayer?.membershipStatus === "CONVIDADO";
-  const displayName = linkedPlayer?.nickname || user.name?.split(" ")[0] || "Craque";
-  const visibleCraquePoll = visibleCraquePolls.find((poll) => poll.status === "OPEN") ?? visibleCraquePolls[0];
-  const openCraquePoll = visibleCraquePoll?.status === "OPEN" ? visibleCraquePoll : null;
-  const pollEligibleUserIds = visibleCraquePoll
-    ? [
-        ...new Set(
-          visibleCraquePoll.match.attendances
-            .map((attendance) => attendance.player)
-            .filter((player) => player.active && player.userId)
-            .map((player) => player.userId!)
-        )
-      ]
-    : [];
-  const pollCompletedUserIds = new Set(visibleCraquePoll?.match.playerSubmissions.map((submission) => submission.userId) ?? []);
-  const pollPendingCount = visibleCraquePoll
-    ? pollEligibleUserIds.filter((userId) => !pollCompletedUserIds.has(userId)).length
-    : 0;
-  const currentUserPollVote = visibleCraquePoll?.votes.find((vote) => vote.userId === user.id);
-  const currentUserPollFinished = pollCompletedUserIds.has(user.id);
-  const pollVotingMsLeft = visibleCraquePoll?.createdAt
-    ? Math.max(0, visibleCraquePoll.createdAt.getTime() + 60 * 60 * 1000 - Date.now())
-    : 0;
-  const pollVotingMinutesLeft = Math.ceil(pollVotingMsLeft / 60000);
+async function getDashboardStats(peladaId: string) {
+  const [stats] = await prisma.$queryRaw<DashboardStats[]>`
+    SELECT
+      (SELECT COUNT(*)::int FROM "Player" WHERE "peladaId" = ${peladaId} AND active = true AND "membershipStatus" = 'MENSALISTA') AS "players",
+      (
+        SELECT COALESCE(SUM(g.quantity), 0)::int
+        FROM "Goal" g
+        JOIN "Player" p ON p.id = g."playerId"
+        WHERE p."peladaId" = ${peladaId} AND p."membershipStatus" = 'MENSALISTA'
+      ) AS "goals",
+      (SELECT COUNT(*)::int FROM "Match" WHERE "peladaId" = ${peladaId} AND "deletedAt" IS NULL) AS "monthMatches",
+      (
+        SELECT COUNT(*)::int
+        FROM "Poll" po
+        JOIN "Match" m ON m.id = po."matchId"
+        JOIN "Player" p ON p.id = po."winnerId"
+        WHERE m."peladaId" = ${peladaId}
+          AND m."deletedAt" IS NULL
+          AND po.status = 'CLOSED'
+          AND po."winnerId" IS NOT NULL
+          AND p."membershipStatus" = 'MENSALISTA'
+      ) AS "craqueCount"
+  `;
 
-  const gameShortcuts = [
-    { href: "/matches/new", label: "Nova pelada", icon: CalendarPlus },
-    { href: "/matches", label: "Escalar times", icon: Target },
-    { href: openCraquePoll ? `/matches/${openCraquePoll.matchId}/stats` : "/matches?aba=anteriores", label: "Votar craque", icon: Star }
-  ];
+  return stats ?? { players: 0, goals: 0, monthMatches: 0, craqueCount: 0 };
+}
+
+async function AdminDashboardBlocks({ userId, peladaId, role }: { userId: string; peladaId: string; role: string }) {
+  const [pendingRatingPlayers, pendingJoinRequestsCount, pendingDeletionRequests, peladaAdminCount, pendingGuestRequests] =
+    await Promise.all([
+      prisma.player.findMany({
+        where: { peladaId, active: true, ratingAssigned: false },
+        select: { id: true, nickname: true },
+        orderBy: { createdAt: "asc" }
+      }),
+      prisma.peladaJoinRequest.count({ where: { peladaId, status: "PENDING" } }),
+      prisma.deletionRequest.findMany({
+        where: { peladaId, status: "OPEN" },
+        include: {
+          createdByUser: { select: { name: true, email: true } },
+          votes: {
+            select: { userId: true, vote: true, user: { select: { name: true, email: true } } },
+            orderBy: { createdAt: "asc" }
+          }
+        },
+        orderBy: { createdAt: "desc" }
+      }),
+      prisma.peladaMembership.count({
+        where: { peladaId, role: { in: ["PRESIDENTE", "ADMIN"] }, user: { active: true } }
+      }),
+      prisma.matchGuestRequest.findMany({
+        where: { status: "PENDING", match: { peladaId, deletedAt: null } },
+        select: { id: true, user: { select: { name: true, email: true } }, match: { select: { title: true } } },
+        orderBy: { createdAt: "asc" },
+        take: 5
+      })
+    ]);
 
   const managementItems = [
     {
       href: "/admins/solicitacoes",
-      label: "Solicitações de entrada",
+      label: "Solicitacoes de entrada",
       icon: UserCheck,
       badge: pendingJoinRequestsCount > 0 ? pendingJoinRequestsCount : null,
       tint: "bg-[#FCEFD6] text-[#C58207]"
@@ -228,21 +115,14 @@ export default async function DashboardPage() {
       badge: pendingGuestRequests.length > 0 ? pendingGuestRequests.length : null,
       tint: "bg-[#EAF5EC] text-campo"
     },
-    ...(user.role === "MASTER"
-      ? [{ href: "/admins", label: "Admins & permissões", icon: Shield, badge: null, tint: "bg-[#EAF5EC] text-campo" }]
+    ...(role === "MASTER"
+      ? [{ href: "/admins", label: "Admins & permissoes", icon: Shield, badge: null, tint: "bg-[#EAF5EC] text-campo" }]
       : [])
   ];
 
   return (
-    <AppShell>
-      <div className="mb-4 flex items-baseline gap-2 leading-tight">
-        <span className="font-jersey text-[13px] font-semibold uppercase tracking-[.12em] text-musgo">Salve,</span>
-        <span className="font-display text-[24px] font-extrabold tracking-[-.02em] text-campo">
-          {displayName} <span className="text-lg">👋</span>
-        </span>
-      </div>
-
-      {isAdmin && pendingRatingPlayers.length ? (
+    <>
+      {pendingRatingPlayers.length ? (
         <Card className="animate-card mb-4 border border-craque/40 bg-[#FFF7E6]">
           <p className="flex items-center gap-1.5 text-xs font-bold uppercase text-[#8a5a06]">
             <Star size={14} fill="#F4A11A" /> Nota pendente
@@ -255,23 +135,20 @@ export default async function DashboardPage() {
           <p className="mt-1 truncate text-sm text-musgo">
             {pendingRatingPlayers.map((player) => player.nickname).join(", ")}
           </p>
-          <Link
-            href="/players"
-            className="mt-3 inline-flex rounded-[11px] bg-craque px-4 py-2 text-sm font-bold text-tinta"
-          >
+          <Link href="/players" className="mt-3 inline-flex rounded-[11px] bg-craque px-4 py-2 text-sm font-bold text-tinta">
             Atribuir notas
           </Link>
         </Card>
       ) : null}
 
-      {isAdmin && pendingDeletionRequests.length ? (
+      {pendingDeletionRequests.length ? (
         <Card className="animate-card mb-4 border border-ausente/25 bg-[#FBE9E6]">
           <p className="flex items-center gap-1.5 text-xs font-bold uppercase text-ausente">
             <Trash2 size={14} /> Votacoes pendentes
           </p>
           <div className="mt-3 space-y-3">
             {pendingDeletionRequests.map((request) => {
-              const currentVote = request.votes.find((vote) => vote.userId === user.id);
+              const currentVote = request.votes.find((vote) => vote.userId === userId);
               const yesVotes = request.votes.filter((vote) => vote.vote === "YES").length;
               const noVotes = request.votes.filter((vote) => vote.vote === "NO").length;
               const creator = request.createdByUser?.name || request.createdByUser?.email || "Admin";
@@ -285,7 +162,7 @@ export default async function DashboardPage() {
                       <h2 className="mt-0.5 font-display text-base font-extrabold">{event}</h2>
                       <p className="truncate text-sm text-tinta">{request.targetName}</p>
                       <p className="mt-1 text-xs text-musgo">
-                        SIM {yesVotes}/{peladaAdminCount} · NAO {noVotes}/{peladaAdminCount}
+                        SIM {yesVotes}/{peladaAdminCount} - NAO {noVotes}/{peladaAdminCount}
                       </p>
                     </div>
                     {currentVote ? (
@@ -311,7 +188,7 @@ export default async function DashboardPage() {
         </Card>
       ) : null}
 
-      {isAdmin && pendingGuestRequests.length ? (
+      {pendingGuestRequests.length ? (
         <Card className="animate-card mb-4 border border-campo/30 bg-[#EAF5EC]">
           <p className="flex items-center gap-1.5 text-xs font-bold uppercase text-campo">
             <RadarIcon size={14} /> Radar de peladas
@@ -345,74 +222,257 @@ export default async function DashboardPage() {
         </Card>
       ) : null}
 
-      {!isAdmin && radarProfile?.radarEnabled && nearbyOpenMatchesCount > 0 ? (
-        <Link href="/radar" className="block">
-          <Card className="animate-card mb-4 border border-campo/25 bg-[#EAF5EC]">
-            <p className="flex items-center gap-1.5 text-xs font-bold uppercase text-campo">
-              <RadarIcon size={14} /> Radar de peladas
-            </p>
-            <div className="mt-1 flex items-center justify-between gap-3">
-              <h2 className="font-display text-lg font-extrabold">
-                {nearbyOpenMatchesCount === 1
-                  ? "1 pelada aberta perto de voce"
-                  : `${nearbyOpenMatchesCount} peladas abertas perto de voce`}
-              </h2>
-              <ChevronRight size={18} className="shrink-0 text-campo" />
+      <div className="mb-2 mt-5 flex items-center gap-2">
+        <SectionLabel>Gestao da pelada</SectionLabel>
+        <span className="rounded-[5px] bg-[#FCEFD6] px-1.5 py-0.5 text-[10px] font-bold text-[#8a5a06]">ADMIN</span>
+      </div>
+      <Card className="divide-y divide-linha p-0">
+        {managementItems.map((item) => (
+          <Link key={item.href} href={item.href} className="flex items-center gap-3 p-3.5">
+            <div className={`flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] ${item.tint}`}>
+              <item.icon size={17} />
             </div>
-          </Card>
-        </Link>
+            <span className="flex-1 font-semibold">{item.label}</span>
+            {item.badge ? (
+              <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-ausente px-1.5 text-[11px] font-bold text-white">
+                {item.badge}
+              </span>
+            ) : null}
+            <ChevronRight size={16} className="text-[#C7CDC0]" />
+          </Link>
+        ))}
+      </Card>
+    </>
+  );
+}
+
+async function PollDashboardCard({ userId, peladaId }: { userId: string; peladaId: string }) {
+  await closeExpiredCraquePolls(peladaId);
+  const recentClosedPollCutoff = new Date(Date.now() - 3 * 60 * 60 * 1000);
+  const visibleCraquePolls = await prisma.poll.findMany({
+    where: {
+      title: "Craque da pelada",
+      match: { peladaId, deletedAt: null },
+      OR: [{ status: "OPEN" }, { status: "CLOSED", updatedAt: { gte: recentClosedPollCutoff } }]
+    },
+    include: {
+      winner: { select: { id: true, nickname: true } },
+      votes: { select: { userId: true, playerId: true } },
+      match: {
+        select: {
+          id: true,
+          title: true,
+          date: true,
+          playerSubmissions: { select: { userId: true } },
+          attendances: {
+            where: { status: "CONFIRMED" },
+            include: { player: { select: { id: true, userId: true, active: true } } }
+          }
+        }
+      }
+    },
+    orderBy: { updatedAt: "desc" },
+    take: 5
+  });
+  const visibleCraquePoll = visibleCraquePolls.find((poll) => poll.status === "OPEN") ?? visibleCraquePolls[0];
+  if (!visibleCraquePoll) return null;
+
+  const pollEligibleUserIds = [
+    ...new Set(
+      visibleCraquePoll.match.attendances
+        .map((attendance) => attendance.player)
+        .filter((player) => player.active && player.userId)
+        .map((player) => player.userId!)
+    )
+  ];
+  const pollCompletedUserIds = new Set(visibleCraquePoll.match.playerSubmissions.map((submission) => submission.userId));
+  const pollPendingCount = pollEligibleUserIds.filter((eligibleUserId) => !pollCompletedUserIds.has(eligibleUserId)).length;
+  const currentUserPollVote = visibleCraquePoll.votes.find((vote) => vote.userId === userId);
+  const currentUserPollFinished = pollCompletedUserIds.has(userId);
+  const pollVotingMsLeft = Math.max(0, visibleCraquePoll.createdAt.getTime() + 60 * 60 * 1000 - Date.now());
+  const pollVotingMinutesLeft = Math.ceil(pollVotingMsLeft / 60000);
+
+  return (
+    <Link href={`/matches/${visibleCraquePoll.matchId}/stats`} className="block">
+      <Card className="animate-card mb-4 border border-campo/25 bg-[#EAF5EC]">
+        <p className="flex items-center gap-1.5 text-xs font-bold uppercase text-campo">
+          <Star size={14} fill="currentColor" />
+          {visibleCraquePoll.status === "OPEN" ? "Votacao aberta" : "Votacao encerrada"}
+        </p>
+        <div className="mt-2 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="truncate font-display text-xl font-extrabold">{visibleCraquePoll.match.title}</h2>
+            {visibleCraquePoll.status === "OPEN" ? (
+              <>
+                <p className="mt-1 text-sm font-semibold text-musgo">
+                  {currentUserPollFinished
+                    ? "Sua votacao ja foi confirmada."
+                    : currentUserPollVote
+                      ? "Seu voto foi salvo. Falta confirmar a votacao."
+                      : "Informe seus numeros e vote no craque. Notas sao opcionais."}
+                </p>
+                <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-bold text-mata">
+                  <span>{pollPendingCount} {pollPendingCount === 1 ? "pessoa falta" : "pessoas faltam"}</span>
+                  <span className="inline-flex items-center gap-1">
+                    <Clock size={13} />
+                    {pollVotingMinutesLeft <= 1 ? "menos de 1 min" : `${pollVotingMinutesLeft} min`}
+                  </span>
+                </p>
+              </>
+            ) : (
+              <p className="mt-1 text-sm font-semibold text-musgo">
+                {visibleCraquePoll.winner ? "Resultado disponivel. Confira a revelacao abaixo." : "Resultado disponivel por mais algumas horas."}
+              </p>
+            )}
+          </div>
+          <ChevronRight size={18} className="mt-1 shrink-0 text-campo" />
+        </div>
+      </Card>
+    </Link>
+  );
+}
+
+async function CraqueDashboardCard({ peladaId, linkedPlayerId }: { peladaId: string; linkedPlayerId?: string }) {
+  const craque = await prisma.poll.findFirst({
+    where: { match: { peladaId, deletedAt: null }, status: "CLOSED", winnerId: { not: null }, winner: { membershipStatus: "MENSALISTA" } },
+    select: { title: true, matchId: true, winner: { select: { id: true, nickname: true, photoUrl: true, position: true } } },
+    orderBy: { updatedAt: "desc" }
+  });
+  if (!craque?.winner) return null;
+
+  return (
+    <CraqueRevealCard
+      nickname={craque.winner.nickname}
+      title={craque.title}
+      photoUrl={craque.winner.photoUrl}
+      position={craque.winner.position}
+      matchId={craque.matchId}
+      playerId={craque.winner.id}
+      isViewer={linkedPlayerId === craque.winner.id}
+    />
+  );
+}
+
+async function NearbyRadarCard({
+  peladaId,
+  radarProfile
+}: {
+  peladaId: string;
+  radarProfile: { radarEnabled: boolean; radarRadiusKm: number; latitude: number | null; longitude: number | null };
+}) {
+  let nearbyOpenMatchesCount = 0;
+  if (radarProfile.radarEnabled && radarProfile.latitude != null && radarProfile.longitude != null) {
+    const latitudeDelta = radarProfile.radarRadiusKm / 111;
+    const longitudeDelta = radarProfile.radarRadiusKm / (111 * Math.max(0.2, Math.cos((radarProfile.latitude * Math.PI) / 180)));
+    const openMatches = await prisma.match.findMany({
+      where: {
+        deletedAt: null,
+        status: "OPEN",
+        openToGuests: true,
+        peladaId: { not: peladaId },
+        guestLatitude: { gte: radarProfile.latitude - latitudeDelta, lte: radarProfile.latitude + latitudeDelta },
+        guestLongitude: { gte: radarProfile.longitude - longitudeDelta, lte: radarProfile.longitude + longitudeDelta },
+        date: { gte: new Date() }
+      },
+      select: { guestLatitude: true, guestLongitude: true }
+    });
+    nearbyOpenMatchesCount = openMatches.filter(
+      (match) =>
+        haversineKm(radarProfile.latitude!, radarProfile.longitude!, match.guestLatitude!, match.guestLongitude!) <=
+        radarProfile.radarRadiusKm
+    ).length;
+  }
+  if (nearbyOpenMatchesCount <= 0) return null;
+
+  return (
+    <Link href="/radar" className="block">
+      <Card className="animate-card mb-4 border border-campo/25 bg-[#EAF5EC]">
+        <p className="flex items-center gap-1.5 text-xs font-bold uppercase text-campo">
+          <RadarIcon size={14} /> Radar de peladas
+        </p>
+        <div className="mt-1 flex items-center justify-between gap-3">
+          <h2 className="font-display text-lg font-extrabold">
+            {nearbyOpenMatchesCount === 1
+              ? "1 pelada aberta perto de voce"
+              : `${nearbyOpenMatchesCount} peladas abertas perto de voce`}
+          </h2>
+          <ChevronRight size={18} className="shrink-0 text-campo" />
+        </div>
+      </Card>
+    </Link>
+  );
+}
+
+export default async function DashboardPage() {
+  const user = await requireUser();
+  const isAdmin = isPeladaAdmin(user);
+  const peladaId = user.peladaId!;
+  const [linkedPlayer, nextMatch, stats, peladaOwner, openCraquePoll] = await Promise.all([
+    prisma.player.findFirst({ where: { userId: user.id, peladaId }, select: { id: true, nickname: true, membershipStatus: true } }),
+    prisma.match.findFirst({
+      where: { peladaId, status: "OPEN", deletedAt: null },
+      include: { _count: { select: { attendances: { where: { status: "CONFIRMED" } } } } },
+      orderBy: { date: "asc" }
+    }),
+    getDashboardStats(peladaId),
+    prisma.peladaMembership.findFirst({
+      where: { peladaId, role: "PRESIDENTE" },
+      select: { user: { select: { name: true, email: true } } },
+      orderBy: { createdAt: "asc" }
+    }),
+    prisma.poll.findFirst({
+      where: { title: "Craque da pelada", status: "OPEN", match: { peladaId, deletedAt: null } },
+      select: { matchId: true },
+      orderBy: { updatedAt: "desc" }
+    })
+  ]);
+
+  const myNextMatchAttendance =
+    nextMatch && linkedPlayer
+      ? await prisma.attendance.findUnique({
+          where: { matchId_playerId: { matchId: nextMatch.id, playerId: linkedPlayer.id } },
+          select: { status: true }
+        })
+      : null;
+  const isGuest = linkedPlayer?.membershipStatus === "CONVIDADO";
+  const displayName = linkedPlayer?.nickname || user.name?.split(" ")[0] || "Craque";
+
+  const gameShortcuts = [
+    { href: "/matches/new", label: "Nova pelada", icon: CalendarPlus },
+    { href: "/matches", label: "Escalar times", icon: Target },
+    { href: openCraquePoll ? `/matches/${openCraquePoll.matchId}/stats` : "/matches?aba=anteriores", label: "Votar craque", icon: Star }
+  ];
+
+  return (
+    <AppShell>
+      <div className="mb-4 flex items-baseline gap-2 leading-tight">
+        <span className="font-jersey text-[13px] font-semibold uppercase tracking-[.12em] text-musgo">Salve,</span>
+        <span className="font-display text-[24px] font-extrabold tracking-[-.02em] text-campo">
+          {displayName}
+        </span>
+      </div>
+
+      {!isAdmin ? (
+        <Suspense fallback={null}>
+          <NearbyRadarCard
+            peladaId={peladaId}
+            radarProfile={{
+              radarEnabled: user.radarEnabled,
+              radarRadiusKm: user.radarRadiusKm,
+              latitude: user.latitude,
+              longitude: user.longitude
+            }}
+          />
+        </Suspense>
       ) : null}
 
-      {visibleCraquePoll ? (
-        <Link href={`/matches/${visibleCraquePoll.matchId}/stats`} className="block">
-          <Card className="animate-card mb-4 border border-campo/25 bg-[#EAF5EC]">
-            <p className="flex items-center gap-1.5 text-xs font-bold uppercase text-campo">
-              <Star size={14} fill="currentColor" />
-              {visibleCraquePoll.status === "OPEN" ? "Votacao aberta" : "Votacao encerrada"}
-            </p>
-            <div className="mt-2 flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h2 className="truncate font-display text-xl font-extrabold">{visibleCraquePoll.match.title}</h2>
-                {visibleCraquePoll.status === "OPEN" ? (
-                  <>
-                    <p className="mt-1 text-sm font-semibold text-musgo">
-                      {currentUserPollFinished
-                        ? "Sua votacao ja foi confirmada."
-                        : currentUserPollVote
-                          ? "Seu voto foi salvo. Falta confirmar a votacao."
-                          : "Informe seus numeros e vote no craque. Notas sao opcionais."}
-                    </p>
-                    <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-bold text-mata">
-                      <span>{pollPendingCount} {pollPendingCount === 1 ? "pessoa falta" : "pessoas faltam"}</span>
-                      <span className="inline-flex items-center gap-1">
-                        <Clock size={13} />
-                        {pollVotingMinutesLeft <= 1 ? "menos de 1 min" : `${pollVotingMinutesLeft} min`}
-                      </span>
-                    </p>
-                  </>
-                ) : (
-                  <p className="mt-1 text-sm font-semibold text-musgo">
-                    {visibleCraquePoll.winner ? "Resultado disponivel. Confira a revelacao abaixo." : "Resultado disponivel por mais algumas horas."}
-                  </p>
-                )}
-              </div>
-              <ChevronRight size={18} className="mt-1 shrink-0 text-campo" />
-            </div>
-          </Card>
-        </Link>
-      ) : null}
+      <Suspense fallback={null}>
+        <PollDashboardCard userId={user.id} peladaId={peladaId} />
+      </Suspense>
 
-      {craque?.winner ? (
-        <CraqueRevealCard
-          nickname={craque.winner.nickname}
-          title={craque.title}
-          photoUrl={craque.winner.photoUrl}
-          position={craque.winner.position}
-          matchId={craque.matchId}
-          playerId={craque.winner.id}
-          isViewer={linkedPlayer?.id === craque.winner.id}
-        />
-      ) : null}
+      <Suspense fallback={null}>
+        <CraqueDashboardCard peladaId={peladaId} linkedPlayerId={linkedPlayer?.id} />
+      </Suspense>
 
       {nextMatch ? (
         <Card className="field-hero relative mb-4 rounded-[22px] p-5 text-white">
@@ -459,10 +519,10 @@ export default async function DashboardPage() {
       ) : null}
 
       <div className="stagger grid grid-cols-2 gap-3">
-        <StatTile icon={Users} value={players} label="Jogadores" />
-        <StatTile icon={Target} value={goals._sum.quantity || 0} label="Gols na temporada" accent="yellow" />
-        <StatTile icon={CalendarCheck} value={monthMatches} label="Peladas no mes" />
-        <StatTile icon={Star} value={craque ? 1 : 0} label="Vezes craque" accent="yellow" />
+        <StatTile icon={Users} value={stats.players} label="Jogadores" />
+        <StatTile icon={Target} value={stats.goals} label="Gols na temporada" accent="yellow" />
+        <StatTile icon={CalendarCheck} value={stats.monthMatches} label="Peladas no mes" />
+        <StatTile icon={Star} value={stats.craqueCount} label="Vezes craque" accent="yellow" />
       </div>
 
       <SectionLabel className="mb-2 mt-5">Atalhos de jogo</SectionLabel>
@@ -477,29 +537,10 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      {isAdmin && managementItems.length ? (
-        <>
-          <div className="mb-2 mt-5 flex items-center gap-2">
-            <SectionLabel>Gestão da pelada</SectionLabel>
-            <span className="rounded-[5px] bg-[#FCEFD6] px-1.5 py-0.5 text-[10px] font-bold text-[#8a5a06]">ADMIN</span>
-          </div>
-          <Card className="divide-y divide-linha p-0">
-            {managementItems.map((item) => (
-              <Link key={item.href} href={item.href} className="flex items-center gap-3 p-3.5">
-                <div className={`flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] ${item.tint}`}>
-                  <item.icon size={17} />
-                </div>
-                <span className="flex-1 font-semibold">{item.label}</span>
-                {item.badge ? (
-                  <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-ausente px-1.5 text-[11px] font-bold text-white">
-                    {item.badge}
-                  </span>
-                ) : null}
-                <ChevronRight size={16} className="text-[#C7CDC0]" />
-              </Link>
-            ))}
-          </Card>
-        </>
+      {isAdmin ? (
+        <Suspense fallback={null}>
+          <AdminDashboardBlocks userId={user.id} peladaId={peladaId} role={user.role} />
+        </Suspense>
       ) : null}
 
       <DeveloperCredit className="mt-6" />

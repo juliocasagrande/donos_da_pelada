@@ -7,6 +7,8 @@ import GoogleProvider from "next-auth/providers/google";
 import InstagramProvider from "next-auth/providers/instagram";
 import { prisma } from "@/lib/prisma";
 
+const TOKEN_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+
 function configuredProviders() {
   const providers: NextAuthOptions["providers"] = [
     CredentialsProvider({
@@ -92,19 +94,32 @@ export const authOptions: NextAuthOptions = {
       }
     },
     async jwt({ token, user }) {
-      const email = user?.email || token.email;
-      if (email) {
+      if (user) {
+        const authUser = user as typeof user & {
+          role?: "MASTER" | "ADMIN" | "PLAYER";
+          onboarded?: boolean;
+          active?: boolean;
+        };
+        token.sub = authUser.id || token.sub;
+        token.role = authUser.role || token.role;
+        token.onboarded = authUser.onboarded ?? token.onboarded;
+        token.active = authUser.active ?? token.active ?? true;
+        token.userRefreshedAt = Date.now();
+        return token;
+      }
+
+      if (token.sub && Date.now() - (token.userRefreshedAt ?? 0) > TOKEN_REFRESH_INTERVAL_MS) {
         try {
           const dbUser = await prisma.user.findUnique({
-            where: { email },
-            select: { id: true, role: true, onboarded: true, active: true }
+            where: { id: token.sub },
+            select: { role: true, onboarded: true, active: true }
           });
           if (dbUser) {
-            token.sub = dbUser.id;
             token.role = dbUser.role;
             token.onboarded = dbUser.onboarded;
             token.active = dbUser.active;
           }
+          token.userRefreshedAt = Date.now();
         } catch {
           // Keep the existing token if the database is temporarily unreachable.
         }
