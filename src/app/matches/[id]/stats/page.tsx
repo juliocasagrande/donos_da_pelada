@@ -76,7 +76,7 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
         goals: { where: { matchId: id } },
         assists: { where: { matchId: id } },
         defenses: { where: { matchId: id } },
-        ratings: { where: { matchId: id }, include: { user: true } },
+        ratings: { where: { matchId: id }, select: { userId: true, playerId: true, value: true } },
         matchSubmissions: { where: { matchId: id } }
       },
       orderBy: { nickname: "asc" }
@@ -84,7 +84,7 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
     prisma.poll.findFirst({
       where: { matchId: id, title: "Craque da pelada" },
       orderBy: { createdAt: "desc" },
-      include: { votes: true, winner: true }
+      include: { votes: { select: { userId: true, playerId: true } }, winner: true }
     }),
     prisma.player.findFirst({ where: { userId: user.id, peladaId: user.peladaId! } })
   ]);

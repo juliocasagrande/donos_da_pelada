@@ -148,14 +148,22 @@ export default async function DashboardPage() {
 
   let nearbyOpenMatchesCount = 0;
   if (radarProfile?.radarEnabled && radarProfile.latitude != null && radarProfile.longitude != null) {
+    const latitudeDelta = radarProfile.radarRadiusKm / 111;
+    const longitudeDelta = radarProfile.radarRadiusKm / (111 * Math.max(0.2, Math.cos((radarProfile.latitude * Math.PI) / 180)));
     const openMatches = await prisma.match.findMany({
       where: {
         deletedAt: null,
         status: "OPEN",
         openToGuests: true,
         peladaId: { not: peladaId },
-        guestLatitude: { not: null },
-        guestLongitude: { not: null },
+        guestLatitude: {
+          gte: radarProfile.latitude - latitudeDelta,
+          lte: radarProfile.latitude + latitudeDelta
+        },
+        guestLongitude: {
+          gte: radarProfile.longitude - longitudeDelta,
+          lte: radarProfile.longitude + longitudeDelta
+        },
         date: { gte: new Date() }
       },
       select: { guestLatitude: true, guestLongitude: true }

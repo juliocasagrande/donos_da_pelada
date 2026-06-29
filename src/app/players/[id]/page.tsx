@@ -40,18 +40,27 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
   const [player, activePlayers] = await Promise.all([
     prisma.player.findFirst({
       where: { id, peladaId: user.peladaId! },
-      include: {
-        goals: true,
-        assists: true,
-        defenses: true,
-        attendances: true,
-        pollWinners: true,
-        ratings: { include: { match: true }, orderBy: { match: { date: "desc" } } }
+      select: {
+        id: true,
+        nickname: true,
+        photoUrl: true,
+        position: true,
+        membershipStatus: true,
+        goals: { select: { quantity: true } },
+        assists: { select: { quantity: true } },
+        defenses: { select: { quantity: true } },
+        attendances: { select: { status: true } },
+        pollWinners: { select: { id: true } },
+        ratings: { select: { value: true, match: { select: { date: true } } }, orderBy: { match: { date: "desc" } } }
       }
     }),
     prisma.player.findMany({
       where: { peladaId: user.peladaId!, active: true },
-      include: { ratings: { include: { match: true } } }
+      select: {
+        id: true,
+        membershipStatus: true,
+        ratings: { select: { value: true, match: { select: { date: true } } } }
+      }
     })
   ]);
 

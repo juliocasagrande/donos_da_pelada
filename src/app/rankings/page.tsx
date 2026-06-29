@@ -103,7 +103,9 @@ export default async function RankingsPage({
       defenses: { select: { quantity: true, match: { select: { kind: true } } } },
       pollWinners: { select: { match: { select: { kind: true } } } },
       attendances: { select: { status: true, match: { select: { kind: true } } } },
-      ratings: { select: { value: true, match: { select: { date: true, kind: true } } } }
+      ...(activeTab.field === "ratingAverage"
+        ? { ratings: { select: { value: true, match: { select: { date: true, kind: true } } } } }
+        : {})
     }
   });
   const friendlyMatches = await prisma.match.findMany({
@@ -156,7 +158,7 @@ export default async function RankingsPage({
     const defenses = group.flatMap((player) => matchesKind(player.defenses, activeKind.key));
     const pollWinners = group.flatMap((player) => matchesKind(player.pollWinners, activeKind.key));
     const attendances = group.flatMap((player) => matchesKind(player.attendances, activeKind.key));
-    const ratings = group.flatMap((player) => matchesKind(player.ratings, activeKind.key));
+    const ratings: { value: number; match: { date: Date; kind: string } }[] = activeTab.field === "ratingAverage" ? group.flatMap((player) => matchesKind((player as any).ratings ?? [], activeKind.key)) : [];
     const averages = matchAverages(ratings);
     const peladaNames = [...new Set(group.map((player) => player.pelada.name))];
     return {
@@ -176,12 +178,12 @@ export default async function RankingsPage({
   });
 
   const ranked = [...mapped].sort((a, b) => b[activeTab.field] - a[activeTab.field] || b.overall - a.overall);
-  const previousNoteRank = [...mapped]
+  const previousNoteRank = activeTab.field === "ratingAverage" ? [...mapped]
     .sort((a, b) => b.previousRatingAverage - a.previousRatingAverage || b.overall - a.overall)
     .reduce<Record<string, number>>((acc, player, index) => {
       acc[player.id] = index + 1;
       return acc;
-    }, {});
+    }, {}) : {};
 
   const [second, first, third] = [ranked[1], ranked[0], ranked[2]];
   const list = ranked.slice(3, 10);

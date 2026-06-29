@@ -247,6 +247,7 @@ model PeladaMembership {
 
   @@unique([userId, peladaId])
   @@index([peladaId])
+  @@index([userId, createdAt])
 }
 
 model PeladaInvite {
@@ -334,6 +335,8 @@ model PushSubscription {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model Account {
@@ -398,6 +401,7 @@ model Player {
 
   @@unique([userId, peladaId])
   @@index([peladaId])
+  @@index([peladaId, active, membershipStatus])
 }
 
 model Match {
@@ -440,6 +444,8 @@ model Match {
 
   @@index([peladaId])
   @@index([peladaId, status, date])
+  @@index([peladaId, deletedAt, status, date])
+  @@index([openToGuests, status, date])
 }
 
 model MatchGuestRequest {
@@ -474,6 +480,7 @@ model Attendance {
 
   @@unique([matchId, playerId])
   @@index([playerId])
+  @@index([matchId, status])
 }
 
 model Team {
@@ -485,6 +492,8 @@ model Team {
   players     TeamPlayer[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+
+  @@index([matchId])
 }
 
 model TeamPlayer {
@@ -552,6 +561,10 @@ model Poll {
   votes       PollVote[]
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+
+  @@index([matchId, title, status])
+  @@index([status, updatedAt])
+  @@index([winnerId])
 }
 
 model PollVote {

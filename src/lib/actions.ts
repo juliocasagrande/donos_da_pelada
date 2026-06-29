@@ -12,7 +12,7 @@ import { archiveUserPeladaStats } from "@/lib/careerStats";
 import { MENSALISTA_FREE_LIMIT, canAddMensalista, isPeladaIdPro } from "@/lib/plan";
 import { assertMatchInPelada, assertPlayerInPelada, assertPollInPelada } from "@/lib/peladaGuard";
 import { sendPushToAll, sendPushToUsers } from "@/lib/push";
-import { canConfirmPlayer, isWithinVotingWindow } from "@/lib/attendance";
+import { VOTING_WINDOW_HOURS, canConfirmPlayer, isWithinVotingWindow } from "@/lib/attendance";
 import { hasConflictingConfirmedMatch } from "@/lib/matchConflicts";
 import { logAudit } from "@/lib/audit";
 
@@ -1506,18 +1506,18 @@ export async function closeCraquePoll(pollId: string) {
 }
 
 export async function closeExpiredCraquePolls(peladaId: string) {
+  const expiredBefore = new Date(Date.now() - VOTING_WINDOW_HOURS * 60 * 60 * 1000);
   const polls = await prisma.poll.findMany({
     where: {
       title: "Craque da pelada",
       status: PollStatus.OPEN,
+      createdAt: { lt: expiredBefore },
       match: { peladaId, deletedAt: null }
     },
-    select: { id: true, createdAt: true }
+    select: { id: true }
   });
 
   for (const poll of polls) {
-    if (isWithinVotingWindow(poll.createdAt)) continue;
-
     await publishCraquePoll(poll.id);
   }
 }

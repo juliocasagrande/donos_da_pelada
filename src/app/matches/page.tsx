@@ -102,7 +102,7 @@ export default async function MatchesPage({
       ...(activeKind.key === "todos" ? {} : { kind: activeKind.key })
     },
     include: {
-      attendances: { where: { status: "CONFIRMED" } }
+      _count: { select: { attendances: { where: { status: "CONFIRMED" } } } }
     },
     orderBy: { date: activeTab === "proximas" ? "asc" : "desc" },
     take: activeTab === "anteriores" ? 60 : undefined
@@ -188,7 +188,7 @@ export default async function MatchesPage({
             <div className="mb-4 grid grid-cols-3 gap-2">
               <div className="rounded-[11px] bg-areia px-3 py-2">
                 <p className="text-[10px] font-black uppercase text-musgo">Confirmados</p>
-                <p className="font-display text-lg font-extrabold text-campo">{featured.attendances.length}/{TOTAL_CAPACITY}</p>
+                <p className="font-display text-lg font-extrabold text-campo">{featured._count.attendances}/{TOTAL_CAPACITY}</p>
               </div>
               <div className="rounded-[11px] bg-areia px-3 py-2">
                 <p className="text-[10px] font-black uppercase text-musgo">Quadra</p>
@@ -254,7 +254,7 @@ export default async function MatchesPage({
                       <CalendarDays size={13} /> {formatDate(match.date)}
                     </span>
                     <span className="flex items-center gap-1">
-                      <Users size={13} /> {match.attendances.length}/{TOTAL_CAPACITY}
+                      <Users size={13} /> {match._count.attendances}/{TOTAL_CAPACITY}
                     </span>
                   </div>
                   <p className="mt-1 truncate text-xs text-musgo">{match.location || "Local a definir"}</p>

@@ -3,7 +3,6 @@ import { Clock } from "lucide-react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { PeladaSwitcher } from "@/components/layout/PeladaSwitcher";
 import { PushNotificationsMount } from "@/components/layout/PushNotificationsMount";
-import { enforceFreeTierMensalistaLimit } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, isPeladaAdmin } from "@/lib/session";
 
@@ -14,9 +13,6 @@ function daysUntil(date: Date) {
 export async function AppShell({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   const isAdmin = isPeladaAdmin(user);
-  if (user?.peladaId) {
-    await enforceFreeTierMensalistaLimit(user.peladaId);
-  }
   const memberships = user
     ? await prisma.peladaMembership.findMany({
         where: { userId: user.id },

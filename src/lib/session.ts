@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -11,7 +12,7 @@ export function isPeladaAdmin(user: { role: string; peladaRole?: string | null }
   return user.role === "MASTER" || user.peladaRole === "PRESIDENTE" || user.peladaRole === "ADMIN";
 }
 
-export async function getCurrentUser() {
+export const getCurrentUser = cache(async () => {
   const session = await getServerSession(authOptions);
   if (!session?.user) return null;
 
@@ -65,7 +66,7 @@ export async function getCurrentUser() {
     peladaRole: effectivePeladaRole,
     hasPlayerProfile
   };
-}
+});
 
 export async function requireUser() {
   const user = await getCurrentUser();

@@ -6,19 +6,42 @@ import { Button } from "@/components/ui/Button";
 import { prisma } from "@/lib/prisma";
 import { isPeladaAdmin, requireUser } from "@/lib/session";
 
+function sumByPlayerId(rows: { playerId: string; _sum: { quantity: number | null } }[]) {
+  return new Map(rows.map((row) => [row.playerId, row._sum.quantity ?? 0]));
+}
+
 export default async function PlayersPage() {
   const user = await requireUser();
   const isAdmin = isPeladaAdmin(user);
-  const players = await prisma.player.findMany({
-    where: { peladaId: user.peladaId!, active: true },
-    include: {
-      goals: { select: { quantity: true } },
-      defenses: { select: { quantity: true } },
-      user: { select: { whatsapp: true, whatsappChatEnabled: true } }
-    },
-    orderBy: [{ nickname: "asc" }]
-  });
+  const peladaId = user.peladaId!;
+  const [players, goalTotals, saveTotals] = await Promise.all([
+    prisma.player.findMany({
+      where: { peladaId, active: true },
+      select: {
+        id: true,
+        nickname: true,
+        photoUrl: true,
+        position: true,
+        membershipStatus: true,
+        ratingAssigned: true,
+        user: { select: { whatsapp: true, whatsappChatEnabled: true } }
+      },
+      orderBy: [{ nickname: "asc" }]
+    }),
+    prisma.goal.groupBy({
+      by: ["playerId"],
+      where: { player: { peladaId, active: true } },
+      _sum: { quantity: true }
+    }),
+    prisma.difficultSave.groupBy({
+      by: ["playerId"],
+      where: { player: { peladaId, active: true } },
+      _sum: { quantity: true }
+    })
+  ]);
 
+  const goalsByPlayerId = sumByPlayerId(goalTotals);
+  const savesByPlayerId = sumByPlayerId(saveTotals);
   const playerListItems = players.map((player) => ({
     id: player.id,
     nickname: player.nickname,
@@ -27,8 +50,8 @@ export default async function PlayersPage() {
     membershipStatus: player.membershipStatus,
     ratingAssigned: player.ratingAssigned,
     whatsapp: player.user?.whatsappChatEnabled ? player.user.whatsapp : null,
-    goals: player.goals.reduce((sum, item) => sum + item.quantity, 0),
-    saves: player.defenses.reduce((sum, item) => sum + item.quantity, 0)
+    goals: goalsByPlayerId.get(player.id) ?? 0,
+    saves: savesByPlayerId.get(player.id) ?? 0
   }));
 
   return (
