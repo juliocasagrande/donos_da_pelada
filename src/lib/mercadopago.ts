@@ -1,4 +1,3 @@
-import { randomUUID } from "crypto";
 import { PLAN_PRICES, type PlanInterval } from "@/lib/plan";
 
 const MP_API = "https://api.mercadopago.com";
@@ -16,7 +15,7 @@ export type MpPreference = {
 
 export type MpPayment = {
   id: number;
-  status: "approved" | "pending" | "authorized" | "in_process" | "rejected" | "cancelled" | "refunded" | "charged_back";
+  status: "approved" | "pending" | "authorized" | "in_process" | "rejected" | "cancelled" | "canceled" | "refunded" | "charged_back";
   status_detail?: string;
   transaction_amount?: number;
   currency_id?: string;
@@ -112,6 +111,7 @@ export async function createAuthorizedPayment(params: {
   payerEmail: string;
   interval: PlanInterval;
   formData: MercadoPagoPaymentFormData;
+  idempotencyKey: string;
 }): Promise<MpPayment> {
   const plan = PLAN_PRICES[params.interval];
   const payerEmail = params.formData.payer?.email || params.payerEmail;
@@ -121,7 +121,7 @@ export async function createAuthorizedPayment(params: {
     headers: {
       Authorization: `Bearer ${accessToken()}`,
       "Content-Type": "application/json",
-      "X-Idempotency-Key": randomUUID()
+      "X-Idempotency-Key": params.idempotencyKey
     },
     body: JSON.stringify({
       transaction_amount: plan.amount,
@@ -158,7 +158,7 @@ export async function capturePayment(paymentId: string): Promise<MpPayment> {
     headers: {
       Authorization: `Bearer ${accessToken()}`,
       "Content-Type": "application/json",
-      "X-Idempotency-Key": randomUUID()
+      "X-Idempotency-Key": `capture-${paymentId}`
     },
     body: JSON.stringify({ capture: true })
   });
@@ -177,9 +177,9 @@ export async function cancelAuthorizedPayment(paymentId: string): Promise<MpPaym
     headers: {
       Authorization: `Bearer ${accessToken()}`,
       "Content-Type": "application/json",
-      "X-Idempotency-Key": randomUUID()
+      "X-Idempotency-Key": `cancel-${paymentId}`
     },
-    body: JSON.stringify({ status: "cancelled" })
+    body: JSON.stringify({ status: "canceled" })
   });
 
   const payload = await response.json().catch(() => null);

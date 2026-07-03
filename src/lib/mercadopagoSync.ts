@@ -2,8 +2,8 @@ import { capturePayment, getPayment, type MpPayment } from "@/lib/mercadopago";
 import { PLAN_PRICES, type PlanInterval } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
 
-const FREE_CANCEL_DAYS = 5;
-const TERMINAL_FAILURE_STATUSES = new Set(["rejected", "cancelled", "refunded", "charged_back"]);
+const FREE_CANCEL_DAYS = 4;
+const TERMINAL_FAILURE_STATUSES = new Set(["rejected", "cancelled", "canceled", "refunded", "charged_back"]);
 
 function isPlanInterval(value: unknown): value is PlanInterval {
   return value === "mensal" || value === "trimestral" || value === "anual";

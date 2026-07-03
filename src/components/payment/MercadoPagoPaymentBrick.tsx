@@ -16,6 +16,13 @@ declare global {
   }
 }
 
+function createSubmissionKey() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (character) =>
+    (Number(character) ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> Number(character) / 4).toString(16)
+  );
+}
+
 function loadMercadoPagoSdk() {
   return new Promise<void>((resolve, reject) => {
     if (window.MercadoPago) {
@@ -44,6 +51,8 @@ export function MercadoPagoPaymentBrick({ interval }: { interval: PlanInterval }
   const [loading, setLoading] = useState(true);
   const toast = useToast();
   const brickRef = useRef<{ unmount: () => void } | null>(null);
+  const submittingRef = useRef(false);
+  const idempotencyKeyRef = useRef<string | null>(null);
   const publicKey = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY;
   const plan = PLAN_PRICES[interval];
 
@@ -94,25 +103,36 @@ export function MercadoPagoPaymentBrick({ interval }: { interval: PlanInterval }
               setLoading(false);
             },
             onSubmit: async ({ formData }: { formData: Record<string, unknown> }) => {
+              if (submittingRef.current) return;
+
               setError(null);
+              submittingRef.current = true;
+              idempotencyKeyRef.current ||= createSubmissionKey();
+
               try {
                 const response = await fetch("/api/mercadopago/authorize", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ interval, formData })
+                  body: JSON.stringify({ interval, formData, idempotencyKey: idempotencyKeyRef.current })
                 });
                 const result = await response.json().catch(() => ({}));
                 if (!response.ok || !result.ok) {
                   const message = result.error || "Nao foi possivel validar o cartao. Revise os dados e tente novamente.";
                   setError(message);
-                  toast.error(message);
-                  return;
+                  idempotencyKeyRef.current = null;
+                  submittingRef.current = false;
+                  throw new Error(message);
                 }
                 window.location.href = result.url || `/pagamento?flow=sucesso&plano=${interval}`;
-              } catch {
-                const message = "Nao foi possivel falar com o Mercado Pago. Verifique sua conexao e tente novamente.";
+              } catch (submitError) {
+                const message = submitError instanceof Error && submitError.message
+                  ? submitError.message
+                  : "Nao foi possivel falar com o Mercado Pago. Verifique sua conexao e tente novamente.";
                 setError(message);
                 toast.error(message);
+                idempotencyKeyRef.current = null;
+                submittingRef.current = false;
+                throw new Error(message);
               }
             }
           }

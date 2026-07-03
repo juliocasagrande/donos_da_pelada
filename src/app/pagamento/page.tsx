@@ -201,7 +201,7 @@ function ProBenefits() {
 function SevenDayNotice() {
   return (
     <div className="rounded-[13px] border border-craque/30 bg-[#FFF7E6] px-3 py-2 text-center text-xs font-semibold text-[#8a5a06]">
-      Voce tem 7 dias de cancelamento gratuito.
+      Voce tem 4 dias de cancelamento gratuito.
     </div>
   );
 }

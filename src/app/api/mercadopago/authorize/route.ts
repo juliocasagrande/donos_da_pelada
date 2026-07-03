@@ -8,6 +8,7 @@ import { ApiAuthError, requireApiUser } from "@/lib/session";
 
 const requestSchema = z.object({
   interval: z.enum(["mensal", "trimestral", "anual"]),
+  idempotencyKey: z.string().uuid(),
   formData: z.object({
     token: z.string().min(1),
     payment_method_id: z.string().min(1),
@@ -54,7 +55,8 @@ export async function POST(request: Request) {
       userName: user.name || user.email || "Usuario",
       payerEmail: user.email || payload.data.formData.payer?.email || "",
       interval,
-      formData: payload.data.formData
+      formData: payload.data.formData,
+      idempotencyKey: payload.data.idempotencyKey
     });
 
     if (payment.status !== "authorized") {
