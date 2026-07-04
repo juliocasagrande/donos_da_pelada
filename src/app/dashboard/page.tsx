@@ -248,7 +248,7 @@ async function AdminDashboardBlocks({ userId, peladaId, role }: { userId: string
 
 async function PollDashboardCard({ userId, peladaId }: { userId: string; peladaId: string }) {
   await closeExpiredCraquePolls(peladaId);
-  const recentClosedPollCutoff = new Date(Date.now() - 3 * 60 * 60 * 1000);
+  const recentClosedPollCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const visibleCraquePolls = await prisma.poll.findMany({
     where: {
       title: "Craque da pelada",
@@ -333,8 +333,9 @@ async function PollDashboardCard({ userId, peladaId }: { userId: string; peladaI
 }
 
 async function CraqueDashboardCard({ peladaId, linkedPlayerId }: { peladaId: string; linkedPlayerId?: string }) {
+  const recentClosedPollCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const craque = await prisma.poll.findFirst({
-    where: { match: { peladaId, deletedAt: null }, status: "CLOSED", winnerId: { not: null }, winner: { membershipStatus: "MENSALISTA" } },
+    where: { match: { peladaId, deletedAt: null }, status: "CLOSED", updatedAt: { gte: recentClosedPollCutoff }, winnerId: { not: null }, winner: { membershipStatus: "MENSALISTA" } },
     select: { title: true, matchId: true, winner: { select: { id: true, nickname: true, photoUrl: true, position: true } } },
     orderBy: { updatedAt: "desc" }
   });
@@ -519,10 +520,18 @@ export default async function DashboardPage() {
       ) : null}
 
       <div className="stagger grid grid-cols-2 gap-3">
-        <StatTile icon={Users} value={stats.players} label="Jogadores" />
-        <StatTile icon={Target} value={stats.goals} label="Gols na temporada" accent="yellow" />
-        <StatTile icon={CalendarCheck} value={stats.monthMatches} label="Peladas no mes" />
-        <StatTile icon={Star} value={stats.craqueCount} label="Vezes craque" accent="yellow" />
+        <Link href="/players" className="block transition hover:-translate-y-0.5 active:scale-95">
+          <StatTile icon={Users} value={stats.players} label="Jogadores" />
+        </Link>
+        <Link href="/rankings?tipo=artilharia" className="block transition hover:-translate-y-0.5 active:scale-95">
+          <StatTile icon={Target} value={stats.goals} label="Gols na temporada" accent="yellow" />
+        </Link>
+        <Link href="/matches" className="block transition hover:-translate-y-0.5 active:scale-95">
+          <StatTile icon={CalendarCheck} value={stats.monthMatches} label="Peladas no mes" />
+        </Link>
+        <Link href="/rankings?tipo=craque" className="block transition hover:-translate-y-0.5 active:scale-95">
+          <StatTile icon={Star} value={stats.craqueCount} label="Vezes craque" accent="yellow" />
+        </Link>
       </div>
 
       <SectionLabel className="mb-2 mt-5">Atalhos de jogo</SectionLabel>

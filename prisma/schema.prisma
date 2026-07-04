@@ -165,6 +165,7 @@ model Pelada {
   joinRequests    PeladaJoinRequest[]
   players         Player[]
   matches         Match[]
+  seasonStats     SeasonPlayerStat[]
   transactions    Transaction[]
   feeConfigs      MonthlyFeeConfig[]
   payments        MonthlyPayment[]
@@ -391,6 +392,7 @@ model Player {
   goals       Goal[]
   assists     Assist[]
   defenses    DifficultSave[]
+  seasonStats SeasonPlayerStat[]
   ratings     PlayerRating[]   @relation("PlayerRatings")
   matchSubmissions PlayerMatchSubmission[] @relation("PlayerSubmissions")
   pollVotes   PollVote[]
@@ -550,6 +552,26 @@ model DifficultSave {
   @@index([playerId])
 }
 
+model SeasonPlayerStat {
+  id            String   @id @default(cuid())
+  peladaId      String
+  playerId      String
+  year          Int
+  goals         Int      @default(0)
+  assists       Int      @default(0)
+  presence      Int      @default(0)
+  craque        Int      @default(0)
+  ratingAverage Float    @default(0)
+  ratingCount   Int      @default(0)
+  pelada        Pelada   @relation(fields: [peladaId], references: [id], onDelete: Cascade)
+  player        Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([peladaId, playerId, year])
+  @@index([playerId])
+  @@index([peladaId, year])
+}
 model Poll {
   id          String     @id @default(cuid())
   matchId     String

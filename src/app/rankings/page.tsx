@@ -2,11 +2,11 @@ import Link from "next/link";
 import { Crown, Minus, TrendingDown, TrendingUp } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PlayerAvatar } from "@/components/players/PlayerAvatar";
-import { RankingPeladaSelect } from "@/components/rankings/RankingPeladaSelect";
+import { RankingFilterSelect, RankingPeladaSelect } from "@/components/rankings/RankingPeladaSelect";
 import { Card } from "@/components/ui/Card";
 import { closeExpiredCraquePolls } from "@/lib/actions";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { isPeladaAdmin, requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 const tabs = [
@@ -55,22 +55,34 @@ function formatValue(value: number, field: RankingField) {
   return field === "ratingAverage" ? value.toFixed(1) : String(Math.round(value));
 }
 
-function emptyFriendlySummary(peladaId: string, peladaName: string) {
+
+function currentSaoPauloYear() {
+  return Number(new Intl.DateTimeFormat("en-CA", { year: "numeric", timeZone: "America/Sao_Paulo" }).format(new Date()));
+}
+
+function parseSeason(value: string | undefined): number | "total" {
+  if (value === "total") return "total";
+  const year = Number(value);
+  return Number.isInteger(year) && year >= 2000 && year <= 2100 ? year : currentSaoPauloYear();
+}
+
+function seasonDateRange(season: number | "total") {
+  if (season === "total") return {};
   return {
-    peladaId,
-    peladaName,
-    matches: 0,
-    wins: 0,
-    draws: 0,
-    losses: 0,
-    goalsFor: 0,
-    goalsAgainst: 0
+    gte: new Date(`${season}-01-01T00:00:00-03:00`),
+    lt: new Date(`${season + 1}-01-01T00:00:00-03:00`)
   };
 }
 
-function matchFilter(kind: RankingKind) {
-  return kind === "todos" ? {} : { match: { kind } };
+function matchFilter(kind: RankingKind, season: number | "total") {
+  const dateRange = seasonDateRange(season);
+  const match = {
+    ...(kind === "todos" ? {} : { kind }),
+    ...(Object.keys(dateRange).length ? { date: dateRange } : {})
+  };
+  return Object.keys(match).length ? { match } : {};
 }
+
 
 function sumRowsByPlayer(rows: { playerId: string; _sum: { quantity: number | null } }[]) {
   return new Map(rows.map((row) => [row.playerId, row._sum.quantity ?? 0]));
@@ -121,12 +133,14 @@ function groupPlayers(players: PlayerRow[], activeScope: string) {
 export default async function RankingsPage({
   searchParams
 }: {
-  searchParams?: Promise<{ tipo?: string; jogo?: string; pelada?: string }>;
+  searchParams?: Promise<{ tipo?: string; jogo?: string; pelada?: string; temporada?: string }>;
 }) {
   const user = await requireUser();
   const query = await searchParams;
   const activeTab: RankingTab = tabs.find((tab) => tab.key === query?.tipo) ?? tabs[0];
   const activeKind = kindTabs.find((tab) => tab.key === query?.jogo) ?? kindTabs[0];
+  const activeSeason = parseSeason(query?.temporada);
+  const isAdmin = isPeladaAdmin(user);
   const memberPeladas: PeladaOption[] = user.shellMemberships.map((membership) => ({
     id: membership.pelada.id,
     name: membership.pelada.name
@@ -139,6 +153,23 @@ export default async function RankingsPage({
     activeScope === "todas"
       ? "Todas as minhas peladas"
       : memberPeladas.find((pelada) => pelada.id === activeScope)?.name || "Pelada ativa";
+
+  const [matchYearRows, seasonStatYearRows] = await Promise.all([
+    prisma.match.findMany({
+      where: { peladaId: { in: selectedPeladaIds }, deletedAt: null, status: "CLOSED" },
+      select: { date: true },
+      orderBy: { date: "desc" }
+    }),
+    prisma.seasonPlayerStat.findMany({
+      where: { peladaId: { in: selectedPeladaIds } },
+      select: { year: true },
+      distinct: ["year"],
+      orderBy: { year: "desc" }
+    })
+  ]);
+  const seasonYears = Array.from(
+    new Set([currentSaoPauloYear(), ...matchYearRows.map((row) => row.date.getFullYear()), ...seasonStatYearRows.map((row) => row.year)])
+  ).sort((a, b) => b - a);
 
   await Promise.all(selectedPeladaIds.map((peladaId) => closeExpiredCraquePolls(peladaId)));
 
@@ -156,51 +187,43 @@ export default async function RankingsPage({
   });
   const playerIds = players.map((player) => player.id);
 
-  const [goalTotals, assistTotals, presenceTotals, craqueTotals, ratingRows, friendlyMatches] = playerIds.length
+  const [goalTotals, assistTotals, presenceTotals, craqueTotals, ratingRows, historicalStats] = playerIds.length
     ? await Promise.all([
         prisma.goal.groupBy({
           by: ["playerId"],
-          where: { playerId: { in: playerIds }, ...matchFilter(activeKind.key) },
+          where: { playerId: { in: playerIds }, ...matchFilter(activeKind.key, activeSeason) },
           _sum: { quantity: true }
         }),
         prisma.assist.groupBy({
           by: ["playerId"],
-          where: { playerId: { in: playerIds }, ...matchFilter(activeKind.key) },
+          where: { playerId: { in: playerIds }, ...matchFilter(activeKind.key, activeSeason) },
           _sum: { quantity: true }
         }),
         prisma.attendance.groupBy({
           by: ["playerId"],
-          where: { playerId: { in: playerIds }, status: "CONFIRMED", ...matchFilter(activeKind.key) },
+          where: { playerId: { in: playerIds }, status: "CONFIRMED", ...matchFilter(activeKind.key, activeSeason) },
           _count: true
         }),
         prisma.poll.groupBy({
           by: ["winnerId"],
-          where: { winnerId: { in: playerIds }, ...matchFilter(activeKind.key) },
+          where: { winnerId: { in: playerIds }, ...matchFilter(activeKind.key, activeSeason) },
           _count: { _all: true }
         }),
         activeTab.field === "ratingAverage"
           ? prisma.playerRating.findMany({
-              where: { playerId: { in: playerIds }, ...matchFilter(activeKind.key) },
+              where: { playerId: { in: playerIds }, ...matchFilter(activeKind.key, activeSeason) },
               select: { playerId: true, value: true, match: { select: { date: true } } },
               orderBy: { match: { date: "desc" } }
             })
           : Promise.resolve([]),
-        prisma.match.findMany({
-          where: {
-            peladaId: { in: selectedPeladaIds },
-            deletedAt: null,
-            kind: "AMISTOSO",
-            status: "CLOSED",
-            homeScore: { not: null },
-            awayScore: { not: null }
-          },
-          select: {
-            peladaId: true,
-            homeScore: true,
-            awayScore: true,
-            pelada: { select: { id: true, name: true } }
-          }
-        })
+        activeKind.key === "todos"
+          ? prisma.seasonPlayerStat.findMany({
+              where: {
+                playerId: { in: playerIds },
+                ...(activeSeason === "total" ? {} : { year: activeSeason })
+              }
+            })
+          : Promise.resolve([])
       ])
     : [[], [], [], [], [], []];
 
@@ -209,35 +232,53 @@ export default async function RankingsPage({
   const presenceByPlayerId = countRowsByPlayer(presenceTotals);
   const craqueByPlayerId = countRowsByPlayer(craqueTotals);
   const ratingsByPlayerId = ratingAverages(ratingRows);
-
-  const friendlySummaryMap = new Map(
-    memberPeladas
-      .filter((pelada) => selectedPeladaIds.includes(pelada.id))
-      .map((pelada) => [pelada.id, emptyFriendlySummary(pelada.id, pelada.name)])
-  );
-  for (const match of friendlyMatches) {
-    const summary = friendlySummaryMap.get(match.peladaId) ?? emptyFriendlySummary(match.peladaId, match.pelada.name);
-    summary.matches += 1;
-    summary.goalsFor += match.homeScore ?? 0;
-    summary.goalsAgainst += match.awayScore ?? 0;
-    if ((match.homeScore ?? 0) > (match.awayScore ?? 0)) summary.wins += 1;
-    else if ((match.homeScore ?? 0) < (match.awayScore ?? 0)) summary.losses += 1;
-    else summary.draws += 1;
-    friendlySummaryMap.set(match.peladaId, summary);
+  const historicalStatsByPlayerId = new Map<string, {
+    goals: number;
+    assists: number;
+    presence: number;
+    craque: number;
+    ratingSum: number;
+    ratingCount: number;
+  }>();
+  for (const stat of historicalStats) {
+    const current = historicalStatsByPlayerId.get(stat.playerId) ?? {
+      goals: 0,
+      assists: 0,
+      presence: 0,
+      craque: 0,
+      ratingSum: 0,
+      ratingCount: 0
+    };
+    current.goals += stat.goals;
+    current.assists += stat.assists;
+    current.presence += stat.presence;
+    current.craque += stat.craque;
+    current.ratingSum += stat.ratingAverage * stat.ratingCount;
+    current.ratingCount += stat.ratingCount;
+    historicalStatsByPlayerId.set(stat.playerId, current);
   }
-  const friendlySummaries = [...friendlySummaryMap.values()].filter((summary) => summary.matches > 0);
+
 
   const mapped: RankedPlayer[] = groupPlayers(players, activeScope).map((group) => {
     const primary = group[0];
     const peladaNames = [...new Set(group.map((player) => player.pelada.name))];
-    const goalsTotal = group.reduce((sum, player) => sum + (goalsByPlayerId.get(player.id) ?? 0), 0);
+    const goalsTotal = group.reduce((sum, player) => sum + (goalsByPlayerId.get(player.id) ?? 0) + (historicalStatsByPlayerId.get(player.id)?.goals ?? 0), 0);
+    const assistsTotal = group.reduce((sum, player) => sum + (assistsByPlayerId.get(player.id) ?? 0) + (historicalStatsByPlayerId.get(player.id)?.assists ?? 0), 0);
+    const presenceTotal = group.reduce((sum, player) => sum + (presenceByPlayerId.get(player.id) ?? 0) + (historicalStatsByPlayerId.get(player.id)?.presence ?? 0), 0);
+    const craqueTotal = group.reduce((sum, player) => sum + (craqueByPlayerId.get(player.id) ?? 0) + (historicalStatsByPlayerId.get(player.id)?.craque ?? 0), 0);
     const currentRatings = group
       .map((player) => ratingsByPlayerId.get(player.id)?.current)
+      .filter((value): value is number => value !== undefined);
+    const historicalRatings = group
+      .map((player) => {
+        const stat = historicalStatsByPlayerId.get(player.id);
+        return stat && stat.ratingCount > 0 ? stat.ratingSum / stat.ratingCount : undefined;
+      })
       .filter((value): value is number => value !== undefined);
     const previousRatings = group
       .map((player) => ratingsByPlayerId.get(player.id)?.previous)
       .filter((value): value is number => value !== undefined);
-    const ratingAverage = average(currentRatings);
+    const ratingAverage = average([...currentRatings, ...historicalRatings]);
     const previousRatingAverage = average(previousRatings);
 
     return {
@@ -246,9 +287,9 @@ export default async function RankingsPage({
       pelada: { name: peladaNames.length > 1 ? `${peladaNames.length} peladas` : peladaNames[0] },
       rating: average(group.map((player) => player.rating)),
       goalsTotal,
-      assistsTotal: group.reduce((sum, player) => sum + (assistsByPlayerId.get(player.id) ?? 0), 0),
-      presenceTotal: group.reduce((sum, player) => sum + (presenceByPlayerId.get(player.id) ?? 0), 0),
-      craqueTotal: group.reduce((sum, player) => sum + (craqueByPlayerId.get(player.id) ?? 0), 0),
+      assistsTotal,
+      presenceTotal,
+      craqueTotal,
       ratingAverage,
       previousRatingAverage,
       overall: goalsTotal * 3 + average(group.map((player) => player.rating))
@@ -280,36 +321,35 @@ export default async function RankingsPage({
 
   return (
     <AppShell>
-      <div className="mb-3 flex items-center justify-between gap-3 pt-1">
+      <div className="mb-3 pt-1">
         <h1 className="font-display text-3xl font-extrabold tracking-[-.02em]">Rankings</h1>
-        <span className="shrink-0 rounded-[13px] bg-white px-3 py-2 text-sm font-semibold shadow-card">Temporada 2026</span>
       </div>
 
-      <RankingPeladaSelect options={memberPeladas} activeValue={activeScope} />
+      <div className="mb-3 space-y-3">
+        <RankingPeladaSelect options={memberPeladas} activeValue={activeScope} />
+        <div className="grid grid-cols-2 gap-2">
+          <RankingFilterSelect
+            label="Temporada"
+            paramName="temporada"
+            activeValue={String(activeSeason)}
+            options={[{ id: "total", name: "Todas" }, ...seasonYears.map((year) => ({ id: String(year), name: String(year) }))]}
+          />
+          <RankingFilterSelect
+            label="Jogo"
+            paramName="jogo"
+            activeValue={activeKind.key}
+            options={kindTabs.map((tab) => ({ id: tab.key, name: tab.label }))}
+          />
+        </div>
+      </div>
       <p className="mb-3 text-xs font-semibold text-musgo">
         Mostrando participantes de {selectedScopeLabel}.
       </p>
-
-      <div className="mb-3 grid grid-cols-3 gap-1.5">
-        {kindTabs.map((tab) => (
-          <Link
-            key={tab.key}
-            href={`/rankings?pelada=${activeScope}&tipo=${activeTab.key}&jogo=${tab.key}`}
-            className={cn(
-              "flex min-h-9 items-center justify-center rounded-[10px] px-1 text-center text-[11px] font-bold shadow-sm transition active:scale-[.98]",
-              activeKind.key === tab.key ? "bg-mata text-white" : "bg-white text-musgo"
-            )}
-          >
-            {tab.label}
-          </Link>
-        ))}
-      </div>
-
       <div className="mb-6 grid grid-cols-5 gap-1">
         {tabs.map((tab) => (
           <Link
             key={tab.key}
-            href={`/rankings?pelada=${activeScope}&tipo=${tab.key}&jogo=${activeKind.key}`}
+            href={`/rankings?pelada=${activeScope}&tipo=${tab.key}&jogo=${activeKind.key}&temporada=${activeSeason}`}
             className={cn(
               "flex min-h-9 items-center justify-center rounded-[10px] px-0.5 text-center text-[10px] font-bold shadow-sm transition active:scale-[.98]",
               activeTab.key === tab.key ? "bg-campo text-white" : "bg-white text-musgo"
@@ -324,36 +364,6 @@ export default async function RankingsPage({
         <p className="mb-4 text-sm text-musgo">Media das notas recebidas nas ultimas 10 peladas avaliadas.</p>
       ) : null}
 
-      {friendlySummaries.length > 0 && (activeKind.key === "todos" || activeKind.key === "AMISTOSO") ? (
-        <section className="mb-5">
-          <div className="mb-2 flex items-end justify-between gap-3">
-            <div>
-              <p className="font-jersey text-xs font-semibold uppercase tracking-[.12em] text-musgo">Amistosos</p>
-              <h2 className="font-display text-xl font-extrabold tracking-[-.02em]">Resumo por pelada</h2>
-            </div>
-          </div>
-          <div className="space-y-2">
-            {friendlySummaries.map((summary) => (
-              <Card key={summary.peladaId} className="p-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="truncate text-sm font-extrabold">{summary.peladaName}</h3>
-                    <p className="mt-0.5 text-xs font-semibold text-musgo">
-                      {summary.matches} jogos - {summary.wins}V/{summary.draws}E/{summary.losses}D
-                    </p>
-                  </div>
-                  <div className="shrink-0 rounded-[10px] bg-areia px-3 py-2 text-right">
-                    <p className="font-jersey text-lg font-bold text-tinta">
-                      {summary.goalsFor} x {summary.goalsAgainst}
-                    </p>
-                    <p className="text-[10px] font-bold uppercase text-musgo">gols</p>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </section>
-      ) : null}
 
       <section className="mb-5 grid grid-cols-3 items-end gap-2">
         {second ? (
@@ -423,6 +433,15 @@ export default async function RankingsPage({
           </Card>
         ) : null}
       </div>
+
+      {isAdmin ? (
+        <Link
+          href={`/rankings/temporadas?ano=${activeSeason === "total" ? currentSaoPauloYear() : activeSeason}`}
+          className="mt-5 flex min-h-11 items-center justify-center rounded-[11px] bg-mata px-3 py-2.5 text-sm font-bold text-white shadow-card"
+        >
+          Editar estatisticas de temporadas
+        </Link>
+      ) : null}
     </AppShell>
   );
 }

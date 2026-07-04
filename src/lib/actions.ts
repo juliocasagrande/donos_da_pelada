@@ -1089,6 +1089,121 @@ export async function drawTeamsForClient(matchId: string, formData: FormData) {
   }
 }
 
+
+function nonNegativeIntFromForm(formData: FormData, key: string) {
+  const numberValue = Number(value(formData, key) || 0);
+  if (!Number.isFinite(numberValue) || numberValue < 0) return 0;
+  return Math.floor(numberValue);
+}
+
+function ratingAverageFromForm(formData: FormData, key: string) {
+  const numberValue = Number(value(formData, key) || 0);
+  if (!Number.isFinite(numberValue) || numberValue < 0) return 0;
+  return Math.min(10, numberValue);
+}
+
+export async function updateSeasonPlayerStats(year: number, formData: FormData) {
+  const admin = await requireAdmin();
+  const parsedYear = Number(year);
+  if (!Number.isInteger(parsedYear) || parsedYear < 2000 || parsedYear > 2100) {
+    redirect(`/rankings/temporadas?error=${encodeURIComponent("Ano invalido.")}`);
+  }
+
+  const playerIds = formData.getAll("playerId").filter((id): id is string => typeof id === "string");
+  const players = await prisma.player.findMany({
+    where: { id: { in: playerIds }, peladaId: admin.peladaId! },
+    select: { id: true }
+  });
+  const allowedPlayerIds = new Set(players.map((player) => player.id));
+
+  for (const playerId of playerIds) {
+    if (!allowedPlayerIds.has(playerId)) continue;
+    const goals = nonNegativeIntFromForm(formData, `goals-${playerId}`);
+    const assists = nonNegativeIntFromForm(formData, `assists-${playerId}`);
+    const presence = nonNegativeIntFromForm(formData, `presence-${playerId}`);
+    const craque = nonNegativeIntFromForm(formData, `craque-${playerId}`);
+    const ratingAverage = ratingAverageFromForm(formData, `ratingAverage-${playerId}`);
+    const ratingCount = ratingAverage > 0 ? Math.max(1, nonNegativeIntFromForm(formData, `ratingCount-${playerId}`)) : 0;
+
+    await prisma.seasonPlayerStat.upsert({
+      where: { peladaId_playerId_year: { peladaId: admin.peladaId!, playerId, year: parsedYear } },
+      update: { goals, assists, presence, craque, ratingAverage, ratingCount },
+      create: { peladaId: admin.peladaId!, playerId, year: parsedYear, goals, assists, presence, craque, ratingAverage, ratingCount }
+    });
+  }
+
+  await logAudit(admin, "SEASON_STATS_UPDATED", { type: "SeasonPlayerStat", id: String(parsedYear) }, { year: parsedYear });
+  revalidatePath("/rankings");
+  revalidatePath("/rankings/temporadas");
+  redirect(`/rankings/temporadas?ano=${parsedYear}&salvo=1`);
+}
+function yearFromForm(formData: FormData) {
+  const parsedYear = Number(value(formData, "year"));
+  return Number.isInteger(parsedYear) && parsedYear >= 2000 && parsedYear <= 2100 ? parsedYear : null;
+}
+
+export async function createSeason(formData: FormData) {
+  const admin = await requireAdmin();
+  const parsedYear = yearFromForm(formData);
+  if (!parsedYear) {
+    redirect(`/rankings/temporadas?editar=1&error=${encodeURIComponent("Ano invalido.")}`);
+  }
+
+  const players = await prisma.player.findMany({
+    where: { peladaId: admin.peladaId!, active: true },
+    select: { id: true }
+  });
+
+  await prisma.$transaction(
+    players.map((player) =>
+      prisma.seasonPlayerStat.upsert({
+        where: { peladaId_playerId_year: { peladaId: admin.peladaId!, playerId: player.id, year: parsedYear } },
+        update: {},
+        create: {
+          peladaId: admin.peladaId!,
+          playerId: player.id,
+          year: parsedYear,
+          goals: 0,
+          assists: 0,
+          presence: 0,
+          craque: 0,
+          ratingAverage: 0,
+          ratingCount: 0
+        }
+      })
+    )
+  );
+
+  await logAudit(admin, "SEASON_CREATED", { type: "SeasonPlayerStat", id: String(parsedYear) }, { year: parsedYear });
+  revalidatePath("/rankings");
+  revalidatePath("/rankings/temporadas");
+  redirect(`/rankings/temporadas?ano=${parsedYear}&editar=1&criada=1`);
+}
+
+export async function deleteSeason(formData: FormData) {
+  const admin = await requireAdmin();
+  const parsedYear = yearFromForm(formData);
+  if (!parsedYear) {
+    redirect(`/rankings/temporadas?editar=1&error=${encodeURIComponent("Ano invalido.")}`);
+  }
+
+  await prisma.seasonPlayerStat.deleteMany({
+    where: { peladaId: admin.peladaId!, year: parsedYear }
+  });
+
+  const remainingSeasons = await prisma.seasonPlayerStat.findMany({
+    where: { peladaId: admin.peladaId! },
+    select: { year: true },
+    distinct: ["year"],
+    orderBy: { year: "desc" }
+  });
+  const nextYear = remainingSeasons[0]?.year;
+
+  await logAudit(admin, "SEASON_DELETED", { type: "SeasonPlayerStat", id: String(parsedYear) }, { year: parsedYear });
+  revalidatePath("/rankings");
+  revalidatePath("/rankings/temporadas");
+  redirect(`/rankings/temporadas?editar=1&excluida=1${nextYear ? `&ano=${nextYear}` : ""}`);
+}
 export async function updateStats(matchId: string, formData: FormData) {
   const admin = await requireAdmin();
   await assertMatchInPelada(matchId, admin.peladaId!);
