@@ -68,14 +68,37 @@ async function getDashboardStats(peladaId: string) {
   return stats ?? { players: 0, goals: 0, monthMatches: 0, craqueCount: 0 };
 }
 
+async function PendingRatingsCard({ peladaId }: { peladaId: string }) {
+  const pendingRatingPlayers = await prisma.player.findMany({
+    where: { peladaId, active: true, ratingAssigned: false },
+    select: { id: true, nickname: true },
+    orderBy: { createdAt: "asc" }
+  });
+  if (!pendingRatingPlayers.length) return null;
+
+  return (
+    <Card className="animate-card mb-4 border border-craque/40 bg-[#FFF7E6]">
+      <p className="flex items-center gap-1.5 text-xs font-bold uppercase text-[#8a5a06]">
+        <Star size={14} fill="#F4A11A" /> Nota pendente
+      </p>
+      <h2 className="mt-1 font-display text-lg font-extrabold">
+        {pendingRatingPlayers.length === 1
+          ? "1 jogador novo aguardando nota"
+          : `${pendingRatingPlayers.length} jogadores novos aguardando nota`}
+      </h2>
+      <p className="mt-1 truncate text-sm text-musgo">
+        {pendingRatingPlayers.map((player) => player.nickname).join(", ")}
+      </p>
+      <Link href="/players" className="mt-3 inline-flex rounded-[11px] bg-craque px-4 py-2 text-sm font-bold text-tinta">
+        Atribuir notas
+      </Link>
+    </Card>
+  );
+}
+
 async function AdminDashboardBlocks({ userId, peladaId, role }: { userId: string; peladaId: string; role: string }) {
-  const [pendingRatingPlayers, pendingJoinRequestsCount, pendingDeletionRequests, peladaAdminCount, pendingGuestRequests] =
+  const [pendingJoinRequestsCount, pendingDeletionRequests, peladaAdminCount, pendingGuestRequests] =
     await Promise.all([
-      prisma.player.findMany({
-        where: { peladaId, active: true, ratingAssigned: false },
-        select: { id: true, nickname: true },
-        orderBy: { createdAt: "asc" }
-      }),
       prisma.peladaJoinRequest.count({ where: { peladaId, status: "PENDING" } }),
       prisma.deletionRequest.findMany({
         where: { peladaId, status: "OPEN" },
@@ -122,25 +145,6 @@ async function AdminDashboardBlocks({ userId, peladaId, role }: { userId: string
 
   return (
     <>
-      {pendingRatingPlayers.length ? (
-        <Card className="animate-card mb-4 border border-craque/40 bg-[#FFF7E6]">
-          <p className="flex items-center gap-1.5 text-xs font-bold uppercase text-[#8a5a06]">
-            <Star size={14} fill="#F4A11A" /> Nota pendente
-          </p>
-          <h2 className="mt-1 font-display text-lg font-extrabold">
-            {pendingRatingPlayers.length === 1
-              ? "1 jogador novo aguardando nota"
-              : `${pendingRatingPlayers.length} jogadores novos aguardando nota`}
-          </h2>
-          <p className="mt-1 truncate text-sm text-musgo">
-            {pendingRatingPlayers.map((player) => player.nickname).join(", ")}
-          </p>
-          <Link href="/players" className="mt-3 inline-flex rounded-[11px] bg-craque px-4 py-2 text-sm font-bold text-tinta">
-            Atribuir notas
-          </Link>
-        </Card>
-      ) : null}
-
       {pendingDeletionRequests.length ? (
         <Card className="animate-card mb-4 border border-ausente/25 bg-[#FBE9E6]">
           <p className="flex items-center gap-1.5 text-xs font-bold uppercase text-ausente">
@@ -452,6 +456,12 @@ export default async function DashboardPage() {
           {displayName}
         </span>
       </div>
+
+      {isAdmin ? (
+        <Suspense fallback={null}>
+          <PendingRatingsCard peladaId={peladaId} />
+        </Suspense>
+      ) : null}
 
       {!isAdmin ? (
         <Suspense fallback={null}>
