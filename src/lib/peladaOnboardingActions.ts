@@ -7,6 +7,7 @@ import { ACTIVE_PELADA_COOKIE, getCurrentUser, requireAdmin } from "@/lib/sessio
 import { canAddMensalista, createPeladaWithTrial } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
 import { sendPushToUsers } from "@/lib/push";
+import { buildInvitePath, isInviteValid } from "@/lib/inviteValidity";
 import { cookies } from "next/headers";
 
 /**
@@ -64,21 +65,6 @@ async function uniqueSlug(name: string) {
     slug = `${base}-${attempt}`;
   }
   return slug;
-}
-
-export function buildInvitePath(code: string, matchId?: string) {
-  return `/convite/${code}${matchId ? `?matchId=${encodeURIComponent(matchId)}` : ""}`;
-}
-
-type InviteValidity = { revokedAt: Date | null; expiresAt: Date | null; maxUses: number | null; usedCount: number };
-
-export function isInviteValid<T extends InviteValidity>(invite: T | null): invite is T {
-  if (!invite) return false;
-  return (
-    !invite.revokedAt &&
-    (!invite.expiresAt || invite.expiresAt > new Date()) &&
-    (invite.maxUses == null || invite.usedCount < invite.maxUses)
-  );
 }
 
 async function setActivePeladaCookie(peladaId: string) {

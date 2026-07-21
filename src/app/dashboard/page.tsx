@@ -19,6 +19,7 @@ import { DeletionVoteValue } from "@prisma/client";
 import { AppShell } from "@/components/layout/AppShell";
 import { DashboardAttendanceActions } from "@/components/dashboard/DashboardAttendanceActions";
 import { CraqueRevealCard } from "@/components/dashboard/CraqueRevealCard";
+import { NewMatchButton } from "@/components/matches/NewMatchButton";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { StatTile } from "@/components/ui/StatTile";
@@ -26,10 +27,13 @@ import { SectionLabel } from "@/components/ui/SectionLabel";
 import { LocationLinks } from "@/components/matches/LocationLinks";
 import { MatchWhatsappShareLink } from "@/components/matches/MatchWhatsappShareLink";
 import { DeveloperCredit } from "@/components/layout/DeveloperCredit";
-import { closeExpiredCraquePolls } from "@/lib/actions";
+import { closeExpiredCraquePolls, createMatch } from "@/lib/actions";
 import { approveMatchGuestRequest, rejectMatchGuestRequest } from "@/lib/radarActions";
 import { voteDeletionRequest } from "@/lib/deletionVotingActions";
 import { haversineKm } from "@/lib/geo";
+import { VOTING_WINDOW_HOURS } from "@/lib/attendance";
+import { getMatchDefaults, getRecentLocations } from "@/lib/matchDefaults";
+import { isPeladaIdPro } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
 import { isPeladaAdmin, requireUser } from "@/lib/session";
 import { formatDate, formatTime } from "@/lib/utils";
@@ -293,7 +297,7 @@ async function PollDashboardCard({ userId, peladaId }: { userId: string; peladaI
   const pollPendingCount = pollEligibleUserIds.filter((eligibleUserId) => !pollCompletedUserIds.has(eligibleUserId)).length;
   const currentUserPollVote = visibleCraquePoll.votes.find((vote) => vote.userId === userId);
   const currentUserPollFinished = pollCompletedUserIds.has(userId);
-  const pollVotingMsLeft = Math.max(0, visibleCraquePoll.createdAt.getTime() + 60 * 60 * 1000 - Date.now());
+  const pollVotingMsLeft = Math.max(0, visibleCraquePoll.createdAt.getTime() + VOTING_WINDOW_HOURS * 60 * 60 * 1000 - Date.now());
   const pollVotingMinutesLeft = Math.ceil(pollVotingMsLeft / 60000);
 
   return (
@@ -442,8 +446,11 @@ export default async function DashboardPage() {
   const isGuest = linkedPlayer?.membershipStatus === "CONVIDADO";
   const displayName = linkedPlayer?.nickname || user.name?.split(" ")[0] || "Craque";
 
-  const gameShortcuts = [
-    { href: "/matches/new", label: "Nova pelada", icon: CalendarPlus },
+  const [newMatchDefaults, newMatchAllowAmistoso, newMatchRecentLocations] = isAdmin
+    ? await Promise.all([getMatchDefaults(peladaId), isPeladaIdPro(peladaId), getRecentLocations(peladaId)])
+    : [null, false, [] as string[]];
+
+  const otherShortcuts = [
     { href: "/matches", label: "Escalar times", icon: Target },
     { href: openCraquePoll ? `/matches/${openCraquePoll.matchId}/stats` : "/matches?aba=anteriores", label: "Votar craque", icon: Star }
   ];
@@ -487,6 +494,11 @@ export default async function DashboardPage() {
 
       {nextMatch ? (
         <Card className="field-hero relative mb-4 rounded-[22px] p-5 text-white">
+          <Link
+            href={`/matches/${nextMatch.id}/attendance`}
+            className="absolute inset-0 rounded-[22px]"
+            aria-label="Ver lista de presenca"
+          />
           <div className="pointer-events-none relative z-20">
             <div className="flex items-center justify-between gap-2">
               <p className="flex items-center gap-2 font-jersey text-sm font-semibold uppercase tracking-[.12em] text-green-200">
@@ -546,7 +558,28 @@ export default async function DashboardPage() {
 
       <SectionLabel className="mb-2 mt-5">Atalhos de jogo</SectionLabel>
       <div className="stagger grid grid-cols-3 gap-2">
-        {gameShortcuts.map((item) => (
+        {isAdmin ? (
+          <NewMatchButton
+            action={createMatch}
+            defaults={newMatchDefaults}
+            allowAmistoso={newMatchAllowAmistoso}
+            recentLocations={newMatchRecentLocations}
+            className="block w-full text-left"
+          >
+            <Card className="animate-card flex min-h-[70px] flex-col items-center justify-center gap-1.5 px-2 text-center transition hover:-translate-y-0.5 active:scale-95">
+              <CalendarPlus className="text-campo" size={21} />
+              <span className="text-xs font-bold leading-tight">Nova pelada</span>
+            </Card>
+          </NewMatchButton>
+        ) : (
+          <Link href="/matches/new">
+            <Card className="animate-card flex min-h-[70px] flex-col items-center justify-center gap-1.5 px-2 text-center transition hover:-translate-y-0.5 active:scale-95">
+              <CalendarPlus className="text-campo" size={21} />
+              <span className="text-xs font-bold leading-tight">Nova pelada</span>
+            </Card>
+          </Link>
+        )}
+        {otherShortcuts.map((item) => (
           <Link key={item.href} href={item.href}>
             <Card className="animate-card flex min-h-[70px] flex-col items-center justify-center gap-1.5 px-2 text-center transition hover:-translate-y-0.5 active:scale-95">
               <item.icon className="text-campo" size={21} />

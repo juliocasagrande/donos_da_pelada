@@ -3,7 +3,7 @@
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { MatchStatus, PeladaRole, PollStatus, Prisma, UserRole } from "@prisma/client";
+import { MatchKind, MatchStatus, PeladaRole, PollStatus, Prisma, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, isPeladaAdmin, requireAdmin, requireMaster, requireUser } from "@/lib/session";
 import { drawSchema, matchSchema, passwordSchema, playerSchema, signupSchema } from "@/lib/validations";
@@ -687,14 +687,7 @@ export async function deleteMatch(matchId: string) {
   redirect("/matches");
 }
 
-export async function closeMatch(matchId: string, formData?: FormData) {
-  const admin = await requireAdmin();
-  await assertMatchInPelada(matchId, admin.peladaId!);
-  const existing = await prisma.match.findFirst({ where: { id: matchId }, select: { kind: true } });
-  const scoreData =
-    existing?.kind === "AMISTOSO" && formData
-      ? { homeScore: optionalInt(value(formData, "homeScore")), awayScore: optionalInt(value(formData, "awayScore")) }
-      : {};
+async function closeMatchAndNotify(matchId: string, scoreData: { homeScore?: number | null; awayScore?: number | null } = {}) {
   const match = await prisma.match.update({
     where: { id: matchId },
     data: { status: MatchStatus.CLOSED, ...scoreData },
@@ -710,8 +703,6 @@ export async function closeMatch(matchId: string, formData?: FormData) {
     });
   }
 
-  await logAudit(admin, "MATCH_CLOSED", { type: "Match", id: matchId });
-
   await sendPushToUsers(await getEligibleMatchVoterUserIds(matchId), {
     title: "Pelada encerrada",
     body: `Informe seus gols/defesas e vote no craque da ${match.title}. As notas sao opcionais.`,
@@ -721,7 +712,48 @@ export async function closeMatch(matchId: string, formData?: FormData) {
   revalidatePath("/matches");
   revalidatePath(`/matches/${matchId}/attendance`);
   revalidatePath(`/matches/${matchId}/stats`);
+  return match;
+}
+
+export async function closeMatch(matchId: string, formData?: FormData) {
+  const admin = await requireAdmin();
+  await assertMatchInPelada(matchId, admin.peladaId!);
+  const existing = await prisma.match.findFirst({ where: { id: matchId }, select: { kind: true } });
+  const scoreData =
+    existing?.kind === "AMISTOSO" && formData
+      ? { homeScore: optionalInt(value(formData, "homeScore")), awayScore: optionalInt(value(formData, "awayScore")) }
+      : {};
+
+  await closeMatchAndNotify(matchId, scoreData);
+  await logAudit(admin, "MATCH_CLOSED", { type: "Match", id: matchId });
+
   redirect(`/matches/${matchId}/stats`);
+}
+
+const AUTO_CLOSE_MINUTES_AFTER_START = 45;
+
+/**
+ * Peladinhas (not amistosos, which need a manually entered final score) close
+ * on their own shortly after kickoff so voting/stats entry can start without
+ * waiting on an admin to remember to close the match.
+ */
+export async function autoCloseMatches(now = new Date()) {
+  const cutoff = new Date(now.getTime() - AUTO_CLOSE_MINUTES_AFTER_START * 60 * 1000);
+  const matches = await prisma.match.findMany({
+    where: {
+      deletedAt: null,
+      status: MatchStatus.OPEN,
+      kind: MatchKind.PELADA,
+      date: { lte: cutoff }
+    },
+    select: { id: true }
+  });
+
+  for (const match of matches) {
+    await closeMatchAndNotify(match.id);
+  }
+
+  return { processed: matches.length };
 }
 
 async function applyAttendanceChange(
@@ -1259,57 +1291,6 @@ export async function submitOwnMatchStats(matchId: string, formData: FormData) {
   return { ok: true };
 }
 
-export async function confirmMatchVoting(matchId: string) {
-  const user = await requireUser();
-  await assertMatchInPelada(matchId, user.peladaId!);
-  const poll = await prisma.poll.findFirst({
-    where: { matchId, title: "Craque da pelada", status: PollStatus.OPEN },
-    orderBy: { createdAt: "desc" }
-  });
-
-  if (!poll || !isWithinVotingWindow(poll.createdAt)) {
-    return { ok: false, error: "A janela da votacao ja foi encerrada." };
-  }
-
-  const linkedPlayer = await prisma.player.findFirst({
-    where: { userId: user.id, peladaId: user.peladaId!, active: true },
-    include: {
-      goals: { where: { matchId } },
-      defenses: { where: { matchId } }
-    }
-  });
-  if (!linkedPlayer) return { ok: false, error: "Jogador nao encontrado." };
-
-  const attendance = await prisma.attendance.findUnique({
-    where: { matchId_playerId: { matchId, playerId: linkedPlayer.id } }
-  });
-  if (attendance?.status !== "CONFIRMED") {
-    return { ok: false, error: "Apenas presentes podem confirmar a votacao." };
-  }
-
-  const hasStats = Boolean(linkedPlayer.goals.length || linkedPlayer.defenses.length);
-  if (!hasStats) {
-    return { ok: false, error: "Envie seus gols e defesas antes de confirmar." };
-  }
-
-  const vote = await prisma.pollVote.findUnique({
-    where: { pollId_userId: { pollId: poll.id, userId: user.id } }
-  });
-  if (!vote) {
-    return { ok: false, error: "Vote no craque antes de confirmar." };
-  }
-
-  await prisma.playerMatchSubmission.upsert({
-    where: { matchId_playerId_userId: { matchId, playerId: linkedPlayer.id, userId: user.id } },
-    update: {},
-    create: { matchId, playerId: linkedPlayer.id, userId: user.id }
-  });
-
-  await closeCraquePollIfComplete(poll.id);
-  revalidatePath(`/matches/${matchId}/stats`);
-  return { ok: true };
-}
-
 export async function createCraquePoll(matchId: string) {
   const admin = await requireAdmin();
   await assertMatchInPelada(matchId, admin.peladaId!);
@@ -1375,8 +1356,8 @@ export async function voteCraque(pollId: string, playerId: string) {
   const existingVote = await prisma.pollVote.findUnique({
     where: { pollId_userId: { pollId, userId: user.id } }
   });
-  if (existingVote) {
-    return { ok: false, error: "Voce ja votou no craque desta pelada." };
+  if (existingVote?.playerId === playerId) {
+    return { ok: false, error: "Voce ja votou nesse jogador." };
   }
   const candidate = await prisma.player.findFirst({
     where: {
@@ -1390,9 +1371,22 @@ export async function voteCraque(pollId: string, playerId: string) {
     return { ok: false, error: "Jogador nao encontrado nesta pelada." };
   }
 
-  await prisma.pollVote.create({
-    data: { pollId, userId: user.id, playerId }
+  await prisma.pollVote.upsert({
+    where: { pollId_userId: { pollId, userId: user.id } },
+    update: { playerId },
+    create: { pollId, userId: user.id, playerId }
   });
+
+  // Voting is the last step of the player's own wizard (numeros -> voto), so
+  // finish their submission here instead of requiring a separate confirm click.
+  if (linkedPlayer) {
+    await prisma.playerMatchSubmission.upsert({
+      where: { matchId_playerId_userId: { matchId: poll.matchId, playerId: linkedPlayer.id, userId: user.id } },
+      update: {},
+      create: { matchId: poll.matchId, playerId: linkedPlayer.id, userId: user.id }
+    });
+  }
+
   await closeCraquePollIfComplete(pollId);
   revalidatePath(`/matches/${poll.matchId}/stats`);
   revalidatePath("/dashboard");
@@ -1578,4 +1572,50 @@ export async function sendCloseMatchReminders(now = new Date()) {
   }
 
   return { processed: matches.length };
+}
+
+const ATTENDANCE_REMINDER_WINDOW_HOURS = 6;
+
+export async function sendAttendanceReminders(now = new Date()) {
+  const reminderCutoff = new Date(now.getTime() + ATTENDANCE_REMINDER_WINDOW_HOURS * 60 * 60 * 1000);
+  const matches = await prisma.match.findMany({
+    where: {
+      deletedAt: null,
+      status: MatchStatus.OPEN,
+      date: { gte: now, lte: reminderCutoff },
+      attendanceReminderSentAt: null
+    },
+    select: { id: true, title: true, peladaId: true }
+  });
+
+  let notifiedMatches = 0;
+  for (const match of matches) {
+    const pendingPlayers = await prisma.player.findMany({
+      where: {
+        peladaId: match.peladaId,
+        active: true,
+        membershipStatus: "MENSALISTA",
+        userId: { not: null },
+        attendances: { none: { matchId: match.id } }
+      },
+      select: { userId: true }
+    });
+    const pendingUserIds = pendingPlayers.map((player) => player.userId).filter((userId): userId is string => Boolean(userId));
+
+    if (pendingUserIds.length) {
+      await sendPushToUsers(pendingUserIds, {
+        title: "Falta confirmar presenca",
+        body: `${match.title} esta chegando e voce ainda nao respondeu. Confirme se vai jogar.`,
+        url: `/matches/${match.id}/attendance`
+      });
+      notifiedMatches += 1;
+    }
+
+    await prisma.match.update({
+      where: { id: match.id },
+      data: { attendanceReminderSentAt: now }
+    });
+  }
+
+  return { processed: matches.length, notified: notifiedMatches };
 }

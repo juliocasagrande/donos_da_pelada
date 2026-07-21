@@ -420,6 +420,7 @@ model Match {
   homeScore   Int?
   awayScore   Int?
   closeReminderSentAt DateTime?
+  attendanceReminderSentAt DateTime?
   deletedAt   DateTime?
   openToGuests Boolean          @default(false)
   guestLatitude  Float?

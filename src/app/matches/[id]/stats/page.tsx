@@ -1,12 +1,10 @@
-import { AlertTriangle, CheckCircle2, Circle, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
-import { OwnMatchStatsForm } from "@/components/matches/OwnMatchStatsForm";
+import { CraqueVotingWizard } from "@/components/matches/CraqueVotingWizard";
 import { PlayerAvatar } from "@/components/players/PlayerAvatar";
 import { Card } from "@/components/ui/Card";
-import { ConfirmVotingForm } from "@/components/matches/ConfirmVotingForm";
 import { RatePlayerForm } from "@/components/matches/RatePlayerForm";
 import { ShareMatchStoryButton } from "@/components/matches/ShareMatchStoryButton";
-import { VoteCraqueForm } from "@/components/matches/VoteCraqueForm";
 import { closeExpiredCraquePolls } from "@/lib/actions";
 import { prisma } from "@/lib/prisma";
 import { isPeladaAdmin, requireUser } from "@/lib/session";
@@ -29,39 +27,6 @@ function votingEndsAt(createdAt?: Date) {
     minute: "2-digit",
     timeZone: "America/Sao_Paulo"
   }).format(new Date(pollExpiresAt(createdAt)));
-}
-
-function VotingRuleStatus({
-  done,
-  title,
-  description,
-  optional = false
-}: {
-  done: boolean;
-  title: string;
-  description: string;
-  optional?: boolean;
-}) {
-  const Icon = done ? CheckCircle2 : optional ? Circle : AlertTriangle;
-
-  return (
-    <div
-      className={cn(
-        "flex items-start gap-2 rounded-[11px] border px-3 py-2.5 transition",
-        done
-          ? "border-campo/20 bg-[#EAF5EC] text-mata"
-          : optional
-            ? "border-linha bg-white text-musgo"
-            : "border-ausente/20 bg-[#FBE9E6] text-ausente"
-      )}
-    >
-      <Icon size={17} className={cn("mt-0.5 shrink-0", done && "pop-scale text-campo")} fill={done ? "currentColor" : "none"} />
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-black text-tinta">{title}</p>
-        <p className="text-xs font-semibold">{description}</p>
-      </div>
-    </div>
-  );
 }
 
 export default async function StatsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -122,6 +87,7 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
       return {
         ...player,
         votes,
+        totalGoals: goals,
         percent: totalVotes ? Math.round((votes / totalVotes) * 100) : 0,
         averageRating,
         viewerRating,
@@ -131,21 +97,28 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
     })
     .sort((a, b) => b.votes - a.votes || (b.averageRating ?? 0) - (a.averageRating ?? 0) || b.rating - a.rating);
   const leader = candidates[0];
+  // Show the current top 3 even while numbers/votes are still trickling in
+  // (mostly zeros early on) - partial standings are still useful mid-window.
+  const scorersRanked = [...candidates].sort((a, b) => b.totalGoals - a.totalGoals);
+  const topScorers = scorersRanked.slice(0, 3);
+  const topVoted = candidates.slice(0, 3);
   const ownCandidate = linkedPlayer ? candidates.find((player) => player.id === linkedPlayer.id) ?? null : null;
+  const ownScorerIndex = linkedPlayer ? scorersRanked.findIndex((player) => player.id === linkedPlayer.id) : -1;
+  const ownVoteIndex = linkedPlayer ? candidates.findIndex((player) => player.id === linkedPlayer.id) : -1;
+  const ownScorerRank =
+    ownScorerIndex >= 3 ? { rank: ownScorerIndex + 1, label: `${scorersRanked[ownScorerIndex].totalGoals} gols` } : null;
+  const ownVoteRank =
+    ownVoteIndex >= 3 ? { rank: ownVoteIndex + 1, label: `${candidates[ownVoteIndex].votes} votos` } : null;
   const ownIsCraque = Boolean(poll?.status === "CLOSED" && ownCandidate && poll.winnerId === ownCandidate.id);
   const eligiblePlayers = players.filter((player) => player.userId && player.active);
   const eligibleUserIds = [...new Set(eligiblePlayers.map((player) => player.userId!).filter(Boolean))];
   const ownConfirmed = Boolean(ownPlayer?.matchSubmissions.some((submission) => submission.userId === user.id));
   const ownStatsSent = Boolean(ownPlayer?.goals.length || ownPlayer?.defenses.length);
   const ownCraqueVote = poll?.votes.find((vote) => vote.userId === user.id);
-  const canConfirmOwnVoting = canVote && votingOpen && ownStatsSent && Boolean(ownCraqueVote) && !ownConfirmed;
-  const missingVotingSteps = [
-    !ownStatsSent ? "Salvar seus gols, assistencias e defesas" : null,
-    !ownCraqueVote ? "Votar no craque" : null
-  ].filter((step): step is string => Boolean(step));
-  const confirmDisabledReason = missingVotingSteps.length
-    ? `Falta: ${missingVotingSteps.join(" e ")}.`
-    : undefined;
+  // Anyone who played this match gets the wizard card (steps while voting is
+  // open, final results once it closes); everyone else just sees the public list.
+  const isParticipant = Boolean(canVote && ownPlayer);
+  const showStandaloneRatings = isAdmin && (!isParticipant || !votingOpen);
   const completedUserIds = new Set(
     eligiblePlayers
       .filter((player) => {
@@ -181,7 +154,7 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
           {votingOpen
             ? `Aberta ate ${votingEndsAt(poll?.createdAt)} para craque.`
             : match?.status === "CLOSED"
-              ? "A janela de 1 hora terminou ou todos responderam."
+              ? "A janela de 1h30 terminou ou todos responderam."
               : "A votacao abre automaticamente quando o admin fechar a pelada."}
         </p>
       </section>
@@ -232,99 +205,112 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
           </Card>
         ) : null}
 
-        {canVote && votingOpen && ownPlayer && !ownConfirmed ? (
-          <Card className="border-2 border-campo p-4">
-            <h2 className="font-display text-xl font-extrabold">Seus numeros na pelada</h2>
-            <p className="mb-3 text-sm text-musgo">
-              {ownStatsSent
-                ? "Seus numeros estao salvos. Voce ainda pode ajustar antes de confirmar a votacao."
-                : "Informe seus gols, assistencias e defesas antes de confirmar sua votacao."}
-            </p>
-            <OwnMatchStatsForm
-              matchId={id}
-              goals={ownPlayer.goals[0]?.quantity || 0}
-              assists={ownPlayer.assists[0]?.quantity || 0}
-              defenses={ownPlayer.defenses[0]?.quantity || 0}
-              saved={ownStatsSent}
-            />
-          </Card>
+        {isParticipant && poll ? (
+          <CraqueVotingWizard
+            matchId={id}
+            pollId={poll.id}
+            votingOpen={votingOpen}
+            ownStats={{
+              goals: ownPlayer!.goals[0]?.quantity || 0,
+              assists: ownPlayer!.assists[0]?.quantity || 0,
+              defenses: ownPlayer!.defenses[0]?.quantity || 0
+            }}
+            initialStatsSent={ownStatsSent}
+            initialVotedPlayerId={ownCraqueVote?.playerId ?? null}
+            isAdmin={isAdmin}
+            candidates={candidates
+              .filter((player) => player.id !== linkedPlayer?.id)
+              .map((player) => ({
+                id: player.id,
+                nickname: player.nickname,
+                photoUrl: player.photoUrl,
+                position: player.position,
+                summary: player.summary,
+                averageRating: player.averageRating,
+                viewerRating: player.viewerRating ?? null
+              }))}
+            finalResults={{
+              topVoted: topVoted.map((player) => ({
+                id: player.id,
+                nickname: player.nickname,
+                photoUrl: player.photoUrl,
+                position: player.position,
+                summary: player.summary,
+                averageRating: player.averageRating,
+                rankValue: player.votes,
+                rankLabel: `${player.votes} votos · ${player.percent}%`
+              })),
+              ownVoteRank,
+              topScorers: topScorers.map((player) => ({
+                id: player.id,
+                nickname: player.nickname,
+                photoUrl: player.photoUrl,
+                position: player.position,
+                summary: player.summary,
+                averageRating: player.averageRating,
+                rankValue: player.totalGoals,
+                rankLabel: `${player.totalGoals} gols`
+              })),
+              ownScorerRank
+            }}
+          />
         ) : null}
 
-        {canVote && votingOpen && ownConfirmed ? (
-          <Card className="border border-campo/20 bg-[#EAF5EC]">
-            <p className="text-sm font-bold text-mata">Sua votacao foi confirmada.</p>
-            <p className="mt-1 text-xs text-musgo">Agora ela ja conta como finalizada para voce. Ajustes de numeros so podem ser feitos por admin.</p>
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              <div className="rounded-[13px] bg-white/75 p-3">
-                <p className="text-xs font-bold uppercase text-musgo">Gols</p>
-                <p className="font-jersey text-3xl font-bold text-campo">{ownPlayer?.goals[0]?.quantity || 0}</p>
-              </div>
-              <div className="rounded-[13px] bg-white/75 p-3">
-                <p className="text-xs font-bold uppercase text-musgo">Assist.</p>
-                <p className="font-jersey text-3xl font-bold text-campo">{ownPlayer?.assists[0]?.quantity || 0}</p>
-              </div>
-              <div className="rounded-[13px] bg-white/75 p-3">
-                <p className="text-xs font-bold uppercase text-musgo">Defesas</p>
-                <p className="font-jersey text-3xl font-bold text-campo">{ownPlayer?.defenses[0]?.quantity || 0}</p>
-              </div>
-            </div>
-          </Card>
-        ) : null}
-
-        <div className="mb-2">
-          <p className="font-jersey text-sm font-semibold uppercase tracking-[.14em] text-musgo">Craque</p>
-          <h2 className="font-display text-2xl font-extrabold tracking-[-.02em]">Votacao de craque</h2>
-        </div>
-
-        {poll && leader ? (
+        {!isParticipant ? (
           <>
-            <Card className="border-2 border-craque p-3">
-              <div className="mb-1 inline-flex items-center gap-1 rounded-[7px] bg-craque px-2 py-1 text-[10px] font-black uppercase text-mata">
-                <Star size={12} fill="currentColor" /> Na frente
-              </div>
-              <div className="flex items-center gap-3">
-                <PlayerAvatar src={leader.photoUrl} name={leader.nickname} position={leader.position} number={10} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <h2 className="truncate font-extrabold">{leader.nickname}</h2>
-                    <strong className="font-jersey text-2xl">{leader.percent}%</strong>
-                  </div>
-                  <div className="mt-2 h-2 rounded-full bg-areia">
-                    <div className="h-full rounded-full bg-craque" style={{ width: `${Math.max(leader.percent, totalVotes ? 8 : 0)}%` }} />
-                  </div>
-                  <p className="mt-1 text-xs text-musgo">
-                    {leader.votes} votos · nota media {leader.averageRating?.toFixed(1) ?? "-"}
-                  </p>
-                </div>
-              </div>
-            </Card>
+            <div className="mb-2">
+              <p className="font-jersey text-sm font-semibold uppercase tracking-[.14em] text-musgo">Craque</p>
+              <h2 className="font-display text-2xl font-extrabold tracking-[-.02em]">Votacao de craque</h2>
+            </div>
 
-            {candidates.map((player) => {
-              const selected = ownCraqueVote?.playerId === player.id;
-              return (
-                <Card key={player.id} className={cn("p-3", selected && "border-2 border-campo bg-[#EAF5EC]")}>
+            {poll && leader ? (
+              <>
+                <Card className="border-2 border-craque p-3">
+                  <div className="mb-1 inline-flex items-center gap-1 rounded-[7px] bg-craque px-2 py-1 text-[10px] font-black uppercase text-mata">
+                    <Star size={12} fill="currentColor" /> Na frente
+                  </div>
                   <div className="flex items-center gap-3">
-                    <PlayerAvatar src={player.photoUrl} name={player.nickname} position={player.position} />
+                    <PlayerAvatar src={leader.photoUrl} name={leader.nickname} position={leader.position} number={10} />
                     <div className="min-w-0 flex-1">
-                      <h2 className="truncate font-extrabold">{player.nickname}</h2>
-                      <p className="text-xs text-musgo">
-                        {player.summary} · nota {player.averageRating?.toFixed(1) ?? "-"}
+                      <div className="flex items-center justify-between gap-2">
+                        <h2 className="truncate font-extrabold">{leader.nickname}</h2>
+                        <strong className="font-jersey text-2xl">{leader.percent}%</strong>
+                      </div>
+                      <div className="mt-2 h-2 rounded-full bg-areia">
+                        <div className="h-full rounded-full bg-craque" style={{ width: `${Math.max(leader.percent, totalVotes ? 8 : 0)}%` }} />
+                      </div>
+                      <p className="mt-1 text-xs text-musgo">
+                        {leader.votes} votos · nota media {leader.averageRating?.toFixed(1) ?? "-"}
                       </p>
                     </div>
-                    {canVote && votingOpen && linkedPlayer?.id !== player.id && !ownCraqueVote ? (
-                      <VoteCraqueForm pollId={poll.id} playerId={player.id} />
-                    ) : null}
-                    {selected ? (
-                      <span className="rounded-[10px] bg-campo px-3 py-2 text-xs font-bold text-white">Seu voto</span>
-                    ) : null}
                   </div>
                 </Card>
-              );
-            })}
+
+                {candidates.map((player) => {
+                  const selected = ownCraqueVote?.playerId === player.id;
+                  return (
+                    <Card key={player.id} className={cn("p-3", selected && "border-2 border-campo bg-[#EAF5EC]")}>
+                      <div className="flex items-center gap-3">
+                        <PlayerAvatar src={player.photoUrl} name={player.nickname} position={player.position} />
+                        <div className="min-w-0 flex-1">
+                          <h2 className="truncate font-extrabold">{player.nickname}</h2>
+                          <p className="text-xs text-musgo">
+                            {player.summary} · nota {player.averageRating?.toFixed(1) ?? "-"}
+                          </p>
+                        </div>
+                        {selected ? (
+                          <span className="rounded-[10px] bg-campo px-3 py-2 text-xs font-bold text-white">Seu voto</span>
+                        ) : null}
+                      </div>
+                    </Card>
+                  );
+                })}
+              </>
+            ) : null}
           </>
         ) : null}
 
-        {isAdmin ? (
+        {showStandaloneRatings ? (
           <>
             <div className="mb-2">
               <p className="font-jersey text-sm font-semibold uppercase tracking-[.14em] text-musgo">Notas</p>
@@ -361,32 +347,6 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
           </>
         ) : null}
 
-        {canVote && votingOpen && !ownConfirmed ? (
-          <Card className={cn("border-2 p-4", canConfirmOwnVoting ? "border-campo" : "border-linha")}>
-            <h2 className="font-display text-xl font-extrabold">Confirmar votacao</h2>
-            <p className="mt-1 text-sm text-musgo">
-              Depois de confirmar, sua votacao sera considerada encerrada.
-            </p>
-            <div className="my-3 space-y-2 rounded-[13px] bg-areia p-3">
-              <p className="text-xs font-bold uppercase text-musgo">Status da votacao</p>
-              <VotingRuleStatus
-                done={ownStatsSent}
-                title="Numeros proprios"
-                description={
-                  ownStatsSent
-                    ? "Gols, assistencias e defesas salvos."
-                    : "Salve seus gols, assistencias e defesas para continuar."
-                }
-              />
-              <VotingRuleStatus
-                done={Boolean(ownCraqueVote)}
-                title="Craque da pelada"
-                description={ownCraqueVote ? "Seu voto no craque foi salvo." : "Vote no craque antes de confirmar."}
-              />
-            </div>
-            <ConfirmVotingForm matchId={id} disabled={!canConfirmOwnVoting} disabledReason={confirmDisabledReason} />
-          </Card>
-        ) : null}
       </section>
 
     </AppShell>

@@ -5,7 +5,8 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Card } from "@/components/ui/Card";
 import { PeladaCrest } from "@/components/ui/PeladaCrest";
 import { SubmitButton } from "@/components/forms/SubmitButton";
-import { acceptInvite, buildInvitePath, isInviteValid, resolvePostJoinPath } from "@/lib/peladaOnboardingActions";
+import { acceptInvite, resolvePostJoinPath } from "@/lib/peladaOnboardingActions";
+import { buildInvitePath, isInviteValid } from "@/lib/inviteValidity";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 

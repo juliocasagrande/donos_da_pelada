@@ -200,12 +200,12 @@ export default async function AttendancePage({
                       player.membershipStatus === "CONVIDADO" &&
                       attendance &&
                       (isAdmin || attendance.invitedByUserId === user.id);
-                    const canToggleOwnAttendance =
+                    const isOwnMensalistaRow =
                       linkedPlayer?.id === player.id && player.membershipStatus === "MENSALISTA";
-                    const canToggleAttendance = isAdmin || canToggleOwnAttendance;
-                    const attendanceAction = isAdmin
-                      ? toggleAttendance.bind(null, id, player.id, status === "OUT")
-                      : toggleOwnAttendance.bind(null, id, status === "OUT");
+                    // Own status already has a dedicated toggle in the "Voce vai jogar?" card above,
+                    // so skip repeating the same control here to avoid two buttons doing the same thing.
+                    const canToggleAttendance = isOwnMensalistaRow ? false : isAdmin;
+                    const attendanceAction = toggleAttendance.bind(null, id, player.id, status === "OUT");
 
                     return (
                       <Card

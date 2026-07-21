@@ -40,14 +40,22 @@ type MatchFormProps = {
     location?: string | null;
     opponentName?: string | null;
   };
+  defaults?: {
+    title: string;
+    date: string;
+    time: string;
+    surface: string;
+    kind: string;
+    location: string | null;
+  };
   submitLabel?: string;
   allowAmistoso?: boolean;
   recentLocations?: string[];
 };
 
-export function MatchForm({ action, match, submitLabel = "Criar pelada", allowAmistoso = true, recentLocations = [] }: MatchFormProps) {
+export function MatchForm({ action, match, defaults, submitLabel = "Criar pelada", allowAmistoso = true, recentLocations = [] }: MatchFormProps) {
   const today = new Date().toISOString().slice(0, 10);
-  const [selectedKind, setSelectedKind] = useState(match?.kind ?? "PELADA");
+  const [selectedKind, setSelectedKind] = useState(match?.kind ?? defaults?.kind ?? "PELADA");
 
   return (
     <form action={action} className="space-y-3">
@@ -62,7 +70,7 @@ export function MatchForm({ action, match, submitLabel = "Criar pelada", allowAm
                   type="radio"
                   name="kind"
                   value={option}
-                  defaultChecked={(match?.kind ?? "PELADA") === option}
+                  defaultChecked={(match?.kind ?? defaults?.kind ?? "PELADA") === option}
                   disabled={locked}
                   onChange={() => setSelectedKind(option)}
                   className="peer sr-only"
@@ -81,7 +89,7 @@ export function MatchForm({ action, match, submitLabel = "Criar pelada", allowAm
       </div>
       <div>
         <Label>Nome da pelada</Label>
-        <Input name="title" defaultValue={match?.title ?? "Pelada da semana"} required />
+        <Input name="title" defaultValue={match?.title ?? defaults?.title ?? "Pelada da semana"} required />
       </div>
       {selectedKind === "AMISTOSO" ? (
         <div className="rounded-[13px] border-[1.5px] border-linha bg-areia p-3">
@@ -93,17 +101,21 @@ export function MatchForm({ action, match, submitLabel = "Criar pelada", allowAm
       <div className="grid grid-cols-2 gap-2">
         <div>
           <Label>Data</Label>
-          <Input name="date" type="date" defaultValue={match ? dateInputValue(match.date) : today} required />
+          <Input name="date" type="date" defaultValue={match ? dateInputValue(match.date) : defaults?.date ?? today} required />
         </div>
         <div>
           <Label>Horario</Label>
-          <Input name="time" type="time" defaultValue={match ? timeInputValue(match.date) : "19:00"} required />
+          <Input name="time" type="time" defaultValue={match ? timeInputValue(match.date) : defaults?.time ?? "19:00"} required />
         </div>
       </div>
       <div className="grid grid-cols-[1fr_92px] gap-2">
         <div>
           <Label>Local</Label>
-          <LocationAutocomplete name="locationStreet" defaultValue={match?.location ?? ""} quickSuggestions={recentLocations} />
+          <LocationAutocomplete
+            name="locationStreet"
+            defaultValue={match?.location ?? defaults?.location ?? ""}
+            quickSuggestions={recentLocations}
+          />
         </div>
         <div>
           <Label>Numero</Label>
@@ -119,7 +131,7 @@ export function MatchForm({ action, match, submitLabel = "Criar pelada", allowAm
                 type="radio"
                 name="surface"
                 value={option}
-                defaultChecked={(match?.surface ?? "SOCIETY") === option}
+                defaultChecked={(match?.surface ?? defaults?.surface ?? "SOCIETY") === option}
                 className="peer sr-only"
               />
               <span className="block rounded-[11px] border-[1.5px] border-linha bg-white px-3 py-3 text-center text-sm font-semibold text-musgo transition peer-checked:border-campo peer-checked:bg-campo peer-checked:text-white">

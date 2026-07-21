@@ -12,13 +12,15 @@ export function OwnMatchStatsForm({
   goals,
   assists,
   defenses,
-  saved = false
+  saved = false,
+  onSaved
 }: {
   matchId: string;
   goals: number;
   assists: number;
   defenses: number;
   saved?: boolean;
+  onSaved?: () => void;
 }) {
   const [editing, setEditing] = useState(!saved);
   const [savedGoals, setSavedGoals] = useState(goals);
@@ -31,7 +33,13 @@ export function OwnMatchStatsForm({
       setSavedDefenses(Number(formData.get("defenses") || 0));
       return submitOwnMatchStats(matchId, formData);
     },
-    { successMessage: "Numeros salvos.", onSuccess: () => setEditing(false) }
+    {
+      successMessage: "Numeros salvos.",
+      onSuccess: () => {
+        setEditing(false);
+        onSaved?.();
+      }
+    }
   );
 
   if (!editing) {

@@ -298,10 +298,59 @@ function renderAmistosoStorySvg({
 </svg>`;
 }
 
-function punchlineLines(value: string) {
-  if (value === "Hoje a pelada foi minha.") return ["Hoje a pelada", "foi minha."];
-  if (value === "Não fiz gol, mas não faltei.") return ["Não fiz gol,", "mas não faltei."];
-  return ["Paguei a água,", "tá pago."];
+const CRAQUE_PUNCHLINE: [string, string] = ["Hoje a pelada", "foi minha."];
+
+const PUNCHLINES_EXCELENTE: [string, string][] = [
+  ["Hoje o campo", "era meu quintal."],
+  ["Nível seleção,", "nem fadiga bateu."],
+  ["Joguei fácil,", "sobrou classe."],
+  ["Hoje o bicho", "pegou geral."],
+  ["Categoria à parte,", "nem discuti."]
+];
+
+const PUNCHLINES_MUITO_BOM: [string, string][] = [
+  ["Entreguei liga,", "sem neurose."],
+  ["Rodei o campo", "com estilo."],
+  ["Tabelinha fácil,", "nota alta."],
+  ["Hoje rendeu,", "sem forçar."],
+  ["Nível bom,", "reconhecido."]
+];
+
+const PUNCHLINES_BOM: [string, string][] = [
+  ["Não fiz gol,", "mas não faltei."],
+  ["Suei a camisa,", "cumpri tabela."],
+  ["Corri geral,", "fiz o básico bem."],
+  ["Sem luz,", "mas sem apagão."],
+  ["Rodei liso,", "sem drama."]
+];
+
+const PUNCHLINES_MEDIANO: [string, string][] = [
+  ["Deu pra jogar,", "sobrou fôlego."],
+  ["Nem lembro,", "nem esqueço."],
+  ["Cumpri tabela,", "sem brilho."],
+  ["Joguei on,", "sem crase."],
+  ["Rolou pelada,", "rolou nota."]
+];
+
+const PUNCHLINES_FRACO: [string, string][] = [
+  ["Paguei a água,", "tá pago."],
+  ["Hoje rodei,", "mas não no campo."],
+  ["Nota baixa,", "orgulho intacto."],
+  ["Joguei mal,", "mas sorri bastante."],
+  ["Perna dura,", "coração mole."]
+];
+
+function pickRandom<T>(options: T[]) {
+  return options[Math.floor(Math.random() * options.length)];
+}
+
+function ratingPunchlineLines(averageRating: number | null): [string, string] {
+  if (averageRating == null) return PUNCHLINES_BOM[0];
+  if (averageRating >= 9) return pickRandom(PUNCHLINES_EXCELENTE);
+  if (averageRating >= 8) return pickRandom(PUNCHLINES_MUITO_BOM);
+  if (averageRating >= 6) return pickRandom(PUNCHLINES_BOM);
+  if (averageRating >= 5) return pickRandom(PUNCHLINES_MEDIANO);
+  return pickRandom(PUNCHLINES_FRACO);
 }
 
 function renderStorySvg({
@@ -312,7 +361,6 @@ function renderStorySvg({
   photoSrc,
   isGoalkeeper,
   isGold,
-  isHumor,
   averageRating,
   ratingsCount,
   filledStars,
@@ -329,7 +377,6 @@ function renderStorySvg({
   photoSrc: string | null;
   isGoalkeeper: boolean;
   isGold: boolean;
-  isHumor: boolean;
   averageRating: number | null;
   ratingsCount: number;
   filledStars: number;
@@ -353,7 +400,7 @@ function renderStorySvg({
         ribbonBg: "#F4A11A",
         ribbonText: "#16261D",
         ribbonLabel: "Craque da pelada",
-        punchline: "Hoje a pelada foi minha."
+        punchline: CRAQUE_PUNCHLINE
       }
     : {
         bgStart: "#11643A",
@@ -368,14 +415,14 @@ function renderStorySvg({
         ribbonBg: "rgba(255,255,255,.12)",
         ribbonText: "#ffffff",
         ribbonLabel: "Fechou a pelada",
-        punchline: isHumor ? "Paguei a água, tá pago." : "Não fiz gol, mas não faltei."
+        punchline: ratingPunchlineLines(averageRating)
       };
 
   const safeName = escapeXml(playerName);
   const initial = escapeXml(playerName.trim().slice(0, 1).toUpperCase() || "?");
   const ratingLabel = averageRating != null ? averageRating.toFixed(1) : "-";
   const ratingCopy = `${ratingsCount} ${ratingsCount === 1 ? "jogador avaliou" : "jogadores avaliaram"}`;
-  const [punchlineTop, punchlineBottom] = punchlineLines(theme.punchline);
+  const [punchlineTop, punchlineBottom] = theme.punchline;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1080" height="1920" viewBox="0 0 1080 1920">
@@ -514,7 +561,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ mat
     const voteRank = rankIndex >= 0 ? rankIndex + 1 : null;
     const topVoteCount = ranking[0]?.[1] ?? 0;
     const isCraqueDaPelada = topVoteCount > 0 && voteCounts.get(player.id) === topVoteCount;
-    const isGold = isCraqueDaPelada || (averageRating != null && averageRating >= 8);
+    const isGold = isCraqueDaPelada;
     const showVoteRank = isGold && voteRank != null;
     const photoSrc = await getImageDataUrl(player.photoUrl ?? player.user?.image ?? null);
 
@@ -540,7 +587,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ mat
             photoSrc,
             isGoalkeeper: player.position === "GOLEIRO",
             isGold,
-            isHumor: averageRating != null && averageRating < 5,
             averageRating,
             ratingsCount,
             filledStars: averageRating != null ? Math.min(5, Math.max(0, Math.round(averageRating / 2))) : 0,

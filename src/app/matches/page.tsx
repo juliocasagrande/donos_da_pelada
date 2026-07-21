@@ -6,8 +6,11 @@ import { Card } from "@/components/ui/Card";
 import { CloseFriendlyMatchForm } from "@/components/matches/CloseFriendlyMatchForm";
 import { LocationLinks } from "@/components/matches/LocationLinks";
 import { MatchWhatsappShareLink } from "@/components/matches/MatchWhatsappShareLink";
-import { closeMatch, deleteMatch } from "@/lib/actions";
+import { NewMatchButton } from "@/components/matches/NewMatchButton";
+import { closeMatch, createMatch, deleteMatch } from "@/lib/actions";
 import { TOTAL_CAPACITY } from "@/lib/attendance";
+import { getMatchDefaults, getRecentLocations } from "@/lib/matchDefaults";
+import { isPeladaIdPro } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
 import { isPeladaAdmin, requireUser } from "@/lib/session";
 import { cn, formatDate, surfaceLabel } from "@/lib/utils";
@@ -111,6 +114,10 @@ export default async function MatchesPage({
   const featured = activeTab === "proximas" ? matches[0] : null;
   const others = featured ? matches.filter((match) => match.id !== featured.id) : matches;
 
+  const [newMatchDefaults, newMatchAllowAmistoso, newMatchRecentLocations] = isAdmin
+    ? await Promise.all([getMatchDefaults(user.peladaId!), isPeladaIdPro(user.peladaId!), getRecentLocations(user.peladaId!)])
+    : [null, false, [] as string[]];
+
   return (
     <AppShell>
       <div className="mb-4 flex items-start justify-between gap-3 pt-1">
@@ -119,9 +126,16 @@ export default async function MatchesPage({
           <h1 className="font-display text-3xl font-extrabold tracking-[-.02em]">Partidas</h1>
         </div>
         {isAdmin ? (
-          <Link href="/matches/new" className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-campo text-white shadow-button" aria-label="Nova partida">
+          <NewMatchButton
+            action={createMatch}
+            defaults={newMatchDefaults}
+            allowAmistoso={newMatchAllowAmistoso}
+            recentLocations={newMatchRecentLocations}
+            className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-campo text-white shadow-button"
+            ariaLabel="Nova partida"
+          >
             <Plus size={20} />
-          </Link>
+          </NewMatchButton>
         ) : null}
       </div>
 
