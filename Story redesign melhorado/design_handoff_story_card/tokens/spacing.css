@@ -1,0 +1,17 @@
+:root{
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --radius-input: 13px;
+  --radius-pill: 11px;
+  --radius-card: 16px;
+  --radius-card-lg: 22px;
+  --radius-hero: 28px;
+  --radius-icon: 12px;
+  --container-max: 448px;
+}

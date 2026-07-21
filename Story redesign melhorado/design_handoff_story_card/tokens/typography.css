@@ -1,0 +1,13 @@
+:root{
+  --text-display-lg: 700 clamp(1.75rem,3.4vw,3.5rem)/1.04 var(--font-display);
+  --text-display-md: 800 28px/1.1 var(--font-display);
+  --text-display-sm: 700 18px/1.2 var(--font-display);
+  --text-body-lg: 500 17px/1.5 var(--font-sans);
+  --text-body-md: 500 15px/1.5 var(--font-sans);
+  --text-body-sm: 500 13px/1.4 var(--font-sans);
+  --text-label: 700 13px/1.2 var(--font-sans);
+  --text-caption: 600 11px/1.2 var(--font-sans);
+  --text-jersey-number: 700 32px/1 var(--font-jersey);
+  --text-jersey-label: 600 13px/1 var(--font-jersey);
+  --tracking-label: .14em;
+}

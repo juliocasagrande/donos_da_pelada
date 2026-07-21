@@ -10,16 +10,41 @@ export const runtime = "nodejs";
 const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
 const FONTS_DIR = path.join(process.cwd(), "src/assets/fonts");
-const FONT_FILES = ["Inter-Regular.ttf", "Inter-SemiBold.ttf", "Inter-Bold.ttf", "Inter-ExtraBold.ttf"].map((file) =>
-  path.join(FONTS_DIR, file)
-);
+const FONT_FILES = [
+  "Inter-Regular.ttf",
+  "Inter-SemiBold.ttf",
+  "Inter-Bold.ttf",
+  "Inter-ExtraBold.ttf",
+  "BricolageGrotesque-Bold.ttf",
+  "BricolageGrotesque-ExtraBold.ttf",
+  "HankenGrotesk-Medium.ttf",
+  "HankenGrotesk-SemiBold.ttf",
+  "HankenGrotesk-Bold.ttf",
+  "SairaCondensed-SemiBold.ttf",
+  "SairaCondensed-Bold.ttf"
+].map((file) => path.join(FONTS_DIR, file));
+
+const DS_COLORS = {
+  campo: "#1B9E4B",
+  mata: "#0B4A29",
+  craque: "#F4A11A",
+  craqueLight: "#fff2cf",
+  tinta: "#16261D",
+  musgo: "#69786D",
+  linha: "#E6EADF",
+  areia: "#F1F4ED",
+  field950: "#04130a",
+  field800: "#08351e",
+  craqueTextDark: "#8a5a06",
+  goalkeeper: "#DC8A1A"
+};
 
 function svgToPng(svg: string) {
   const resvg = new Resvg(svg, {
     font: {
       fontFiles: FONT_FILES,
       loadSystemFonts: false,
-      defaultFontFamily: "Inter"
+      defaultFontFamily: "Hanken Grotesk"
     },
     fitTo: { mode: "zoom", value: 2 }
   });
@@ -80,16 +105,91 @@ async function getImageDataUrl(url: string | null) {
   }
 }
 
-function star(index: number, filledStars: number, color: string) {
-  return `<polygon transform="translate(${index * 48} 0) scale(1.7)" points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="${index < filledStars ? color : "rgba(255,255,255,.18)"}" />`;
+function ratingStar(cx: number, cy: number, size: number, filled: boolean) {
+  const scale = size / 24;
+  return `<g transform="translate(${cx - size / 2} ${cy - size / 2}) scale(${scale})"><path d="M12 2l2.9 6.6L22 9.3l-5 4.9 1.2 7.1L12 17.8l-6.2 3.5L7 14.2 2 9.3l7.1-.7L12 2z" fill="${filled ? DS_COLORS.craque : DS_COLORS.linha}" /></g>`;
 }
 
-function statColumn(x: number, value: string, label: string, color = "#fff") {
-  return `
-    <text x="${x}" y="1150" text-anchor="middle" font-family="Inter" font-size="75" font-weight="700" fill="${color}">${escapeXml(value)}</text>
-    <text x="${x}" y="1208" text-anchor="middle" font-family="Inter" font-size="27" font-weight="700" letter-spacing="3" fill="rgba(255,255,255,.55)">${escapeXml(label.toUpperCase())}</text>
-  `;
+function textWidthApprox(text: string, fontSize: number, letterSpacingEm = 0) {
+  const avgCharWidth = fontSize * 0.6;
+  const letterSpacing = fontSize * letterSpacingEm;
+  return text.length * (avgCharWidth + letterSpacing);
 }
+
+const CHECK_PATH = "M4 12l5 5L20 6";
+const CROWN_PATH = "M2 7l4 3 6-8 6 8 4-3-2 11H4L2 7zm2 13h16v2H4v-2z";
+
+type ResultTheme = {
+  heroLinear: [string, string];
+  heroRadial: { cx: string; cy: string; color: string; opacity: number; endPct: number };
+  hairlineOpacity: number;
+  circleOpacity1: number;
+  circleOpacity2: number;
+  pillBg: string;
+  pillBorder: string;
+  pillTextColor: string;
+  pillIconColor: string;
+  pillIcon: "check" | "crown";
+  pillLabel: string;
+  crownAbovePhoto: boolean;
+  photoBorderStops: [string, string];
+  badgeSize: number;
+  badgeBg: string;
+  badgeBorderColor: string;
+  badgeTextColor: string;
+  nameColor: string;
+  roleColor: string;
+  nameGap: number;
+  statNumberColor: (index: 0 | 1 | 2) => string;
+};
+
+const NORMAL_RESULT_THEME: ResultTheme = {
+  heroLinear: [DS_COLORS.field950, DS_COLORS.mata],
+  heroRadial: { cx: "82%", cy: "0%", color: "244,161,26", opacity: 0.2, endPct: 46 },
+  hairlineOpacity: 0.05,
+  circleOpacity1: 0.1,
+  circleOpacity2: 0.08,
+  pillBg: "rgba(255,255,255,.10)",
+  pillBorder: "rgba(255,255,255,.16)",
+  pillTextColor: "#ffffff",
+  pillIconColor: "#86efac",
+  pillIcon: "check",
+  pillLabel: "FECHOU A PELADA",
+  crownAbovePhoto: false,
+  photoBorderStops: [DS_COLORS.craque, DS_COLORS.craqueLight],
+  badgeSize: 88,
+  badgeBg: DS_COLORS.craque,
+  badgeBorderColor: DS_COLORS.field950,
+  badgeTextColor: DS_COLORS.tinta,
+  nameColor: "#ffffff",
+  roleColor: DS_COLORS.craque,
+  nameGap: 36,
+  statNumberColor: (i) => (i === 2 ? DS_COLORS.craqueTextDark : DS_COLORS.tinta)
+};
+
+const CRAQUE_RESULT_THEME: ResultTheme = {
+  heroLinear: ["#5c3a08", DS_COLORS.craque],
+  heroRadial: { cx: "50%", cy: "-10%", color: "255,235,180", opacity: 0.5, endPct: 55 },
+  hairlineOpacity: 0.1,
+  circleOpacity1: 0.18,
+  circleOpacity2: 0.14,
+  pillBg: "rgba(0,0,0,.16)",
+  pillBorder: "rgba(255,255,255,.28)",
+  pillTextColor: DS_COLORS.tinta,
+  pillIconColor: DS_COLORS.tinta,
+  pillIcon: "crown",
+  pillLabel: "CRAQUE DA PELADA",
+  crownAbovePhoto: true,
+  photoBorderStops: ["#ffffff", DS_COLORS.craqueLight],
+  badgeSize: 92,
+  badgeBg: DS_COLORS.tinta,
+  badgeBorderColor: DS_COLORS.craque,
+  badgeTextColor: DS_COLORS.craque,
+  nameColor: DS_COLORS.tinta,
+  roleColor: DS_COLORS.tinta,
+  nameGap: 48,
+  statNumberColor: () => DS_COLORS.craqueTextDark
+};
 
 function ballIcon(x: number, y: number, scale: number) {
   return `<g transform="translate(${x} ${y}) scale(${scale})">
@@ -98,15 +198,6 @@ function ballIcon(x: number, y: number, scale: number) {
     <path d="M19.5 10 L21 13.5 L18 15.5 L14.5 13.5 L14.5 10 L17 8.5 Z" fill="#16261D" />
     <path d="M4.5 10 L7 8.5 L9.5 10 L9.5 13.5 L6 15.5 L3 13.5 Z" fill="#16261D" />
     <path d="M15 19.5 L12 21 L9 19.5 L10 15 L11.5 13.5 L12.5 13.5 L14 15 Z" fill="#16261D" />
-  </g>`;
-}
-
-function cleatIcon(x: number, y: number, scale: number) {
-  return `<g transform="translate(${x} ${y}) scale(${scale})">
-    <path d="M4 20 L4 7 Q4 5 7.5 5 L12 5 L12 14.5 L19.5 14.5 Q23 14.5 23 18 L23 20 Z" fill="white" />
-    <ellipse cx="7.5" cy="21.2" rx="1.6" ry="0.75" fill="rgba(200,200,200,.88)" />
-    <ellipse cx="12.8" cy="21.2" rx="1.6" ry="0.75" fill="rgba(200,200,200,.88)" />
-    <ellipse cx="18.5" cy="21.2" rx="1.6" ry="0.75" fill="rgba(200,200,200,.88)" />
   </g>`;
 }
 
@@ -120,58 +211,46 @@ function friendlyResult(homeScore: number | null, awayScore: number | null): Fri
 function friendlyTheme(result: FriendlyResult) {
   if (result === "VITORIA") {
     return {
-      bgStart: "#0B4A29",
-      bgMid: "#0a3f23",
-      bgEnd: "#062a17",
-      ringStart: "#F4A11A",
-      ringEnd: "#ffd98a",
-      ribbonFill: "url(#ribbonGold)",
-      ribbonStroke: null,
-      ribbonText: "#16261D",
+      heroRadialColor: "244,161,26",
+      heroRadialOpacity: 0.28,
+      circleOpacity1: 0.1,
+      circleOpacity2: 0.08,
+      hairlineOpacity: 0.05,
       homeColor: "#fff",
       awayColor: "rgba(255,255,255,.35)",
-      sub: "#9fe3b8",
-      pillBg: "rgba(244,161,26,.18)",
+      pillBg: "rgba(244,161,26,.16)",
       pillBorder: "rgba(244,161,26,.32)",
-      pillText: "#F4A11A",
-      pillLabel: "Vitoria!",
+      pillText: DS_COLORS.craque,
+      pillLabel: "Vitória",
       watermark: true
     };
   }
   if (result === "DERROTA") {
     return {
-      bgStart: "#062a17",
-      bgMid: "#041a0e",
-      bgEnd: "#020c07",
-      ringStart: "rgba(255,255,255,.25)",
-      ringEnd: "rgba(255,255,255,.1)",
-      ribbonFill: "rgba(255,255,255,.08)",
-      ribbonStroke: "rgba(255,255,255,.14)",
-      ribbonText: "rgba(255,255,255,.7)",
-      homeColor: "rgba(255,255,255,.35)",
+      heroRadialColor: "255,255,255",
+      heroRadialOpacity: 0.06,
+      circleOpacity1: 0.07,
+      circleOpacity2: 0.05,
+      hairlineOpacity: 0.04,
+      homeColor: "rgba(255,255,255,.4)",
       awayColor: "rgba(255,255,255,.85)",
-      sub: "rgba(255,255,255,.5)",
       pillBg: "rgba(255,255,255,.07)",
-      pillBorder: "rgba(255,255,255,.12)",
-      pillText: "rgba(255,255,255,.5)",
+      pillBorder: "rgba(255,255,255,.14)",
+      pillText: "rgba(255,255,255,.6)",
       pillLabel: "Derrota",
       watermark: false
     };
   }
   return {
-    bgStart: "#11643A",
-    bgMid: "#0B4A29",
-    bgEnd: "#072d19",
-    ringStart: "#1B9E4B",
-    ringEnd: "#9fe3b8",
-    ribbonFill: "rgba(255,255,255,.12)",
-    ribbonStroke: "rgba(255,255,255,.2)",
-    ribbonText: "#ffffff",
+    heroRadialColor: "159,227,184",
+    heroRadialOpacity: 0.2,
+    circleOpacity1: 0.1,
+    circleOpacity2: 0.08,
+    hairlineOpacity: 0.05,
     homeColor: "#fff",
     awayColor: "#fff",
-    sub: "#9fe3b8",
-    pillBg: "rgba(159,227,184,.14)",
-    pillBorder: "rgba(159,227,184,.28)",
+    pillBg: "rgba(27,158,75,.16)",
+    pillBorder: "rgba(27,158,75,.3)",
     pillText: "#9fe3b8",
     pillLabel: "Empate",
     watermark: false
@@ -201,99 +280,194 @@ function renderAmistosoStorySvg({
   goals: number;
   assists: number;
 }) {
+  const C = DS_COLORS;
   const result = friendlyResult(homeScore, awayScore);
   const theme = friendlyTheme(result);
   const safeName = escapeXml(playerName);
   const initial = escapeXml(playerName.trim().slice(0, 1).toUpperCase() || "?");
   const homeLabel = homeScore != null ? String(homeScore) : "-";
   const awayLabel = awayScore != null ? String(awayScore) : "-";
+  const roleLine = `${isGoalkeeper ? "Goleiro" : "Linha"} · ${peladaName}`.toUpperCase();
+
+  const heroHeight = 1000;
+  const pillPadTop = 72;
+  const pillPadX = 26;
+  const pillPadY = 13;
+  const pillIconSize = 22;
+  const pillGap = 10;
+  const pillLabelText = "AMISTOSO";
+  const pillTextW = textWidthApprox(pillLabelText, 22, 0.14);
+  const pillW = pillIconSize + pillGap + pillTextW + pillPadX * 2;
+  const pillH = pillPadY * 2 + 26;
+  const pillX = 540 - pillW / 2;
+  const pillY = pillPadTop;
+
+  const scoreTop = pillY + pillH + 40;
+  const scoreFontSize = 140;
+  const scoreBaselineY = scoreTop + scoreFontSize * 0.8;
+
+  const opponentY = scoreBaselineY + 70;
+
+  const resultPillW = 220;
+  const resultPillH = 52;
+  const resultPillY = opponentY + 28;
+  const resultPillX = 540 - resultPillW / 2;
+
+  const dividerY = resultPillY + resultPillH + 40;
+
+  const photoSize = 176;
+  const photoInnerSize = 160;
+  const photoX = 144;
+  const photoTop = dividerY + 40;
+  const nameY = photoTop + 68;
+  const roleY = photoTop + 114;
+
+  const cardX = 64;
+  const cardW = 1080 - 128;
+  const cardY = 940;
+  const cardH = 272;
+  const cardRx = 22;
+
+  const labelY = cardY + 44 + 18;
+  const dividerCardY = labelY + 40;
+  const statTop = dividerCardY + 34;
+  const statNumberY = statTop + 62;
+  const statLabelY = statNumberY + 30;
+  const col1 = 540 - 180;
+  const col2 = 540 + 180;
+  const dividerColX = 540;
+
+  const metaY = cardY + cardH + 60;
+
+  const footerH = 320;
+  const footerY = 1920 - 64 - footerH;
+  const footerX = 64;
+  const footerW = 1080 - 128;
+  const crestOuter = { x: 540 - 38, y: footerY + 36, size: 76, rx: 20 };
+  const crestInner = { x: crestOuter.x + 15, y: crestOuter.y + 15, size: 46, rx: 12 };
+  const footerHeadlineY = crestOuter.y + crestOuter.size + 12 + 30;
+  const footerSublineY = footerHeadlineY + 42;
+  const pillCtaY = footerSublineY + 8 + 20;
+  const pillCtaH = 56;
+  const pillCtaText = "donos-da-pelada.vercel.app";
+  const pillCtaW = 560;
+  const pillCtaX = 540 - pillCtaW / 2;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1080" height="1920" viewBox="0 0 1080 1920">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="${theme.bgStart}" />
-      <stop offset="55%" stop-color="${theme.bgMid}" />
-      <stop offset="100%" stop-color="${theme.bgEnd}" />
+    <linearGradient id="heroBg" x1="0.25" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${C.field950}" />
+      <stop offset="62%" stop-color="${C.mata}" />
+      <stop offset="100%" stop-color="${C.mata}" />
     </linearGradient>
-    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="${theme.ringStart}" />
-      <stop offset="100%" stop-color="${theme.ringEnd}" />
-    </linearGradient>
-    <linearGradient id="ribbonGold" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#F4A11A" />
-      <stop offset="100%" stop-color="#ffc14d" />
-    </linearGradient>
-    <pattern id="fieldLines" width="112" height="112" patternUnits="userSpaceOnUse">
-      <rect width="3" height="112" fill="rgba(255,255,255,.04)" />
-    </pattern>
-    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="rgba(159,227,184,.18)" />
-      <stop offset="64%" stop-color="rgba(159,227,184,0)" />
+    <radialGradient id="heroGlow" cx="82%" cy="0%" r="55%">
+      <stop offset="0%" stop-color="rgba(${theme.heroRadialColor},${theme.heroRadialOpacity})" />
+      <stop offset="46%" stop-color="rgba(${theme.heroRadialColor},0)" />
     </radialGradient>
+    <linearGradient id="photoRing" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="${C.craque}" />
+      <stop offset="100%" stop-color="${C.craqueLight}" />
+    </linearGradient>
+    <linearGradient id="crestGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="${C.mata}" />
+      <stop offset="100%" stop-color="${C.campo}" />
+    </linearGradient>
+    <linearGradient id="footerBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="${C.mata}" />
+      <stop offset="100%" stop-color="${C.field800}" />
+    </linearGradient>
+    <pattern id="hairline" width="64" height="64" patternUnits="userSpaceOnUse" patternTransform="rotate(25)">
+      <rect width="1" height="64" fill="rgba(255,255,255,${theme.hairlineOpacity})" />
+    </pattern>
+    <pattern id="hairlineFooter" width="64" height="64" patternUnits="userSpaceOnUse" patternTransform="rotate(25)">
+      <rect width="1" height="64" fill="rgba(255,255,255,.05)" />
+    </pattern>
     <clipPath id="photoClip">
-      <rect x="152" y="752" width="160" height="160" rx="38" />
+      <rect x="${photoX + 8}" y="${photoTop + 8}" width="${photoInnerSize}" height="${photoInnerSize}" rx="38" />
     </clipPath>
+    <clipPath id="footerClip">
+      <rect x="${footerX}" y="${footerY}" width="${footerW}" height="${footerH}" rx="22" />
+    </clipPath>
+    <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#11281c" flood-opacity=".18" />
+    </filter>
+    <filter id="footerShadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="20" stdDeviation="28" flood-color="#000000" flood-opacity=".35" />
+    </filter>
   </defs>
 
-  <rect width="1080" height="1920" fill="url(#bg)" />
-  <rect width="1080" height="1920" fill="url(#fieldLines)" />
-  <circle cx="540" cy="500" r="380" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="4" />
-  <circle cx="540" cy="460" r="520" fill="url(#glow)" />
-  ${
-    theme.watermark
-      ? `<g transform="translate(900 60) scale(18)" opacity="0.07"><circle cx="12" cy="12" r="10" fill="#F4A11A"/><path d="M12 3 L14.5 6 L13 9.5 L11 9.5 L9.5 6 Z" fill="#062a17"/><path d="M19.5 10 L21 13.5 L18 15.5 L14.5 13.5 L14.5 10 L17 8.5 Z" fill="#062a17"/><path d="M4.5 10 L7 8.5 L9.5 10 L9.5 13.5 L6 15.5 L3 13.5 Z" fill="#062a17"/><path d="M15 19.5 L12 21 L9 19.5 L10 15 L11.5 13.5 L12.5 13.5 L14 15 Z" fill="#062a17"/></g>`
-      : ""
-  }
+  <rect width="1080" height="1920" fill="${C.areia}" />
+
+  <rect width="1080" height="${heroHeight}" fill="url(#heroBg)" />
+  <rect width="1080" height="${heroHeight}" fill="url(#heroGlow)" />
+  <rect width="1080" height="${heroHeight}" fill="url(#hairline)" />
+  <circle cx="1110" cy="90" r="230" fill="none" stroke="rgba(255,255,255,${theme.circleOpacity1})" stroke-width="2" />
+  <circle cx="50" cy="660" r="140" fill="none" stroke="rgba(255,255,255,${theme.circleOpacity2})" stroke-width="2" />
+  ${theme.watermark ? `<g transform="translate(870 40) scale(16)" opacity="0.08">${ballIcon(0, 0, 1)}</g>` : ""}
 
   <g>
-    <rect x="290" y="181" width="500" height="80" rx="40" fill="${theme.ribbonFill}" ${theme.ribbonStroke ? `stroke="${theme.ribbonStroke}" stroke-width="3"` : ""} />
-    ${ballIcon(330, 207, 1.2)}
-    <text x="560" y="234" text-anchor="middle" font-family="Inter" font-size="36" font-weight="700" letter-spacing="5" fill="${theme.ribbonText}">AMISTOSO</text>
+    <rect x="${pillX}" y="${pillY}" width="${pillW}" height="${pillH}" rx="11" fill="rgba(255,255,255,.10)" stroke="rgba(255,255,255,.16)" stroke-width="1" />
+    ${ballIcon(pillX + pillPadX, pillY + pillH / 2 - pillIconSize / 2, pillIconSize / 24)}
+    <text x="${pillX + pillPadX + pillIconSize + pillGap}" y="${pillY + pillH / 2 + 8}" font-family="Hanken Grotesk" font-size="22" font-weight="700" letter-spacing="3" fill="#ffffff">${pillLabelText}</text>
 
-    <text x="540" y="372" text-anchor="middle" font-family="Inter" font-size="34" font-weight="700" letter-spacing="6" fill="${theme.sub}">${escapeXml(peladaName.toUpperCase())}</text>
+    <text x="430" y="${scoreBaselineY}" text-anchor="end" font-family="Bricolage Grotesque" font-size="${scoreFontSize}" font-weight="800" fill="${theme.homeColor}" letter-spacing="-2">${escapeXml(homeLabel)}</text>
+    <text x="540" y="${scoreBaselineY - 20}" text-anchor="middle" font-family="Hanken Grotesk" font-size="60" font-weight="600" fill="rgba(255,255,255,.3)">x</text>
+    <text x="650" y="${scoreBaselineY}" text-anchor="start" font-family="Bricolage Grotesque" font-size="${scoreFontSize}" font-weight="800" fill="${theme.awayColor}" letter-spacing="-2">${escapeXml(awayLabel)}</text>
 
-    <text x="430" y="540" text-anchor="end" font-family="Inter" font-size="160" font-weight="800" fill="${theme.homeColor}" letter-spacing="-4">${escapeXml(homeLabel)}</text>
-    <text x="540" y="520" text-anchor="middle" font-family="Inter" font-size="70" font-weight="600" fill="rgba(255,255,255,.28)">x</text>
-    <text x="650" y="540" text-anchor="start" font-family="Inter" font-size="160" font-weight="800" fill="${theme.awayColor}" letter-spacing="-4">${escapeXml(awayLabel)}</text>
+    <text x="540" y="${opponentY}" text-anchor="middle" font-family="Hanken Grotesk" font-size="28" font-weight="700" letter-spacing="4" fill="rgba(255,255,255,.6)">${escapeXml(opponentName.toUpperCase())}</text>
 
-    <text x="540" y="600" text-anchor="middle" font-family="Inter" font-size="34" font-weight="700" letter-spacing="6" fill="rgba(255,255,255,.55)">${escapeXml(opponentName.toUpperCase())}</text>
+    <rect x="${resultPillX}" y="${resultPillY}" width="${resultPillW}" height="${resultPillH}" rx="11" fill="${theme.pillBg}" stroke="${theme.pillBorder}" stroke-width="1" />
+    <text x="540" y="${resultPillY + resultPillH / 2 + 8}" text-anchor="middle" font-family="Hanken Grotesk" font-size="22" font-weight="700" letter-spacing="2.5" fill="${theme.pillText}">${escapeXml(theme.pillLabel.toUpperCase())}</text>
 
-    <g transform="translate(540 660)">
-      <rect x="-130" y="-26" width="260" height="52" rx="26" fill="${theme.pillBg}" stroke="${theme.pillBorder}" stroke-width="2" />
-      <circle cx="-95" cy="0" r="6" fill="${theme.pillText}" />
-      <text x="-72" y="7" font-family="Inter" font-size="26" font-weight="700" letter-spacing="3" fill="${theme.pillText}">${escapeXml(theme.pillLabel.toUpperCase())}</text>
-    </g>
+    <line x1="64" y1="${dividerY}" x2="1016" y2="${dividerY}" stroke="rgba(255,255,255,.1)" stroke-width="1" />
 
-    <line x1="64" y1="744" x2="1016" y2="744" stroke="rgba(255,255,255,.1)" stroke-width="3" />
-
-    <rect x="144" y="744" width="176" height="176" rx="44" fill="url(#ring)" />
-    <rect x="152" y="752" width="160" height="160" rx="38" fill="${isGoalkeeper ? "#DC8A1A" : "#0a3f23"}" />
+    <rect x="${photoX}" y="${photoTop}" width="${photoSize}" height="${photoSize}" rx="44" fill="url(#photoRing)" />
+    <rect x="${photoX + 8}" y="${photoTop + 8}" width="${photoInnerSize}" height="${photoInnerSize}" rx="38" fill="${isGoalkeeper ? C.goalkeeper : "#0a3f23"}" />
     ${
       photoSrc
-        ? `<image href="${photoSrc}" xlink:href="${photoSrc}" x="152" y="752" width="160" height="160" preserveAspectRatio="xMidYMid slice" clip-path="url(#photoClip)" />`
-        : `<text x="232" y="864" text-anchor="middle" font-family="Inter" font-size="80" font-weight="800" fill="#fff">${initial}</text>`
+        ? `<image href="${photoSrc}" xlink:href="${photoSrc}" x="${photoX + 8}" y="${photoTop + 8}" width="${photoInnerSize}" height="${photoInnerSize}" preserveAspectRatio="xMidYMid slice" clip-path="url(#photoClip)" />`
+        : `<text x="${photoX + photoSize / 2}" y="${photoTop + photoSize / 2 + 24}" text-anchor="middle" font-family="Bricolage Grotesque" font-size="72" font-weight="800" fill="#fff">${initial}</text>`
     }
-    <text x="356" y="812" font-family="Inter" font-size="56" font-weight="800" fill="#fff">${safeName}</text>
-    <text x="356" y="858" font-family="Inter" font-size="26" font-weight="700" letter-spacing="4" fill="${theme.sub}">${escapeXml(`${isGoalkeeper ? "Goleiro" : "Linha"} · ${peladaName}`.toUpperCase())}</text>
 
-    <rect x="64" y="960" width="952" height="360" rx="59" fill="rgba(255,255,255,.07)" stroke="rgba(255,255,255,.13)" stroke-width="3" />
-    ${ballIcon(329, 1010, 1.8)}
-    <text x="350" y="1130" text-anchor="middle" font-family="Inter" font-size="80" font-weight="700" fill="#fff">${goals}</text>
-    <text x="350" y="1175" text-anchor="middle" font-family="Inter" font-size="27" font-weight="700" letter-spacing="3" fill="rgba(255,255,255,.55)">GOLS</text>
+    <text x="356" y="${nameY}" font-family="Bricolage Grotesque" font-size="56" font-weight="800" fill="#fff">${safeName}</text>
+    <text x="356" y="${roleY}" font-family="Hanken Grotesk" font-size="24" font-weight="700" letter-spacing="3.5" fill="${C.craque}">${escapeXml(roleLine)}</text>
+  </g>
 
-    <line x1="540" y1="1000" x2="540" y2="1280" stroke="rgba(255,255,255,.1)" stroke-width="3" />
+  <g filter="url(#cardShadow)">
+    <rect x="${cardX}" y="${cardY}" width="${cardW}" height="${cardH}" rx="${cardRx}" fill="#ffffff" />
+  </g>
+  <g>
+    <text x="540" y="${labelY}" text-anchor="middle" font-family="Hanken Grotesk" font-size="23" font-weight="700" letter-spacing="3.2" fill="${C.musgo}">NESTA PARTIDA</text>
+    <line x1="${cardX + 40}" y1="${dividerCardY}" x2="${cardX + cardW - 40}" y2="${dividerCardY}" stroke="${C.linha}" stroke-width="1" />
 
-    ${cleatIcon(707, 1010, 1.8)}
-    <text x="730" y="1130" text-anchor="middle" font-family="Inter" font-size="80" font-weight="700" fill="#fff">${assists}</text>
-    <text x="730" y="1175" text-anchor="middle" font-family="Inter" font-size="27" font-weight="700" letter-spacing="3" fill="rgba(255,255,255,.55)">ASSIST.</text>
+    <text x="${col1}" y="${statNumberY}" text-anchor="middle" font-family="Saira Condensed" font-size="70" font-weight="700" fill="${C.tinta}">${goals}</text>
+    <text x="${col1}" y="${statLabelY}" text-anchor="middle" font-family="Hanken Grotesk" font-size="18" font-weight="700" letter-spacing="1.8" fill="${C.musgo}">GOLS</text>
 
-    <text x="540" y="1420" text-anchor="middle" font-family="Inter" font-size="32" fill="rgba(255,255,255,.5)">${escapeXml(`${dateLabel} · Amistoso`)}</text>
+    <line x1="${dividerColX}" y1="${statTop}" x2="${dividerColX}" y2="${statLabelY}" stroke="${C.linha}" stroke-width="1" />
 
-    <line x1="64" y1="1642" x2="1016" y2="1642" stroke="rgba(255,255,255,.12)" stroke-width="3" />
-    <text x="540" y="1708" text-anchor="middle" font-family="Inter" font-size="44" font-weight="800" fill="#fff">Organize sua própria pelada</text>
-    <text x="540" y="1760" text-anchor="middle" font-family="Inter" font-size="32" fill="rgba(255,255,255,.5)">Baixe o app Donos da Pelada</text>
-    <text x="540" y="1812" text-anchor="middle" font-family="Inter" font-size="28" fill="rgba(255,255,255,.4)">Acesse em donos-da-pelada.vercel.app</text>
+    <text x="${col2}" y="${statNumberY}" text-anchor="middle" font-family="Saira Condensed" font-size="70" font-weight="700" fill="${C.tinta}">${assists}</text>
+    <text x="${col2}" y="${statLabelY}" text-anchor="middle" font-family="Hanken Grotesk" font-size="18" font-weight="700" letter-spacing="1.8" fill="${C.musgo}">ASSIST.</text>
+  </g>
+
+  <text x="540" y="${metaY}" text-anchor="middle" font-family="Hanken Grotesk" font-size="18" font-weight="600" fill="${C.musgo}">${escapeXml(`${dateLabel} · Amistoso`)}</text>
+
+  <g filter="url(#footerShadow)">
+    <rect x="${footerX}" y="${footerY}" width="${footerW}" height="${footerH}" rx="22" fill="url(#footerBg)" />
+  </g>
+  <g clip-path="url(#footerClip)">
+    <rect x="${footerX}" y="${footerY}" width="${footerW}" height="${footerH}" fill="url(#hairlineFooter)" />
+  </g>
+  <g>
+    <rect x="${crestOuter.x}" y="${crestOuter.y}" width="${crestOuter.size}" height="${crestOuter.size}" rx="${crestOuter.rx}" fill="#ffffff" />
+    <rect x="${crestInner.x}" y="${crestInner.y}" width="${crestInner.size}" height="${crestInner.size}" rx="${crestInner.rx}" fill="url(#crestGrad)" />
+    <path transform="translate(${crestInner.x + crestInner.size / 2 - 13} ${crestInner.y + crestInner.size / 2 - 13}) scale(1.1)" d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+
+    <text x="540" y="${footerHeadlineY}" text-anchor="middle" font-family="Bricolage Grotesque" font-size="38" font-weight="800" fill="#fff">Organize sua própria pelada</text>
+    <text x="540" y="${footerSublineY}" text-anchor="middle" font-family="Hanken Grotesk" font-size="20" font-weight="600" fill="rgba(255,255,255,.82)">Baixe o app Donos da Pelada</text>
+
+    <rect x="${pillCtaX}" y="${pillCtaY}" width="${pillCtaW}" height="${pillCtaH}" rx="14" fill="${C.craque}" />
+    <text x="540" y="${pillCtaY + pillCtaH / 2 + 9}" text-anchor="middle" font-family="Hanken Grotesk" font-size="24" font-weight="700" fill="${C.tinta}">${pillCtaText}</text>
   </g>
 </svg>`;
 }
@@ -386,130 +560,223 @@ function renderStorySvg({
   thirdStatLabel: string;
   badgeLabel: string;
 }) {
-  const theme = isGold
-    ? {
-        bgStart: "#0B4A29",
-        bgMid: "#0a3f23",
-        bgEnd: "#062a17",
-        ringStart: "#F4A11A",
-        ringEnd: "#ffd98a",
-        accent: "#F4A11A",
-        sub: "#9fe3b8",
-        badgeBg: "#F4A11A",
-        badgeColor: "#16261D",
-        ribbonBg: "#F4A11A",
-        ribbonText: "#16261D",
-        ribbonLabel: "Craque da pelada",
-        punchline: CRAQUE_PUNCHLINE
-      }
-    : {
-        bgStart: "#11643A",
-        bgMid: "#0B4A29",
-        bgEnd: "#072d19",
-        ringStart: "#1B9E4B",
-        ringEnd: "#9fe3b8",
-        accent: "#9fe3b8",
-        sub: "#9fe3b8",
-        badgeBg: "#1B9E4B",
-        badgeColor: "#ffffff",
-        ribbonBg: "rgba(255,255,255,.12)",
-        ribbonText: "#ffffff",
-        ribbonLabel: "Fechou a pelada",
-        punchline: ratingPunchlineLines(averageRating)
-      };
-
+  const C = DS_COLORS;
+  const theme = isGold ? CRAQUE_RESULT_THEME : NORMAL_RESULT_THEME;
   const safeName = escapeXml(playerName);
   const initial = escapeXml(playerName.trim().slice(0, 1).toUpperCase() || "?");
-  const ratingLabel = averageRating != null ? averageRating.toFixed(1) : "-";
   const ratingCopy = `${ratingsCount} ${ratingsCount === 1 ? "jogador avaliou" : "jogadores avaliaram"}`;
-  const [punchlineTop, punchlineBottom] = theme.punchline;
+  const roleLine = isGold
+    ? `${isGoalkeeper ? "Goleiro" : "Linha"} · Craque da rodada`.toUpperCase()
+    : `${isGoalkeeper ? "Goleiro" : "Linha"} · ${peladaName}`.toUpperCase();
+  const [punchlineTop, punchlineBottom] = isGold ? CRAQUE_PUNCHLINE : ratingPunchlineLines(averageRating);
+
+  const heroHeight = 1000;
+  const pillPadTop = 72;
+  const pillPadX = 30;
+  const pillPadY = 14;
+  const pillIconSize = 20;
+  const pillGap = 12;
+  const pillTextW = textWidthApprox(theme.pillLabel, 22, 0.14);
+  const pillW = pillIconSize + pillGap + pillTextW + pillPadX * 2;
+  const pillH = pillPadY * 2 + 26;
+  const pillX = 540 - pillW / 2;
+  const pillY = pillPadTop;
+
+  const photoSize = 420;
+  const photoRx = 28;
+  const photoInnerInset = 6;
+  const photoInner = { size: photoSize - photoInnerInset * 2, rx: 24 };
+  const photoTop = pillY + pillH + 44;
+  const photoX = 540 - photoSize / 2;
+
+  const badgeSize = theme.badgeSize;
+  const badgeOffset = 16;
+  const badgeCx = photoX + photoSize + badgeOffset - badgeSize / 2;
+  const badgeCy = photoTop + photoSize + badgeOffset - badgeSize / 2;
+
+  const nameY = photoTop + photoSize + theme.nameGap + 74;
+  const roleY = nameY + 110 + 10 + 21;
+
+  const cardX = 64;
+  const cardW = 1080 - 128;
+  const cardY = 940;
+  const cardH = 374;
+  const cardRx = 22;
+
+  const labelY = cardY + 44 + 18;
+  const starsY = labelY + 44;
+  const captionY = starsY + 46;
+  const dividerY = captionY + 34;
+  const statTop = dividerY + 34;
+  const statNumberY = statTop + 62;
+  const statLabelY = statNumberY + 30;
+
+  const colInnerPad = 40;
+  const colsLeft = cardX + colInnerPad;
+  const colsRight = cardX + cardW - colInnerPad;
+  const colsWidth = colsRight - colsLeft;
+  const col1 = colsLeft + colsWidth / 6;
+  const col2 = colsLeft + colsWidth / 2;
+  const col3 = colsLeft + (colsWidth * 5) / 6;
+  const divider1X = colsLeft + colsWidth / 3;
+  const divider2X = colsLeft + (colsWidth * 2) / 3;
+
+  const quoteTopY = 1342;
+  const quoteLine1Y = quoteTopY + 30 + 12 + 35;
+  const quoteLine2Y = quoteLine1Y + 55;
+  const quoteMetaY = quoteLine2Y + 45;
+
+  const footerH = 320;
+  const footerY = 1920 - 64 - footerH;
+  const footerX = 64;
+  const footerW = 1080 - 128;
+  const crestOuter = { x: 540 - 38, y: footerY + 36, size: 76, rx: 20 };
+  const crestInner = { x: crestOuter.x + 15, y: crestOuter.y + 15, size: 46, rx: 12 };
+  const footerHeadlineY = crestOuter.y + crestOuter.size + 12 + 30;
+  const footerSublineY = footerHeadlineY + 42;
+  const pillCtaY = footerSublineY + 8 + 20;
+  const pillCtaH = 56;
+  const pillCtaText = "donos-da-pelada.vercel.app";
+  const pillCtaW = 560;
+  const pillCtaX = 540 - pillCtaW / 2;
+
+  const pillIconSvg =
+    theme.pillIcon === "check"
+      ? `<path transform="translate(${pillX + pillPadX} ${pillY + pillH / 2 - pillIconSize / 2})" d="${CHECK_PATH}" fill="none" stroke="${theme.pillIconColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />`
+      : `<g transform="translate(${pillX + pillPadX} ${pillY + pillH / 2 - 11}) scale(0.92)"><path d="${CROWN_PATH}" fill="${theme.pillIconColor}" /></g>`;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1080" height="1920" viewBox="0 0 1080 1920">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="${theme.bgStart}" />
-      <stop offset="55%" stop-color="${theme.bgMid}" />
-      <stop offset="100%" stop-color="${theme.bgEnd}" />
+    <linearGradient id="heroBg" x1="0.25" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${theme.heroLinear[0]}" />
+      <stop offset="62%" stop-color="${theme.heroLinear[1]}" />
+      <stop offset="100%" stop-color="${theme.heroLinear[1]}" />
     </linearGradient>
-    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="${theme.ringStart}" />
-      <stop offset="100%" stop-color="${theme.ringEnd}" />
-    </linearGradient>
-    <pattern id="fieldLines" width="112" height="112" patternUnits="userSpaceOnUse">
-      <rect width="3" height="112" fill="rgba(255,255,255,.04)" />
-    </pattern>
-    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="rgba(159,227,184,.20)" />
-      <stop offset="64%" stop-color="rgba(159,227,184,0)" />
+    <radialGradient id="heroGlow" cx="${theme.heroRadial.cx}" cy="${theme.heroRadial.cy}" r="55%">
+      <stop offset="0%" stop-color="rgba(${theme.heroRadial.color},${theme.heroRadial.opacity})" />
+      <stop offset="${theme.heroRadial.endPct}%" stop-color="rgba(${theme.heroRadial.color},0)" />
     </radialGradient>
-    <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000000" flood-opacity=".20" />
-    </filter>
+    <linearGradient id="photoRing" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="${theme.photoBorderStops[0]}" />
+      <stop offset="100%" stop-color="${theme.photoBorderStops[1]}" />
+    </linearGradient>
+    <linearGradient id="crestGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="${C.mata}" />
+      <stop offset="100%" stop-color="${C.campo}" />
+    </linearGradient>
+    <linearGradient id="footerBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="${C.mata}" />
+      <stop offset="100%" stop-color="${C.field800}" />
+    </linearGradient>
+    <pattern id="hairline" width="64" height="64" patternUnits="userSpaceOnUse" patternTransform="rotate(25)">
+      <rect width="1" height="64" fill="rgba(255,255,255,${theme.hairlineOpacity})" />
+    </pattern>
+    <pattern id="hairlineFooter" width="64" height="64" patternUnits="userSpaceOnUse" patternTransform="rotate(25)">
+      <rect width="1" height="64" fill="rgba(255,255,255,.05)" />
+    </pattern>
     <clipPath id="photoClip">
-      <rect x="383" y="317" width="314" height="314" rx="75" />
+      <rect x="${photoX + photoInnerInset}" y="${photoTop + photoInnerInset}" width="${photoInner.size}" height="${photoInner.size}" rx="${photoInner.rx}" />
     </clipPath>
+    <clipPath id="footerClip">
+      <rect x="${footerX}" y="${footerY}" width="${footerW}" height="${footerH}" rx="22" />
+    </clipPath>
+    <filter id="photoShadow" x="-40%" y="-20%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="20" stdDeviation="20" flood-color="#000000" flood-opacity=".4" />
+    </filter>
+    <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#11281c" flood-opacity=".18" />
+    </filter>
+    <filter id="footerShadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="20" stdDeviation="28" flood-color="#000000" flood-opacity=".35" />
+    </filter>
+    <filter id="crownShadow" x="-60%" y="-60%" width="220%" height="220%">
+      <feDropShadow dx="0" dy="6" stdDeviation="7" flood-color="#000000" flood-opacity=".35" />
+    </filter>
   </defs>
 
-  <rect width="1080" height="1920" fill="url(#bg)" />
-  <rect width="1080" height="1920" fill="url(#fieldLines)" />
-  <line x1="0" y1="256" x2="1080" y2="256" stroke="rgba(255,255,255,.07)" stroke-width="4" />
-  <circle cx="540" cy="714" r="400" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="4" />
-  <circle cx="540" cy="626" r="${isGold ? 587 : 560}" fill="url(#glow)" />
-  ${
-    isGold
-      ? `<polygon transform="translate(922 80) scale(20)" points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="rgba(244,161,26,.06)" />`
-      : ""
-  }
+  <rect width="1080" height="1920" fill="${C.areia}" />
+
+  <rect width="1080" height="${heroHeight}" fill="url(#heroBg)" />
+  <rect width="1080" height="${heroHeight}" fill="url(#heroGlow)" />
+  <rect width="1080" height="${heroHeight}" fill="url(#hairline)" />
+  <circle cx="1110" cy="90" r="230" fill="none" stroke="rgba(255,255,255,${theme.circleOpacity1})" stroke-width="2" />
+  <circle cx="50" cy="660" r="140" fill="none" stroke="rgba(255,255,255,${theme.circleOpacity2})" stroke-width="2" />
 
   <g>
-    <rect x="240" y="181" width="600" height="80" rx="40" fill="${theme.ribbonBg}" ${isGold ? "" : 'stroke="rgba(255,255,255,.18)" stroke-width="3"'} />
-    ${
-      isGold
-        ? `<polygon transform="translate(269 202) scale(1.55)" points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="#16261D" />`
-        : `<path d="m271 220 5 5 9-9" fill="none" stroke="#9fe3b8" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />`
-    }
-    <text x="540" y="234" text-anchor="middle" font-family="Inter" font-size="36" font-weight="700" letter-spacing="5" fill="${theme.ribbonText}">${escapeXml(theme.ribbonLabel.toUpperCase())}</text>
+    <rect x="${pillX}" y="${pillY}" width="${pillW}" height="${pillH}" rx="11" fill="${theme.pillBg}" stroke="${theme.pillBorder}" stroke-width="1" />
+    ${pillIconSvg}
+    <text x="${pillX + pillPadX + pillIconSize + pillGap}" y="${pillY + pillH / 2 + 8}" font-family="Hanken Grotesk" font-size="22" font-weight="700" letter-spacing="3" fill="${theme.pillTextColor}">${escapeXml(theme.pillLabel)}</text>
 
-    <rect x="372" y="306" width="336" height="336" rx="85" fill="url(#ring)" filter="url(#softShadow)" />
-    <rect x="383" y="317" width="314" height="314" rx="75" fill="${isGoalkeeper ? "#DC8A1A" : "#0a3f23"}" />
+    ${
+      theme.crownAbovePhoto
+        ? `<g transform="translate(508 ${photoTop - 60}) scale(2.67)" filter="url(#crownShadow)"><path d="${CROWN_PATH}" fill="${C.craque}" /></g>`
+        : ""
+    }
+
+    <rect x="${photoX}" y="${photoTop}" width="${photoSize}" height="${photoSize}" rx="${photoRx}" fill="url(#photoRing)" filter="url(#photoShadow)" />
+    <rect x="${photoX + photoInnerInset}" y="${photoTop + photoInnerInset}" width="${photoInner.size}" height="${photoInner.size}" rx="${photoInner.rx}" fill="${isGoalkeeper ? C.goalkeeper : "#0a3f23"}" />
     ${
       photoSrc
-        ? `<image href="${photoSrc}" xlink:href="${photoSrc}" x="383" y="317" width="314" height="314" preserveAspectRatio="xMidYMid slice" clip-path="url(#photoClip)" />`
-        : `<text x="540" y="522" text-anchor="middle" font-family="Inter" font-size="150" font-weight="800" fill="#fff">${initial}</text>`
+        ? `<image href="${photoSrc}" xlink:href="${photoSrc}" x="${photoX + photoInnerInset}" y="${photoTop + photoInnerInset}" width="${photoInner.size}" height="${photoInner.size}" preserveAspectRatio="xMidYMid slice" clip-path="url(#photoClip)" />`
+        : `<text x="540" y="${photoTop + photoSize / 2 + 55}" text-anchor="middle" font-family="Bricolage Grotesque" font-size="160" font-weight="800" fill="#fff">${initial}</text>`
     }
-    <circle cx="682" cy="615" r="48" fill="${theme.badgeBg}" stroke="${theme.bgEnd}" stroke-width="8" />
-    ${
-      isGold
-        ? `<path d="M663 607h-8a15 15 0 0 1 0-30h8m34 30h8a15 15 0 0 0 0-30h-8M652 648h56M674 627v10c0 5-4 8-8 10-8 4-13 10-13 21m53 0c0-11-5-17-13-21-4-2-8-5-8-10v-10M697 567h-34v40a17 17 0 0 0 34 0v-40Z" fill="none" stroke="#16261D" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />`
-        : `<text x="682" y="629" text-anchor="middle" font-family="Inter" font-size="38" font-weight="700" fill="${theme.badgeColor}">${escapeXml(badgeLabel)}</text>`
-    }
+    <circle cx="${badgeCx}" cy="${badgeCy}" r="${badgeSize / 2}" fill="${theme.badgeBg}" stroke="${theme.badgeBorderColor}" stroke-width="5" />
+    <text x="${badgeCx}" y="${badgeCy + 11}" text-anchor="middle" font-family="Saira Condensed" font-size="32" font-weight="700" fill="${theme.badgeTextColor}">${escapeXml(badgeLabel)}</text>
 
-    <text x="540" y="776" text-anchor="middle" font-family="Inter" font-size="101" font-weight="800" fill="#fff">${safeName}</text>
-    <text x="540" y="836" text-anchor="middle" font-family="Inter" font-size="35" font-weight="700" letter-spacing="6" fill="${theme.sub}">${escapeXml(`${isGoalkeeper ? "Goleiro" : "Linha"} · ${peladaName}`.toUpperCase())}</text>
+    <text x="540" y="${nameY}" text-anchor="middle" font-family="Bricolage Grotesque" font-size="92" font-weight="800" letter-spacing="-1" fill="${theme.nameColor}">${safeName}</text>
+    <text x="540" y="${roleY}" text-anchor="middle" font-family="Hanken Grotesk" font-size="26" font-weight="700" letter-spacing="4.2" fill="${theme.roleColor}">${escapeXml(roleLine)}</text>
+  </g>
 
-    <rect x="64" y="870" width="952" height="400" rx="59" fill="rgba(255,255,255,.07)" stroke="rgba(255,255,255,.13)" stroke-width="3" />
-    <text x="166" y="1002" font-family="Inter" font-size="123" font-weight="700" fill="${isGold ? "#F4A11A" : "#ffffff"}">${escapeXml(ratingLabel)}</text>
-    <text x="402" y="948" font-family="Inter" font-size="29" font-weight="700" letter-spacing="4" fill="${theme.sub}">NOTA DA GALERA</text>
-    <g transform="translate(402 976)">
-      ${[0, 1, 2, 3, 4].map((index) => star(index, filledStars, isGold ? "#F4A11A" : "#9fe3b8")).join("")}
+  <g filter="url(#cardShadow)">
+    <rect x="${cardX}" y="${cardY}" width="${cardW}" height="${cardH}" rx="${cardRx}" fill="#ffffff" />
+  </g>
+  <g>
+    <text x="540" y="${labelY}" text-anchor="middle" font-family="Hanken Grotesk" font-size="23" font-weight="700" letter-spacing="3.2" fill="${C.musgo}">NOTA DA GALERA</text>
+    <g>
+      ${[0, 1, 2, 3, 4].map((i) => ratingStar(540 - 110 + i * 46, starsY, 38, i < filledStars)).join("")}
     </g>
-    <text x="402" y="1052" font-family="Inter" font-size="31" fill="rgba(255,255,255,.55)">${escapeXml(ratingCopy)}</text>
-    <line x1="112" y1="1076" x2="968" y2="1076" stroke="rgba(255,255,255,.1)" stroke-width="3" />
-    ${statColumn(230, String(goals), "Gols")}
-    <line x1="384" y1="1100" x2="384" y2="1230" stroke="rgba(255,255,255,.1)" stroke-width="3" />
-    ${statColumn(540, String(assists), "Assist.")}
-    <line x1="696" y1="1100" x2="696" y2="1230" stroke="rgba(255,255,255,.1)" stroke-width="3" />
-    ${statColumn(850, thirdStatValue, thirdStatLabel, isGold ? "#F4A11A" : "#9fe3b8")}
+    <text x="540" y="${captionY}" text-anchor="middle" font-family="Hanken Grotesk" font-size="19" font-weight="500" fill="${C.musgo}">${escapeXml(ratingCopy)}</text>
 
-    <text x="540" y="1362" text-anchor="middle" font-family="Inter" font-size="48" font-weight="800" fill="#fff">"${escapeXml(punchlineTop)}</text>
-    <text x="540" y="1418" text-anchor="middle" font-family="Inter" font-size="48" font-weight="800" fill="#fff">${escapeXml(punchlineBottom)}"</text>
-    <text x="540" y="1486" text-anchor="middle" font-family="Inter" font-size="32" fill="rgba(255,255,255,.5)">${escapeXml(`${matchTitle} · ${dateLabel}`)}</text>
+    <line x1="${cardX + 40}" y1="${dividerY}" x2="${cardX + cardW - 40}" y2="${dividerY}" stroke="${C.linha}" stroke-width="1" />
 
-    <line x1="64" y1="1642" x2="1016" y2="1642" stroke="rgba(255,255,255,.12)" stroke-width="3" />
-    <text x="540" y="1708" text-anchor="middle" font-family="Inter" font-size="44" font-weight="800" fill="#fff">Organize sua própria pelada</text>
-    <text x="540" y="1760" text-anchor="middle" font-family="Inter" font-size="32" fill="rgba(255,255,255,.5)">Baixe o app Donos da Pelada</text>
-    <text x="540" y="1812" text-anchor="middle" font-family="Inter" font-size="28" fill="rgba(255,255,255,.4)">Acesse em donos-da-pelada.vercel.app</text>
+    <text x="${col1}" y="${statNumberY}" text-anchor="middle" font-family="Saira Condensed" font-size="70" font-weight="700" fill="${theme.statNumberColor(0)}">${goals}</text>
+    <text x="${col1}" y="${statLabelY}" text-anchor="middle" font-family="Hanken Grotesk" font-size="18" font-weight="700" letter-spacing="1.8" fill="${C.musgo}">GOLS</text>
+
+    <line x1="${divider1X}" y1="${statTop}" x2="${divider1X}" y2="${statLabelY}" stroke="${C.linha}" stroke-width="1" />
+
+    <text x="${col2}" y="${statNumberY}" text-anchor="middle" font-family="Saira Condensed" font-size="70" font-weight="700" fill="${theme.statNumberColor(1)}">${assists}</text>
+    <text x="${col2}" y="${statLabelY}" text-anchor="middle" font-family="Hanken Grotesk" font-size="18" font-weight="700" letter-spacing="1.8" fill="${C.musgo}">ASSIST.</text>
+
+    <line x1="${divider2X}" y1="${statTop}" x2="${divider2X}" y2="${statLabelY}" stroke="${C.linha}" stroke-width="1" />
+
+    <text x="${col3}" y="${statNumberY}" text-anchor="middle" font-family="Saira Condensed" font-size="70" font-weight="700" fill="${theme.statNumberColor(2)}">${escapeXml(thirdStatValue)}</text>
+    <text x="${col3}" y="${statLabelY}" text-anchor="middle" font-family="Hanken Grotesk" font-size="18" font-weight="700" letter-spacing="1.8" fill="${C.musgo}">${escapeXml(thirdStatLabel.toUpperCase())}</text>
+  </g>
+
+  <g>
+    <path transform="translate(500 ${quoteTopY})" d="M0 30V17.5C0 7.8 6.5 1 16 0v7.3C10.4 8.4 7.6 12 7.6 17.5H16V30H0zm22 0V17.5C22 7.8 28.5 1 38 0v7.3c-5.6 1.1-8.4 4.7-8.4 10.2H38V30H22z" fill="${C.craque}" opacity=".55" />
+    <text x="540" y="${quoteLine1Y}" text-anchor="middle" font-family="Bricolage Grotesque" font-size="44" font-weight="700" fill="${C.tinta}">${escapeXml(punchlineTop)}</text>
+    <text x="540" y="${quoteLine2Y}" text-anchor="middle" font-family="Bricolage Grotesque" font-size="44" font-weight="700" fill="${C.tinta}">${escapeXml(punchlineBottom)}</text>
+    <text x="540" y="${quoteMetaY}" text-anchor="middle" font-family="Hanken Grotesk" font-size="18" font-weight="600" fill="${C.musgo}">${escapeXml(`${matchTitle} · ${dateLabel}`)}</text>
+  </g>
+
+  <g filter="url(#footerShadow)">
+    <rect x="${footerX}" y="${footerY}" width="${footerW}" height="${footerH}" rx="22" fill="url(#footerBg)" />
+  </g>
+  <g clip-path="url(#footerClip)">
+    <rect x="${footerX}" y="${footerY}" width="${footerW}" height="${footerH}" fill="url(#hairlineFooter)" />
+  </g>
+  <g>
+    <rect x="${crestOuter.x}" y="${crestOuter.y}" width="${crestOuter.size}" height="${crestOuter.size}" rx="${crestOuter.rx}" fill="#ffffff" />
+    <rect x="${crestInner.x}" y="${crestInner.y}" width="${crestInner.size}" height="${crestInner.size}" rx="${crestInner.rx}" fill="url(#crestGrad)" />
+    <path transform="translate(${crestInner.x + crestInner.size / 2 - 13} ${crestInner.y + crestInner.size / 2 - 13}) scale(1.1)" d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+
+    <text x="540" y="${footerHeadlineY}" text-anchor="middle" font-family="Bricolage Grotesque" font-size="38" font-weight="800" fill="#fff">Organize sua própria pelada</text>
+    <text x="540" y="${footerSublineY}" text-anchor="middle" font-family="Hanken Grotesk" font-size="20" font-weight="600" fill="rgba(255,255,255,.82)">Baixe o app Donos da Pelada</text>
+
+    <rect x="${pillCtaX}" y="${pillCtaY}" width="${pillCtaW}" height="${pillCtaH}" rx="14" fill="${C.craque}" />
+    <text x="540" y="${pillCtaY + pillCtaH / 2 + 9}" text-anchor="middle" font-family="Hanken Grotesk" font-size="24" font-weight="700" fill="${C.tinta}">${pillCtaText}</text>
   </g>
 </svg>`;
 }

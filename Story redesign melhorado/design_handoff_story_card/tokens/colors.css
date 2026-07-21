@@ -1,0 +1,47 @@
+:root{
+  /* base brand colors */
+  --campo: #1B9E4B;
+  --mata: #0B4A29;
+  --craque: #F4A11A;
+  --tinta: #16261D;
+  --musgo: #69786D;
+  --linha: #E6EADF;
+  --areia: #F1F4ED;
+  --ausente: #DC5B45;
+  --gold: #facc15;
+
+  /* field scale (dark greens, used for hero/depth) */
+  --field-950: #04130a;
+  --field-900: #062414;
+  --field-800: #08351e;
+  --field-700: #0b4a2b;
+  --field-500: #16a34a;
+  --field-300: #86efac;
+
+  /* support tones used throughout the app */
+  --tint-green: #EAF5EC;
+  --tint-craque: #FCEFD6;
+  --tint-input: #F6F8F3;
+  --muted-icon: #A7AFA1;
+  --craque-text-dark: #8a5a06;
+  --craque-text-darker: #C58207;
+  --goalkeeper: #DC8A1A;
+  --error-tint: #FFF4F2;
+  --error-border: #F3C6C1;
+  --error-text: #7A2D26;
+
+  /* semantic aliases */
+  --surface-app: var(--areia);
+  --surface-card: #ffffff;
+  --surface-input: var(--tint-input);
+  --surface-sheet: #F6F8F3;
+  --text-body: var(--tinta);
+  --text-muted: var(--musgo);
+  --text-inactive: var(--muted-icon);
+  --border-default: var(--linha);
+  --action-primary: var(--campo);
+  --action-primary-dark: var(--mata);
+  --accent-craque: var(--craque);
+  --state-negative: var(--ausente);
+  --state-positive: var(--campo);
+}

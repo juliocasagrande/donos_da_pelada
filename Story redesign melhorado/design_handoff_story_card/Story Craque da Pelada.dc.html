@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/donos-da-pelada-design-system-9c1b7102-810e-410b-88a1-297633d3e6a1/tokens/colors.css">
+<link rel="stylesheet" href="_ds/donos-da-pelada-design-system-9c1b7102-810e-410b-88a1-297633d3e6a1/tokens/typography.css">
+<link rel="stylesheet" href="_ds/donos-da-pelada-design-system-9c1b7102-810e-410b-88a1-297633d3e6a1/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/donos-da-pelada-design-system-9c1b7102-810e-410b-88a1-297633d3e6a1/tokens/shadows.css">
+<link rel="stylesheet" href="_ds/donos-da-pelada-design-system-9c1b7102-810e-410b-88a1-297633d3e6a1/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/donos-da-pelada-design-system-9c1b7102-810e-410b-88a1-297633d3e6a1/styles.css">
+<script src="_ds/donos-da-pelada-design-system-9c1b7102-810e-410b-88a1-297633d3e6a1/_ds_bundle.js"></script>
+<script src="./image-slot.js"></script>
+<style>
+  body{margin:0}
+  a{color:var(--craque)}
+  a:hover{color:var(--craque-text-dark)}
+</style>
+</helmet>
+
+<div style="width:1080px;height:1920px;position:relative;overflow:hidden;background:var(--areia);font-family:var(--font-sans)">
+
+  <!-- gold hero -->
+  <div style="position:absolute;top:0;left:0;right:0;height:1000px;background:radial-gradient(circle at 50% -10%,rgba(255,235,180,.5),transparent 55%),linear-gradient(165deg,#5c3a08,var(--craque) 78%)">
+    <div style="position:absolute;inset:0;background-image:repeating-linear-gradient(115deg, rgba(255,255,255,.10) 0 1px, transparent 1px 64px)"></div>
+    <div style="position:absolute;width:460px;height:460px;right:-140px;top:-140px;border:2px solid rgba(255,255,255,.18);border-radius:50%"></div>
+    <div style="position:absolute;width:280px;height:280px;left:-90px;top:520px;border:2px solid rgba(255,255,255,.14);border-radius:50%"></div>
+
+    <div style="position:relative;display:flex;flex-direction:column;align-items:center;padding-top:72px">
+      <div style="display:inline-flex;align-items:center;gap:12px;border-radius:var(--radius-pill);padding:14px 30px;background:rgba(0,0,0,.16);border:1px solid rgba(255,255,255,.28);backdrop-filter:blur(6px)">
+        <svg width="22" height="20" viewBox="0 0 24 20" fill="var(--tinta)"><path d="M2 7l4 3 6-8 6 8 4-3-2 11H4L2 7zm2 13h16v2H4v-2z"></path></svg>
+        <span style="font-weight:700;font-size:22px;letter-spacing:.14em;color:var(--tinta)">CRAQUE DA PELADA</span>
+      </div>
+
+      <div style="position:relative;margin-top:56px">
+        <svg width="64" height="52" viewBox="0 0 24 20" fill="var(--craque)" style="position:absolute;top:-40px;left:50%;transform:translateX(-50%);filter:drop-shadow(0 6px 14px rgba(0,0,0,.35))"><path d="M2 7l4 3 6-8 6 8 4-3-2 11H4L2 7zm2 13h16v2H4v-2z"></path></svg>
+        <div style="width:420px;height:420px;border-radius:var(--radius-hero);padding:6px;background:linear-gradient(150deg,#fff,#fff2cf);box-shadow:0 20px 50px rgba(0,0,0,.4)">
+          <image-slot id="player-photo" shape="rounded" radius="24" placeholder="Foto do jogador" style="width:100%;height:100%"></image-slot>
+        </div>
+        <div style="position:absolute;right:-16px;bottom:-16px;width:92px;height:92px;border-radius:50%;background:var(--tinta);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(0,0,0,.4);border:5px solid var(--craque)">
+          <span style="font-family:var(--font-jersey);font-weight:700;font-size:30px;color:var(--craque)">7x</span>
+        </div>
+      </div><div style="margin-top:48px;font-family:var(--font-display);font-weight:800;font-size:92px;color:var(--tinta);letter-spacing:-.01em">Casagrande</div>
+
+      
+      <div style="margin-top:10px;font-weight:700;font-size:26px;letter-spacing:.16em;color:var(--tinta)">MEIA · CRAQUE DA RODADA</div>
+    </div>
+  </div>
+
+  <!-- overlapping stats card -->
+  <div style="position:absolute;top:940px;left:64px;right:64px;background:#fff;border-radius:var(--radius-card-lg);box-shadow:var(--shadow-sheet);padding:44px 40px">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+      <div style="font-weight:700;font-size:23px;letter-spacing:.14em;color:var(--musgo)">NOTA DA GALERA</div>
+      <div style="display:flex;gap:8px">
+        <svg width="38" height="38" viewBox="0 0 24 24" fill="var(--craque)"><path d="M12 2l2.9 6.6L22 9.3l-5 4.9 1.2 7.1L12 17.8l-6.2 3.5L7 14.2 2 9.3l7.1-.7L12 2z"></path></svg>
+        <svg width="38" height="38" viewBox="0 0 24 24" fill="var(--craque)"><path d="M12 2l2.9 6.6L22 9.3l-5 4.9 1.2 7.1L12 17.8l-6.2 3.5L7 14.2 2 9.3l7.1-.7L12 2z"></path></svg>
+        <svg width="38" height="38" viewBox="0 0 24 24" fill="var(--craque)"><path d="M12 2l2.9 6.6L22 9.3l-5 4.9 1.2 7.1L12 17.8l-6.2 3.5L7 14.2 2 9.3l7.1-.7L12 2z"></path></svg>
+        <svg width="38" height="38" viewBox="0 0 24 24" fill="var(--craque)"><path d="M12 2l2.9 6.6L22 9.3l-5 4.9 1.2 7.1L12 17.8l-6.2 3.5L7 14.2 2 9.3l7.1-.7L12 2z"></path></svg>
+        <svg width="38" height="38" viewBox="0 0 24 24" fill="var(--craque)"><path d="M12 2l2.9 6.6L22 9.3l-5 4.9 1.2 7.1L12 17.8l-6.2 3.5L7 14.2 2 9.3l7.1-.7L12 2z"></path></svg>
+      </div>
+      <div style="font-size:19px;color:var(--musgo)">42 jogadores avaliaram</div>
+    </div>
+
+    <div style="margin-top:34px;padding-top:34px;border-top:1px solid var(--linha);display:flex;align-items:stretch">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">
+        <div style="font-family:var(--font-jersey);font-weight:700;font-size:70px;color:var(--craque-text-dark)">3</div>
+        <div style="font-weight:700;font-size:18px;letter-spacing:.1em;color:var(--musgo)">GOLS</div>
+      </div>
+      <div style="width:1px;background:var(--linha)"></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">
+        <div style="font-family:var(--font-jersey);font-weight:700;font-size:70px;color:var(--craque-text-dark)">2</div>
+        <div style="font-weight:700;font-size:18px;letter-spacing:.1em;color:var(--musgo)">ASSIST.</div>
+      </div>
+      <div style="width:1px;background:var(--linha)"></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">
+        <div style="font-family:var(--font-jersey);font-weight:700;font-size:70px;color:var(--craque-text-dark)">12</div>
+        <div style="font-weight:700;font-size:18px;letter-spacing:.1em;color:var(--musgo)">PRESENÇA</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- quote -->
+  <div style="position: absolute; top: 1342px; left: 64px; right: 64px; display: flex; flex-direction: column; align-items: center; gap: 12px">
+    <svg width="40" height="30" viewBox="0 0 40 30" fill="var(--craque)" style="opacity:.55"><path d="M0 30V17.5C0 7.8 6.5 1 16 0v7.3C10.4 8.4 7.6 12 7.6 17.5H16V30H0zm22 0V17.5C22 7.8 28.5 1 38 0v7.3c-5.6 1.1-8.4 4.7-8.4 10.2H38V30H22z"></path></svg>
+    <div style="font-family:var(--font-display);font-weight:700;font-size:44px;line-height:1.24;color:var(--tinta);text-align:center">O rei do gramado<br>é ele.</div>
+    <div style="font-size:18px;color:var(--musgo);font-weight:600">Pelada da semana · 26 jul 2026</div>
+  </div>
+
+  <!-- footer CTA -->
+  <div style="position:absolute;left:64px;right:64px;bottom:64px;background:linear-gradient(135deg,var(--mata),var(--field-800));border-radius:var(--radius-card-lg);padding:36px 40px;display:flex;flex-direction:column;align-items:center;gap:12px;box-shadow:var(--shadow-glow);overflow:hidden">
+    <div style="position:absolute;inset:0;background-image:repeating-linear-gradient(115deg, rgba(255,255,255,.05) 0 1px, transparent 1px 64px)"></div>
+    <div style="position:relative;width:76px;height:76px;border-radius:20px;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 24px rgba(0,0,0,.25)">
+      <x-import component-from-global-scope="DonosDaPeladaDesignSystem_9c1b71.PeladaCrest" size="{{ crestSize }}" hint-size="46px,46px"></x-import>
+    </div>
+    <div style="position:relative;font-family:var(--font-display);font-weight:800;font-size:38px;color:#fff;text-align:center">Organize sua própria pelada</div>
+    <div style="position:relative;font-size:20px;color:rgba(255,255,255,.82);font-weight:600">Baixe o app Donos da Pelada</div>
+    <div style="position: relative; display: inline-flex; align-items: center; gap: 10px; margin-top: 8px; background: var(--craque); color: var(--tinta); font-weight: 700; font-size: 24px; padding: 16px 34px; border-radius: 14px; box-shadow: var(--shadow-button-craque)">donosdapelada.com</div>
+  </div>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return { crestSize: 46 };
+  }
+}
+
+</script>
+</body>
+</html>
