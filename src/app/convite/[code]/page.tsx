@@ -1,10 +1,11 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowLeft, Check } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Card } from "@/components/ui/Card";
 import { PeladaCrest } from "@/components/ui/PeladaCrest";
 import { SubmitButton } from "@/components/forms/SubmitButton";
-import { acceptInvite } from "@/lib/peladaOnboardingActions";
+import { acceptInvite, buildInvitePath, isInviteValid, resolvePostJoinPath } from "@/lib/peladaOnboardingActions";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 
@@ -18,7 +19,7 @@ export default async function ConviteCodePage({
   const { code } = await params;
   const { error, matchId } = await searchParams;
   const user = await getCurrentUser();
-  const invitePath = `/convite/${code}${matchId ? `?matchId=${encodeURIComponent(matchId)}` : ""}`;
+  const invitePath = buildInvitePath(code, matchId);
   const loginHref = `/login?callbackUrl=${encodeURIComponent(invitePath)}`;
   const logoutHref = `/logout?callbackUrl=${encodeURIComponent(invitePath)}`;
 
@@ -34,11 +35,16 @@ export default async function ConviteCodePage({
     }
   });
 
-  const valid =
-    invite &&
-    !invite.revokedAt &&
-    (!invite.expiresAt || invite.expiresAt > new Date()) &&
-    (invite.maxUses == null || invite.usedCount < invite.maxUses);
+  const valid = isInviteValid(invite);
+
+  if (invite && user && user.active) {
+    const existingMembership = await prisma.peladaMembership.findUnique({
+      where: { userId_peladaId: { userId: user.id, peladaId: invite.peladaId } }
+    });
+    if (existingMembership) {
+      redirect(await resolvePostJoinPath(user.id, invite.peladaId, matchId));
+    }
+  }
 
   const presidente = valid
     ? await prisma.peladaMembership.findFirst({

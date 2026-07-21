@@ -13,9 +13,13 @@ import { isPeladaAdmin, requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { VOTING_WINDOW_HOURS } from "@/lib/attendance";
 
+function pollExpiresAt(createdAt: Date) {
+  return createdAt.getTime() + VOTING_WINDOW_HOURS * 60 * 60 * 1000;
+}
+
 function isVotingOpen(createdAt?: Date, status?: string) {
   if (!createdAt || status !== "OPEN") return false;
-  return Date.now() - createdAt.getTime() <= VOTING_WINDOW_HOURS * 60 * 60 * 1000;
+  return Date.now() <= pollExpiresAt(createdAt);
 }
 
 function votingEndsAt(createdAt?: Date) {
@@ -24,7 +28,7 @@ function votingEndsAt(createdAt?: Date) {
     hour: "2-digit",
     minute: "2-digit",
     timeZone: "America/Sao_Paulo"
-  }).format(new Date(createdAt.getTime() + VOTING_WINDOW_HOURS * 60 * 60 * 1000));
+  }).format(new Date(pollExpiresAt(createdAt)));
 }
 
 function VotingRuleStatus({
@@ -155,9 +159,7 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
       .map((player) => player.userId!)
   );
   const pendingResponses = Math.max(0, eligibleUserIds.length - completedUserIds.size);
-  const votingMsLeft = poll?.createdAt
-    ? Math.max(0, poll.createdAt.getTime() + VOTING_WINDOW_HOURS * 60 * 60 * 1000 - Date.now())
-    : 0;
+  const votingMsLeft = poll?.createdAt ? Math.max(0, pollExpiresAt(poll.createdAt) - Date.now()) : 0;
   const votingMinutesLeft = Math.ceil(votingMsLeft / 60000);
 
   return (

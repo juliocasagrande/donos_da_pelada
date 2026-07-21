@@ -66,6 +66,21 @@ async function uniqueSlug(name: string) {
   return slug;
 }
 
+export function buildInvitePath(code: string, matchId?: string) {
+  return `/convite/${code}${matchId ? `?matchId=${encodeURIComponent(matchId)}` : ""}`;
+}
+
+type InviteValidity = { revokedAt: Date | null; expiresAt: Date | null; maxUses: number | null; usedCount: number };
+
+export function isInviteValid<T extends InviteValidity>(invite: T | null): invite is T {
+  if (!invite) return false;
+  return (
+    !invite.revokedAt &&
+    (!invite.expiresAt || invite.expiresAt > new Date()) &&
+    (invite.maxUses == null || invite.usedCount < invite.maxUses)
+  );
+}
+
 async function setActivePeladaCookie(peladaId: string) {
   const cookieStore = await cookies();
   cookieStore.set(ACTIVE_PELADA_COOKIE, peladaId, {
@@ -135,18 +150,29 @@ export async function revokeInvite(inviteId: string) {
   revalidatePath("/admins/convites");
 }
 
+/**
+ * Resolves where a user should land after joining (or already belonging to) a
+ * pelada, optionally jumping straight into a specific match's attendance
+ * screen when one is referenced.
+ */
+export async function resolvePostJoinPath(userId: string, peladaId: string, matchId?: string) {
+  const targetMatch = matchId
+    ? await prisma.match.findFirst({
+        where: { id: matchId, peladaId, status: "OPEN", deletedAt: null },
+        select: { id: true }
+      })
+    : null;
+  const alreadyOnboarded = await autoCreatePlayerIfOnboarded(userId, peladaId);
+  await setActivePeladaCookie(peladaId);
+  return alreadyOnboarded ? (targetMatch ? `/matches/${targetMatch.id}/attendance` : "/dashboard") : "/perfil/onboarding";
+}
+
 export async function acceptInvite(code: string, matchId?: string) {
   const user = await getCurrentUser();
-  if (!user || !user.active) redirect(`/login?callbackUrl=${encodeURIComponent(`/convite/${code}${matchId ? `?matchId=${encodeURIComponent(matchId)}` : ""}`)}`);
+  if (!user || !user.active) redirect(`/login?callbackUrl=${encodeURIComponent(buildInvitePath(code, matchId))}`);
 
   const invite = await prisma.peladaInvite.findUnique({ where: { code } });
-  const valid =
-    invite &&
-    !invite.revokedAt &&
-    (!invite.expiresAt || invite.expiresAt > new Date()) &&
-    (invite.maxUses == null || invite.usedCount < invite.maxUses);
-
-  if (!invite || !valid) {
+  if (!isInviteValid(invite)) {
     redirect(`/convite/${code}?error=Convite%20invalido%20ou%20expirado`);
   }
 
@@ -163,15 +189,7 @@ export async function acceptInvite(code: string, matchId?: string) {
     ]);
   }
 
-  const targetMatch = matchId
-    ? await prisma.match.findFirst({
-        where: { id: matchId, peladaId: invite.peladaId, status: "OPEN", deletedAt: null },
-        select: { id: true }
-      })
-    : null;
-  const alreadyOnboarded = await autoCreatePlayerIfOnboarded(user.id, invite.peladaId);
-  await setActivePeladaCookie(invite.peladaId);
-  redirect(alreadyOnboarded ? (targetMatch ? `/matches/${targetMatch.id}/attendance` : "/dashboard") : "/perfil/onboarding");
+  redirect(await resolvePostJoinPath(user.id, invite.peladaId, matchId));
 }
 
 export async function requestJoinPelada(peladaId: string) {

@@ -263,19 +263,21 @@ export default async function MatchesPage({
                   {closed ? "Encerrada" : "Aberta"}
                 </span>
               </div>
-              <div className={cn("mt-3 grid gap-2", isAdmin ? "grid-cols-3" : "grid-cols-2")}>
-                <Link href={`/matches/${match.id}/attendance`} className="flex items-center justify-center gap-1.5 rounded-[11px] bg-areia px-3 py-2 text-center text-xs font-bold">
-                  <ListChecks size={14} /> Presenca
-                </Link>
-                <Link href={`/matches/${match.id}/teams`} className="flex items-center justify-center gap-1.5 rounded-[11px] bg-areia px-3 py-2 text-center text-xs font-bold">
-                  <Shirt size={14} /> Times
-                </Link>
-                {isAdmin ? (
-                  <Link href={`/matches/${match.id}/sumula`} className="rounded-[11px] bg-areia px-3 py-2 text-center text-xs font-bold">
-                    Sumula
+              {!closed || !isAdmin ? (
+                <div className={cn("mt-3 grid gap-2", isAdmin ? "grid-cols-3" : "grid-cols-2")}>
+                  <Link href={`/matches/${match.id}/attendance`} className="flex items-center justify-center gap-1.5 rounded-[11px] bg-areia px-3 py-2 text-center text-xs font-bold">
+                    <ListChecks size={14} /> Presenca
                   </Link>
-                ) : null}
-              </div>
+                  <Link href={`/matches/${match.id}/teams`} className="flex items-center justify-center gap-1.5 rounded-[11px] bg-areia px-3 py-2 text-center text-xs font-bold">
+                    <Shirt size={14} /> Times
+                  </Link>
+                  {isAdmin ? (
+                    <Link href={`/matches/${match.id}/sumula`} className="rounded-[11px] bg-areia px-3 py-2 text-center text-xs font-bold">
+                      Sumula
+                    </Link>
+                  ) : null}
+                </div>
+              ) : null}
               {isAdmin && !closed ? (
                 <MatchWhatsappShareLink
                   matchId={match.id}

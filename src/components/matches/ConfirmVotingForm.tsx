@@ -1,9 +1,8 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { useToast } from "@/components/ui/ToastProvider";
+import { useActionFeedback } from "@/hooks/useActionFeedback";
 import { confirmMatchVoting } from "@/lib/actions";
 
 export function ConfirmVotingForm({
@@ -15,17 +14,10 @@ export function ConfirmVotingForm({
   disabled?: boolean;
   disabledReason?: string;
 }) {
-  const toast = useToast();
-  const [state, formAction, isPending] = useActionState(
-    (_prevState: { ok: boolean; error?: string } | null) => confirmMatchVoting(matchId),
-    null
+  const [state, formAction, isPending] = useActionFeedback(
+    () => confirmMatchVoting(matchId),
+    { successMessage: "Votacao confirmada." }
   );
-
-  useEffect(() => {
-    if (!state) return;
-    if (state.ok) toast.success("Votacao confirmada.");
-    if (state.error) toast.error(state.error);
-  }, [state, toast]);
 
   return (
     <form action={formAction} className="space-y-2">

@@ -1,13 +1,10 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
 import { PlayerAvatar } from "@/components/players/PlayerAvatar";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { useToast } from "@/components/ui/ToastProvider";
+import { useActionFeedback } from "@/hooks/useActionFeedback";
 import { updateStats } from "@/lib/actions";
-
-type ActionState = { ok: boolean; error?: string } | null;
 
 type MatchStatsPlayer = {
   id: string;
@@ -20,17 +17,10 @@ type MatchStatsPlayer = {
 };
 
 export function MatchStatsForm({ matchId, players }: { matchId: string; players: MatchStatsPlayer[] }) {
-  const toast = useToast();
-  const [state, formAction, isPending] = useActionState(
-    (_prevState: ActionState, formData: FormData) => updateStats(matchId, formData),
-    null
+  const [state, formAction, isPending] = useActionFeedback(
+    (_prevState, formData: FormData) => updateStats(matchId, formData),
+    { successMessage: "Estatisticas salvas." }
   );
-
-  useEffect(() => {
-    if (!state) return;
-    if (state.ok) toast.success("Estatisticas salvas.");
-    if (state.error) toast.error(state.error);
-  }, [state, toast]);
 
   return (
     <form action={formAction} className="space-y-3">

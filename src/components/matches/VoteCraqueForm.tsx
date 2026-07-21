@@ -1,22 +1,14 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
-import { useToast } from "@/components/ui/ToastProvider";
+import { useActionFeedback } from "@/hooks/useActionFeedback";
 import { voteCraque } from "@/lib/actions";
 
 export function VoteCraqueForm({ pollId, playerId }: { pollId: string; playerId: string }) {
-  const toast = useToast();
-  const [state, formAction, isPending] = useActionState(
-    (_prevState: { ok: boolean; error?: string } | null) => voteCraque(pollId, playerId),
-    null
+  const [state, formAction, isPending] = useActionFeedback(
+    () => voteCraque(pollId, playerId),
+    { successMessage: "Voto salvo." }
   );
-
-  useEffect(() => {
-    if (!state) return;
-    if (state.ok) toast.success("Voto salvo.");
-    if (state.error) toast.error(state.error);
-  }, [state, toast]);
 
   return (
     <div>

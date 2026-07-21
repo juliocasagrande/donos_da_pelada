@@ -1,12 +1,9 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { useToast } from "@/components/ui/ToastProvider";
+import { useActionFeedback } from "@/hooks/useActionFeedback";
 import { updateMatchScore } from "@/lib/actions";
-
-type ActionState = { ok: boolean; error?: string } | null;
 
 export function MatchScoreForm({
   matchId,
@@ -21,17 +18,10 @@ export function MatchScoreForm({
   homeScore: number | null;
   awayScore: number | null;
 }) {
-  const toast = useToast();
-  const [state, formAction, isPending] = useActionState(
-    (_prevState: ActionState, formData: FormData) => updateMatchScore(matchId, formData),
-    null
+  const [state, formAction, isPending] = useActionFeedback(
+    (_prevState, formData: FormData) => updateMatchScore(matchId, formData),
+    { successMessage: "Placar salvo." }
   );
-
-  useEffect(() => {
-    if (!state) return;
-    if (state.ok) toast.success("Placar salvo.");
-    if (state.error) toast.error(state.error);
-  }, [state, toast]);
 
   return (
     <form action={formAction} className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">

@@ -1,13 +1,11 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useState } from "react";
 import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { useToast } from "@/components/ui/ToastProvider";
+import { useActionFeedback } from "@/hooks/useActionFeedback";
 import { submitOwnMatchStats } from "@/lib/actions";
-
-type ActionState = { ok: boolean; error?: string } | null;
 
 export function OwnMatchStatsForm({
   matchId,
@@ -22,29 +20,19 @@ export function OwnMatchStatsForm({
   defenses: number;
   saved?: boolean;
 }) {
-  const toast = useToast();
   const [editing, setEditing] = useState(!saved);
   const [savedGoals, setSavedGoals] = useState(goals);
   const [savedAssists, setSavedAssists] = useState(assists);
   const [savedDefenses, setSavedDefenses] = useState(defenses);
-  const [state, formAction, isPending] = useActionState(
-    (_prevState: ActionState, formData: FormData) => {
+  const [state, formAction, isPending] = useActionFeedback(
+    (_prevState, formData: FormData) => {
       setSavedGoals(Number(formData.get("goals") || 0));
       setSavedAssists(Number(formData.get("assists") || 0));
       setSavedDefenses(Number(formData.get("defenses") || 0));
       return submitOwnMatchStats(matchId, formData);
     },
-    null
+    { successMessage: "Numeros salvos.", onSuccess: () => setEditing(false) }
   );
-
-  useEffect(() => {
-    if (!state) return;
-    if (state.ok) {
-      setEditing(false);
-      toast.success("Numeros salvos.");
-    }
-    if (state.error) toast.error(state.error);
-  }, [state, toast]);
 
   if (!editing) {
     return (

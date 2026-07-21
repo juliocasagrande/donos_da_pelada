@@ -1,14 +1,13 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { useToast } from "@/components/ui/ToastProvider";
+import { useActionFeedback } from "@/hooks/useActionFeedback";
 import { updateOwnAttendanceStatus } from "@/lib/actions";
 import { cn } from "@/lib/utils";
 
 type AttendanceStatus = "CONFIRMED" | "WAITLIST" | "OUT" | null;
-type ActionState = { ok: boolean; error?: string; status?: AttendanceStatus } | null;
 
 export function DashboardAttendanceActions({
   matchId,
@@ -17,15 +16,14 @@ export function DashboardAttendanceActions({
   matchId: string;
   attendanceStatus: AttendanceStatus;
 }) {
-  const toast = useToast();
   const [selectedStatus, setSelectedStatus] = useState<AttendanceStatus>(attendanceStatus);
-  const [confirmState, confirmAction, confirmPending] = useActionState(
-    (_previous: ActionState) => updateOwnAttendanceStatus(matchId, true),
-    null
+  const [confirmState, confirmAction, confirmPending] = useActionFeedback(
+    () => updateOwnAttendanceStatus(matchId, true),
+    { onSuccess: (result) => setSelectedStatus(result.status) }
   );
-  const [declineState, declineAction, declinePending] = useActionState(
-    (_previous: ActionState) => updateOwnAttendanceStatus(matchId, false),
-    null
+  const [declineState, declineAction, declinePending] = useActionFeedback(
+    () => updateOwnAttendanceStatus(matchId, false),
+    { onSuccess: (result) => setSelectedStatus(result.status) }
   );
   const isPending = confirmPending || declinePending;
   const currentState = confirmState ?? declineState;
@@ -36,15 +34,6 @@ export function DashboardAttendanceActions({
   useEffect(() => {
     setSelectedStatus(attendanceStatus);
   }, [attendanceStatus]);
-
-  useEffect(() => {
-    if (!currentState) return;
-    if (!currentState.ok) {
-      toast.error(currentState.error);
-      return;
-    }
-    setSelectedStatus(currentState.status);
-  }, [currentState, toast]);
 
   return (
     <div className="relative z-30 mt-4">

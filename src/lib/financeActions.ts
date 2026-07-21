@@ -105,7 +105,10 @@ export async function deleteTransaction(transactionId: string) {
   revalidatePath("/financeiro");
 }
 
-export async function sendMonthlyFeeReminder(year: number, month: number) {
+export async function sendMonthlyFeeReminder(
+  year: number,
+  month: number
+): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
   const admin = await requireAdmin();
   await requireProForFinance(admin.peladaId!);
 
