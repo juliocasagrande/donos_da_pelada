@@ -13,7 +13,9 @@ export function OwnMatchStatsForm({
   assists,
   defenses,
   saved = false,
-  onSaved
+  onSaved,
+  formId,
+  hideSubmitButton = false
 }: {
   matchId: string;
   goals: number;
@@ -21,6 +23,8 @@ export function OwnMatchStatsForm({
   defenses: number;
   saved?: boolean;
   onSaved?: () => void;
+  formId?: string;
+  hideSubmitButton?: boolean;
 }) {
   const [editing, setEditing] = useState(!saved);
   const [savedGoals, setSavedGoals] = useState(goals);
@@ -68,7 +72,7 @@ export function OwnMatchStatsForm({
   }
 
   return (
-    <form action={formAction} className="space-y-3">
+    <form id={formId} action={formAction} className="space-y-3">
       <div className="grid grid-cols-3 gap-2">
         <label className="text-xs font-semibold text-musgo">
           Gols
@@ -83,9 +87,11 @@ export function OwnMatchStatsForm({
           <Input name="defenses" type="number" min={0} defaultValue={defenses} />
         </label>
       </div>
-      <Button type="submit" className="w-full" disabled={isPending}>
-        {isPending ? "Salvando..." : "Salvar meus numeros"}
-      </Button>
+      {hideSubmitButton ? null : (
+        <Button type="submit" className="w-full" disabled={isPending}>
+          {isPending ? "Salvando..." : "Salvar meus numeros"}
+        </Button>
+      )}
     </form>
   );
 }

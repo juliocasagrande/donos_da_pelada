@@ -42,11 +42,13 @@ type CraqueVotingWizardProps = {
 function WizardNav({
   onBack,
   onNext,
+  nextFormId,
   nextDisabled,
   nextLabel = "Avancar"
 }: {
   onBack?: () => void;
   onNext?: () => void;
+  nextFormId?: string;
   nextDisabled?: boolean;
   nextLabel?: string;
 }) {
@@ -61,10 +63,11 @@ function WizardNav({
           <ChevronLeft size={16} /> Voltar
         </button>
       ) : null}
-      {onNext ? (
+      {onNext || nextFormId ? (
         <button
-          type="button"
-          onClick={onNext}
+          type={nextFormId ? "submit" : "button"}
+          form={nextFormId}
+          onClick={nextFormId ? undefined : onNext}
           disabled={nextDisabled}
           className="flex flex-1 items-center justify-center gap-1 rounded-card bg-campo py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"
         >
@@ -197,13 +200,18 @@ export function CraqueVotingWizard({
               assists={ownStats.assists}
               defenses={ownStats.defenses}
               saved={statsSent}
-              onSaved={() => setStatsSent(true)}
+              formId="wizard-own-stats-form"
+              hideSubmitButton={!statsSent}
+              onSaved={() => {
+                setStatsSent(true);
+                goTo(1);
+              }}
             />
-            <WizardNav
-              onNext={() => goTo(1)}
-              nextDisabled={!statsSent}
-              nextLabel={statsSent ? "Avancar para o voto" : "Salve seus numeros para continuar"}
-            />
+            {statsSent ? (
+              <WizardNav onNext={() => goTo(1)} nextLabel="Avancar para o voto" />
+            ) : (
+              <WizardNav nextFormId="wizard-own-stats-form" nextLabel="Salvar e avancar" />
+            )}
           </>
         ) : null}
 
