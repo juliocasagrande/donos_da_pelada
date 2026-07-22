@@ -18,12 +18,13 @@ export function AppShellSkeleton() {
           </div>
         </header>
 
-        <main className="relative z-10 mx-auto flex max-w-md flex-col items-center px-5 py-16">
-          <span className="soccer-ball pulse-dot h-14 w-14" aria-hidden="true" />
-          <p className="mt-4 font-jersey text-xs font-semibold uppercase tracking-[.16em] text-musgo">
-            Carregando...
-          </p>
-        </main>
+      </div>
+
+      <div className="fixed inset-0 z-10 flex flex-col items-center justify-center" aria-hidden="true">
+        <span className="soccer-ball pulse-dot h-14 w-14" />
+        <p className="mt-4 font-jersey text-xs font-semibold uppercase tracking-[.16em] text-musgo">
+          Carregando...
+        </p>
       </div>
 
       <nav className="fixed inset-x-0 bottom-4 z-30 px-5" aria-hidden="true">
