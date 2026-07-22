@@ -43,6 +43,12 @@ export function PushNotifications({
       .catch(() => setEnabled(false));
   }, [notificationsEnabled]);
 
+  useEffect(() => {
+    if (!available || enabled || dismissed) return;
+
+    fetch("/api/push/prompt-seen", { method: "POST" }).catch(() => null);
+  }, [available, enabled, dismissed]);
+
   async function enableNotifications() {
     setMessage("");
 

@@ -18,63 +18,65 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
   const displayName = user?.name || user?.email || "";
 
   return (
-    <div className="light-field-lines relative min-h-screen overflow-hidden bg-areia pb-32 text-tinta">
-      <span className="soccer-ball app-ball-bg" aria-hidden="true" />
-      <span className="soccer-ball app-ball-bg" aria-hidden="true" />
-      <header className="sticky top-0 z-20 bg-areia/95 backdrop-blur">
-        <div className="mx-auto flex max-w-md items-center gap-2.5 px-5 py-3">
-          <Link
-            href="/dashboard"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-craque shadow-[0_6px_14px_rgba(244,161,26,.3)]"
-            title="Donos da Pelada"
-          >
-            <span className="relative h-[18px] w-[18px] rounded-full border-2 border-mata">
-              <span className="absolute left-[-2px] right-[-2px] top-1/2 h-[2px] -translate-y-1/2 bg-mata" />
-            </span>
-          </Link>
+    <div className="light-field-lines relative min-h-screen bg-areia pb-32 text-tinta">
+      <div className="relative overflow-hidden">
+        <span className="soccer-ball app-ball-bg" aria-hidden="true" />
+        <span className="soccer-ball app-ball-bg" aria-hidden="true" />
+        <header className="sticky top-0 z-20 bg-areia/95 backdrop-blur">
+          <div className="mx-auto flex max-w-md items-center gap-2.5 px-5 py-3">
+            <Link
+              href="/dashboard"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-craque shadow-[0_6px_14px_rgba(244,161,26,.3)]"
+              title="Donos da Pelada"
+            >
+              <span className="relative h-[18px] w-[18px] rounded-full border-2 border-mata">
+                <span className="absolute left-[-2px] right-[-2px] top-1/2 h-[2px] -translate-y-1/2 bg-mata" />
+              </span>
+            </Link>
 
-          {user?.peladaId && memberships.length ? (
-            <PeladaSwitcher
-              peladas={memberships.map((membership) => ({
-                id: membership.pelada.id,
-                name: membership.pelada.name,
-                role: membership.role,
-                memberCount: membership.pelada._count.memberships
-              }))}
-              activePeladaId={user.peladaId}
-            />
-          ) : (
-            <span className="flex-1" />
-          )}
+            {user?.peladaId && memberships.length ? (
+              <PeladaSwitcher
+                peladas={memberships.map((membership) => ({
+                  id: membership.pelada.id,
+                  name: membership.pelada.name,
+                  role: membership.role,
+                  memberCount: membership.pelada._count.memberships
+                }))}
+                activePeladaId={user.peladaId}
+              />
+            ) : (
+              <span className="flex-1" />
+            )}
 
-          <Link
-            href="/perfil"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-mata font-jersey text-base font-bold text-white"
-            title={displayName || "Meu perfil"}
-          >
-            {(displayName || "?").charAt(0).toUpperCase()}
-          </Link>
-        </div>
-      </header>
+            <Link
+              href="/perfil"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-mata font-jersey text-base font-bold text-white"
+              title={displayName || "Meu perfil"}
+            >
+              {(displayName || "?").charAt(0).toUpperCase()}
+            </Link>
+          </div>
+        </header>
 
-      <main className="relative z-10 mx-auto max-w-md px-5 py-5">
-        <PushNotificationsMount
-          promptDismissed={Boolean(user?.pushPromptDismissed)}
-          notificationsEnabled={Boolean(user?.pushNotificationsEnabled)}
-        />
-        {showProExpiryNotice ? (
-          <Link
-            href="/pagamento"
-            className="mb-4 flex items-center gap-2 rounded-[13px] border border-craque/30 bg-[#FFF7E6] px-3 py-2 text-xs font-semibold text-[#8a5a06] shadow-card"
-          >
-            <Clock size={15} className="shrink-0" />
-            <span className="flex-1">
-              Pro vence {proDaysLeft === 0 ? "hoje" : `em ${proDaysLeft} dias`}. Toque para renovar o periodo.
-            </span>
-          </Link>
-        ) : null}
-        {children}
-      </main>
+        <main className="relative z-10 mx-auto max-w-md px-5 py-5">
+          <PushNotificationsMount
+            promptDismissed={Boolean(user?.pushPromptDismissed)}
+            notificationsEnabled={Boolean(user?.pushNotificationsEnabled)}
+          />
+          {showProExpiryNotice ? (
+            <Link
+              href="/pagamento"
+              className="mb-4 flex items-center gap-2 rounded-[13px] border border-craque/30 bg-[#FFF7E6] px-3 py-2 text-xs font-semibold text-[#8a5a06] shadow-card"
+            >
+              <Clock size={15} className="shrink-0" />
+              <span className="flex-1">
+                Pro vence {proDaysLeft === 0 ? "hoje" : `em ${proDaysLeft} dias`}. Toque para renovar o periodo.
+              </span>
+            </Link>
+          ) : null}
+          {children}
+        </main>
+      </div>
       <BottomNav isAdmin={isAdmin} showRadar={Boolean(user?.radarEnabled)} />
     </div>
   );
