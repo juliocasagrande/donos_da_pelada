@@ -349,8 +349,8 @@ function renderAmistosoStorySvg({
   const footerSublineY = footerHeadlineY + 42;
   const pillCtaY = footerSublineY + 8 + 20;
   const pillCtaH = 56;
-  const pillCtaText = "donos-da-pelada.vercel.app";
-  const pillCtaW = 560;
+  const pillCtaText = "donosdapelada.com";
+  const pillCtaW = 400;
   const pillCtaX = 540 - pillCtaW / 2;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -636,8 +636,8 @@ function renderStorySvg({
   const footerSublineY = footerHeadlineY + 42;
   const pillCtaY = footerSublineY + 8 + 20;
   const pillCtaH = 56;
-  const pillCtaText = "donos-da-pelada.vercel.app";
-  const pillCtaW = 560;
+  const pillCtaText = "donosdapelada.com";
+  const pillCtaW = 400;
   const pillCtaX = 540 - pillCtaW / 2;
 
   const pillIconSvg =
