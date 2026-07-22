@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { DeletionRequestTarget, DeletionVoteValue, PeladaRole, PollStatus, Prisma } from "@prisma/client";
 import { archiveUserPeladaStats } from "@/lib/careerStats";
 import { prisma } from "@/lib/prisma";
@@ -226,11 +227,13 @@ async function createDeletionRequest({
   });
 
   const adminUserIds = (await getPeladaAdminUserIds(peladaId)).filter((userId) => userId !== createdByUserId);
-  await sendPushToUsers(adminUserIds, {
-    title: "Votacao de exclusao aberta",
-    body: `Vote sobre excluir ${targetLabel(target)}: ${targetName}.`,
-    url: "/dashboard"
-  });
+  after(() =>
+    sendPushToUsers(adminUserIds, {
+      title: "Votacao de exclusao aberta",
+      body: `Vote sobre excluir ${targetLabel(target)}: ${targetName}.`,
+      url: "/dashboard"
+    })
+  );
 
   await refreshDeletionPaths(peladaId);
   return request;

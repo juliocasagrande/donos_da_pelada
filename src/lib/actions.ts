@@ -3,6 +3,7 @@
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { MatchKind, MatchStatus, PeladaRole, PollStatus, Prisma, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, isPeladaAdmin, requireAdmin, requireMaster, requireUser } from "@/lib/session";
@@ -179,12 +180,16 @@ async function promoteNextFromWaitlist(matchId: string) {
     return null;
   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
-  if (promoted?.attendance.player.userId) {
-    await sendPushToUsers([promoted.attendance.player.userId], {
-      title: "Voce entrou na pelada",
-      body: `Abriu uma vaga na ${promoted.match.title}. Voce saiu da lista de espera.`,
-      url: `/matches/${matchId}/attendance`
-    });
+  const promotedUserId = promoted?.attendance.player.userId;
+  if (promoted && promotedUserId) {
+    const matchTitle = promoted.match.title;
+    after(() =>
+      sendPushToUsers([promotedUserId], {
+        title: "Voce entrou na pelada",
+        body: `Abriu uma vaga na ${matchTitle}. Voce saiu da lista de espera.`,
+        url: `/matches/${matchId}/attendance`
+      })
+    );
   }
 }
 
@@ -630,11 +635,13 @@ export async function createMatch(formData: FormData) {
     }
   });
 
-  await sendPushToAll({
-    title: parsed.kind === "AMISTOSO" ? "Novo amistoso criado" : "Nova pelada criada",
-    body: `${match.title} ja esta aberta para confirmacao.`,
-    url: `/matches/${match.id}/attendance`
-  });
+  after(() =>
+    sendPushToAll({
+      title: parsed.kind === "AMISTOSO" ? "Novo amistoso criado" : "Nova pelada criada",
+      body: `${match.title} ja esta aberta para confirmacao.`,
+      url: `/matches/${match.id}/attendance`
+    })
+  );
 
   redirect(`/matches/${match.id}/attendance`);
 }
@@ -703,11 +710,13 @@ async function closeMatchAndNotify(matchId: string, scoreData: { homeScore?: num
     });
   }
 
-  await sendPushToUsers(await getEligibleMatchVoterUserIds(matchId), {
-    title: "Pelada encerrada",
-    body: `Informe seus gols/defesas e vote no craque da ${match.title}. As notas sao opcionais.`,
-    url: `/matches/${matchId}/stats`
-  });
+  after(async () =>
+    sendPushToUsers(await getEligibleMatchVoterUserIds(matchId), {
+      title: "Pelada encerrada",
+      body: `Informe seus gols/defesas e vote no craque da ${match.title}. As notas sao opcionais.`,
+      url: `/matches/${matchId}/stats`
+    })
+  );
 
   revalidatePath("/matches");
   revalidatePath(`/matches/${matchId}/attendance`);
@@ -1344,11 +1353,13 @@ export async function createCraquePoll(matchId: string) {
     include: { match: true }
   });
 
-  await sendPushToUsers(await getEligibleMatchVoterUserIds(matchId), {
-    title: "Votacao aberta",
-    body: `Vote no craque da ${poll.match.title}.`,
-    url: `/matches/${matchId}/stats`
-  });
+  after(async () =>
+    sendPushToUsers(await getEligibleMatchVoterUserIds(matchId), {
+      title: "Votacao aberta",
+      body: `Vote no craque da ${poll.match.title}.`,
+      url: `/matches/${matchId}/stats`
+    })
+  );
 
   revalidatePath(`/matches/${matchId}/stats`);
 }
@@ -1358,11 +1369,13 @@ export async function notifyStatsEntryOpen(matchId: string) {
   const match = await prisma.match.findFirst({ where: { id: matchId, peladaId: admin.peladaId!, deletedAt: null } });
   if (!match) return;
 
-  await sendPushToUsers(await getEligibleMatchVoterUserIds(matchId), {
-    title: "Lancamento de stats aberto",
-    body: `Hora de conferir gols, participacoes e defesas da ${match.title}.`,
-    url: `/matches/${matchId}/stats`
-  });
+  after(async () =>
+    sendPushToUsers(await getEligibleMatchVoterUserIds(matchId), {
+      title: "Lancamento de stats aberto",
+      body: `Hora de conferir gols, participacoes e defesas da ${match.title}.`,
+      url: `/matches/${matchId}/stats`
+    })
+  );
 
   revalidatePath(`/matches/${matchId}/stats`);
 }

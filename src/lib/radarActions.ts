@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { GuestFeeMode, GuestPosition, PlayerPosition, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireUser } from "@/lib/session";
@@ -164,11 +165,13 @@ export async function requestMatchGuestSlot(matchId: string, formData: FormData)
   });
 
   const adminUserIds = await getPeladaAdminUserIds(match!.peladaId);
-  await sendPushToUsers(adminUserIds, {
-    title: "Pedido para jogar",
-    body: `${user.name || user.email} quer jogar em ${match!.title}.`,
-    url: "/admins/radar"
-  });
+  after(() =>
+    sendPushToUsers(adminUserIds, {
+      title: "Pedido para jogar",
+      body: `${user.name || user.email} quer jogar em ${match!.title}.`,
+      url: "/admins/radar"
+    })
+  );
 
   revalidatePath("/radar");
   redirect("/radar?solicitado=1");
@@ -247,11 +250,13 @@ export async function approveMatchGuestRequest(requestId: string) {
     { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
   );
 
-  await sendPushToUsers([request.userId], {
-    title: "Pedido aprovado!",
-    body: `Voce foi confirmado em ${request.match.title}.`,
-    url: `/matches/${request.matchId}/attendance`
-  });
+  after(() =>
+    sendPushToUsers([request.userId], {
+      title: "Pedido aprovado!",
+      body: `Voce foi confirmado em ${request.match.title}.`,
+      url: `/matches/${request.matchId}/attendance`
+    })
+  );
 
   revalidatePath("/admins/radar");
   revalidatePath(`/matches/${request.matchId}/attendance`);
@@ -268,11 +273,13 @@ export async function rejectMatchGuestRequest(requestId: string) {
 
   await prisma.matchGuestRequest.update({ where: { id: requestId }, data: { status: "REJECTED" } });
 
-  await sendPushToUsers([request.userId], {
-    title: "Pedido nao aceito",
-    body: `Seu pedido para jogar em ${request.match.title} nao foi aceito.`,
-    url: "/radar"
-  });
+  after(() =>
+    sendPushToUsers([request.userId], {
+      title: "Pedido nao aceito",
+      body: `Seu pedido para jogar em ${request.match.title} nao foi aceito.`,
+      url: "/radar"
+    })
+  );
 
   revalidatePath("/admins/radar");
 }

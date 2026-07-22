@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { PeladaRole } from "@prisma/client";
 import { ACTIVE_PELADA_COOKIE, getCurrentUser, requireAdmin } from "@/lib/session";
 import { canAddMensalista, createPeladaWithTrial } from "@/lib/plan";
@@ -217,13 +218,15 @@ export async function approveJoinRequest(requestId: string) {
 
   const alreadyOnboarded = await autoCreatePlayerIfOnboarded(request.userId, request.peladaId);
 
-  await sendPushToUsers([request.userId], {
-    title: "Pedido aprovado!",
-    body: alreadyOnboarded
-      ? `Voce foi aceito na pelada ${request.pelada.name}. Bora jogar!`
-      : `Voce foi aceito na pelada ${request.pelada.name}. Complete seu perfil para entrar no elenco.`,
-    url: alreadyOnboarded ? "/dashboard" : "/perfil/onboarding"
-  });
+  after(() =>
+    sendPushToUsers([request.userId], {
+      title: "Pedido aprovado!",
+      body: alreadyOnboarded
+        ? `Voce foi aceito na pelada ${request.pelada.name}. Bora jogar!`
+        : `Voce foi aceito na pelada ${request.pelada.name}. Complete seu perfil para entrar no elenco.`,
+      url: alreadyOnboarded ? "/dashboard" : "/perfil/onboarding"
+    })
+  );
 
   revalidatePath("/admins/solicitacoes");
 }

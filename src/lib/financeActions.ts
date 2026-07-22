@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { TransactionType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/session";
@@ -146,11 +147,13 @@ export async function sendMonthlyFeeReminder(
   }
 
   const amountText = feeConfig?.amount ? ` no valor de ${formatCurrencyBRL(feeConfig.amount)}` : "";
-  await sendPushToUsers(pendingUserIds, {
-    title: "Mensalidade pendente",
-    body: `Sua mensalidade de ${monthLabel(year, month)}${amountText} esta pendente.`,
-    url: "/dashboard"
-  });
+  after(() =>
+    sendPushToUsers(pendingUserIds, {
+      title: "Mensalidade pendente",
+      body: `Sua mensalidade de ${monthLabel(year, month)}${amountText} esta pendente.`,
+      url: "/dashboard"
+    })
+  );
 
   await logAudit(admin, "MONTHLY_FEE_REMINDER_SENT", { type: "MonthlyFeeConfig", id: `${year}-${month}` }, {
     year,
