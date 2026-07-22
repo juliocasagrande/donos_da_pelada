@@ -1,5 +1,3 @@
-import { BottomNav } from "@/components/layout/BottomNav";
-
 function Pulse({ className }: { className?: string }) {
   return <div className={`animate-pulse rounded-[13px] bg-linha/70 ${className ?? ""}`} />;
 }
@@ -20,20 +18,23 @@ export function AppShellSkeleton() {
           </div>
         </header>
 
-        <main className="relative z-10 mx-auto max-w-md px-5 py-5">
-          <Pulse className="h-6 w-40" />
-          <Pulse className="mt-4 h-28 w-full" />
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <Pulse className="h-20" />
-            <Pulse className="h-20" />
-            <Pulse className="h-20" />
-            <Pulse className="h-20" />
-          </div>
-          <Pulse className="mt-4 h-24 w-full" />
-          <Pulse className="mt-3 h-24 w-full" />
+        <main className="relative z-10 mx-auto flex max-w-md flex-col items-center px-5 py-16">
+          <span className="soccer-ball pulse-dot h-14 w-14" aria-hidden="true" />
+          <p className="mt-4 font-jersey text-xs font-semibold uppercase tracking-[.16em] text-musgo">
+            Carregando...
+          </p>
         </main>
       </div>
-      <BottomNav />
+
+      <nav className="fixed inset-x-0 bottom-4 z-30 px-5" aria-hidden="true">
+        <div className="mx-auto grid max-w-md grid-cols-4 rounded-full border border-linha bg-white/90 px-3 py-2 shadow-[0_14px_36px_rgba(27,158,75,.28)] backdrop-blur">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="flex min-h-12 flex-col items-center justify-center gap-1">
+              <div className="h-[22px] w-[22px] animate-pulse rounded-full bg-linha" />
+            </div>
+          ))}
+        </div>
+      </nav>
     </div>
   );
 }
