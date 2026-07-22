@@ -940,35 +940,64 @@ export async function drawTeamsForClient(matchId: string, formData: FormData) {
           .filter((id): id is string => typeof id === "string")
       );
 
-      for (const playerId of selectedPlayerIds) {
-        await assertPlayerInPelada(playerId, admin.peladaId!);
-        const membershipStatus = value(formData, `membershipStatus-${playerId}`) || "MENSALISTA";
-        await prisma.player.update({
-          where: { id: playerId },
-          data: { membershipStatus: membershipStatus === "CONVIDADO" ? "CONVIDADO" : "MENSALISTA" }
-        });
-        await prisma.attendance.upsert({
-          where: { matchId_playerId: { matchId, playerId } },
-          update: { present: false, status: "OUT", confirmedAt: null },
-          create: { matchId, playerId, present: false, status: "OUT" }
-        });
-      }
+      await Promise.all(selectedPlayerIds.map((id) => assertPlayerInPelada(id, admin.peladaId!)));
+      await Promise.all(
+        selectedPlayerIds.map((playerId) => {
+          const membershipStatus = value(formData, `membershipStatus-${playerId}`) || "MENSALISTA";
+          return Promise.all([
+            prisma.player.update({
+              where: { id: playerId },
+              data: { membershipStatus: membershipStatus === "CONVIDADO" ? "CONVIDADO" : "MENSALISTA" }
+            }),
+            prisma.attendance.upsert({
+              where: { matchId_playerId: { matchId, playerId } },
+              update: { present: false, status: "OUT", confirmedAt: null },
+              create: { matchId, playerId, present: false, status: "OUT" }
+            })
+          ]);
+        })
+      );
 
-      const match = await prisma.match.findFirst({ where: { id: matchId, peladaId: admin.peladaId!, deletedAt: null } });
-      if (match) {
-        for (const playerId of selectedPlayerIds.filter((id) => presentPlayerIds.has(id))) {
-          const player = await prisma.player.findFirst({ where: { id: playerId, peladaId: admin.peladaId! } });
+      const match = await prisma.match.findFirst({
+        where: { id: matchId, peladaId: admin.peladaId!, deletedAt: null },
+        include: { pelada: { select: { maxLinePlayers: true, maxGoalkeepers: true } } }
+      });
+      const presentSelectedPlayerIds = selectedPlayerIds.filter((id) => presentPlayerIds.has(id));
+      if (match && presentSelectedPlayerIds.length) {
+        const presentPlayers = await prisma.player.findMany({
+          where: { id: { in: presentSelectedPlayerIds }, peladaId: admin.peladaId! },
+          select: { id: true, position: true }
+        });
+        const playersById = new Map(presentPlayers.map((player) => [player.id, player]));
+
+        // Waitlist capacity depends on processing order, so this stays sequential -
+        // counts are tracked in memory instead of re-querying the DB per player.
+        const counts = await getConfirmedCounts(matchId);
+        const capacity = { line: match.pelada.maxLinePlayers, goalkeepers: match.pelada.maxGoalkeepers };
+        const released = areGoalkeeperSlotsReleased(match.date);
+
+        const updates = [];
+        for (const playerId of presentSelectedPlayerIds) {
+          const player = playersById.get(playerId);
           if (!player) continue;
-          const status = await getAttendanceStatusForPlayer(matchId, player.position, match.date);
-          await prisma.attendance.update({
-            where: { matchId_playerId: { matchId, playerId } },
-            data: {
-              present: status === "CONFIRMED",
-              status,
-              confirmedAt: status === "CONFIRMED" ? new Date() : null
-            }
-          });
+          const status = canConfirmPlayer(player.position, counts, released, capacity) ? "CONFIRMED" : "WAITLIST";
+          if (status === "CONFIRMED") {
+            counts.total += 1;
+            if (player.position === "GOLEIRO") counts.goalkeepers += 1;
+            else counts.line += 1;
+          }
+          updates.push(
+            prisma.attendance.update({
+              where: { matchId_playerId: { matchId, playerId } },
+              data: {
+                present: status === "CONFIRMED",
+                status,
+                confirmedAt: status === "CONFIRMED" ? new Date() : null
+              }
+            })
+          );
         }
+        await Promise.all(updates);
       }
     }
 
@@ -1163,6 +1192,7 @@ export async function updateStats(matchId: string, formData: FormData) {
   }
   const playerIds = formData.getAll("playerId").filter((id): id is string => typeof id === "string");
 
+  const operations = [];
   for (const playerId of playerIds) {
     const goals = Number(value(formData, `goals-${playerId}`) || 0);
     const assists = Number(value(formData, `assists-${playerId}`) || 0);
@@ -1177,22 +1207,25 @@ export async function updateStats(matchId: string, formData: FormData) {
     )
       continue;
 
-    await prisma.goal.upsert({
-      where: { matchId_playerId: { matchId, playerId } },
-      update: { quantity: goals },
-      create: { matchId, playerId, quantity: goals }
-    });
-    await prisma.assist.upsert({
-      where: { matchId_playerId: { matchId, playerId } },
-      update: { quantity: assists },
-      create: { matchId, playerId, quantity: assists }
-    });
-    await prisma.difficultSave.upsert({
-      where: { matchId_playerId: { matchId, playerId } },
-      update: { quantity: defenses },
-      create: { matchId, playerId, quantity: defenses }
-    });
+    operations.push(
+      prisma.goal.upsert({
+        where: { matchId_playerId: { matchId, playerId } },
+        update: { quantity: goals },
+        create: { matchId, playerId, quantity: goals }
+      }),
+      prisma.assist.upsert({
+        where: { matchId_playerId: { matchId, playerId } },
+        update: { quantity: assists },
+        create: { matchId, playerId, quantity: assists }
+      }),
+      prisma.difficultSave.upsert({
+        where: { matchId_playerId: { matchId, playerId } },
+        update: { quantity: defenses },
+        create: { matchId, playerId, quantity: defenses }
+      })
+    );
   }
+  await Promise.all(operations);
 
   revalidatePath(`/matches/${matchId}/stats`);
   revalidatePath("/rankings");
