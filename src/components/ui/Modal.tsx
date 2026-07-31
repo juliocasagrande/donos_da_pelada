@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 type ModalProps = {
@@ -27,7 +28,12 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
 
   if (!open) return null;
 
-  return (
+  // Portal straight into <body>: rendering inside the page's <main> would
+  // trap this fixed overlay inside main's own stacking context (it has
+  // position+z-index, which creates one), so a sibling like the bottom nav
+  // - positioned outside <main> - would paint on top of it regardless of
+  // this z-index. Escaping via portal guarantees it always stacks highest.
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-end justify-center overflow-hidden bg-black/40 sm:items-center sm:p-4"
       onClick={onClose}
@@ -54,6 +60,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

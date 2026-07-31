@@ -3,7 +3,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { useState } from "react";
 import { AlertTriangle } from "lucide-react";
-import { useFormStatus } from "react-dom";
+import { createPortal, useFormStatus } from "react-dom";
 import { cn } from "@/lib/utils";
 
 type ConfirmSubmitButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -57,58 +57,61 @@ export function ConfirmSubmitButton({
         {pending ? pendingLabel : children}
       </button>
 
-      {open ? (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center overflow-hidden bg-tinta/45 px-4 py-6" role="presentation">
-          <div
-            className="max-h-[85dvh] w-full max-w-sm min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain rounded-[18px] border-[1.5px] border-linha bg-[#F6F8F3] p-4 shadow-[0_24px_70px_rgba(17,40,28,.28)]"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="confirm-dialog-title"
-          >
-            <div className="mb-3 flex items-start gap-3">
-              <span
-                className={cn(
-                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px]",
-                  confirmVariant === "danger" ? "bg-ausente text-white" : "bg-campo text-white"
-                )}
+      {open
+        ? createPortal(
+            <div className="fixed inset-0 z-[90] flex items-center justify-center overflow-hidden bg-tinta/45 px-4 py-6" role="presentation">
+              <div
+                className="max-h-[85dvh] w-full max-w-sm min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain rounded-[18px] border-[1.5px] border-linha bg-[#F6F8F3] p-4 shadow-[0_24px_70px_rgba(17,40,28,.28)]"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="confirm-dialog-title"
               >
-                <AlertTriangle size={18} />
-              </span>
-              <div className="min-w-0 flex-1">
-                <h2 id="confirm-dialog-title" className="text-base font-extrabold text-tinta">
-                  {title}
-                </h2>
-                <p className="mt-1 text-sm font-semibold leading-5 text-musgo">{message}</p>
-              </div>
-            </div>
+                <div className="mb-3 flex items-start gap-3">
+                  <span
+                    className={cn(
+                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px]",
+                      confirmVariant === "danger" ? "bg-ausente text-white" : "bg-campo text-white"
+                    )}
+                  >
+                    <AlertTriangle size={18} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <h2 id="confirm-dialog-title" className="text-base font-extrabold text-tinta">
+                      {title}
+                    </h2>
+                    <p className="mt-1 text-sm font-semibold leading-5 text-musgo">{message}</p>
+                  </div>
+                </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={close}
-                disabled={pending}
-                className="inline-flex min-h-11 items-center justify-center rounded-[13px] border-[1.5px] border-linha bg-white px-4 text-sm font-bold text-tinta shadow-card transition active:scale-[.98] disabled:opacity-50"
-              >
-                {cancelLabel}
-              </button>
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => {
-                  setOpen(false);
-                  form?.requestSubmit();
-                }}
-                className={cn(
-                  "inline-flex min-h-11 items-center justify-center rounded-[13px] px-4 text-sm font-bold text-white transition active:scale-[.98] disabled:opacity-50",
-                  confirmVariant === "danger" ? "bg-ausente" : "bg-campo shadow-button"
-                )}
-              >
-                {pending ? pendingLabel : confirmLabel}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={close}
+                    disabled={pending}
+                    className="inline-flex min-h-11 items-center justify-center rounded-[13px] border-[1.5px] border-linha bg-white px-4 text-sm font-bold text-tinta shadow-card transition active:scale-[.98] disabled:opacity-50"
+                  >
+                    {cancelLabel}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => {
+                      setOpen(false);
+                      form?.requestSubmit();
+                    }}
+                    className={cn(
+                      "inline-flex min-h-11 items-center justify-center rounded-[13px] px-4 text-sm font-bold text-white transition active:scale-[.98] disabled:opacity-50",
+                      confirmVariant === "danger" ? "bg-ausente" : "bg-campo shadow-button"
+                    )}
+                  >
+                    {pending ? pendingLabel : confirmLabel}
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )
+        : null}
     </>
   );
 }
