@@ -1,9 +1,0 @@
-{
-  "regions": ["gru1"],
-  "crons": [
-    {
-      "path": "/api/mercadopago/capture-due",
-      "schedule": "0 3 * * *"
-    }
-  ]
-}

@@ -33,6 +33,18 @@ const nextConfig = {
         hostname: "*.supabase.co"
       }
     ]
+  },
+  // Sem isto, o CDN/edge cache e o cache HTTP do celular podem continuar
+  // servindo o sw.js antigo depois do deploy: o browser nunca detecta que o
+  // service worker mudou e o fluxo de auto-atualizacao nunca dispara.
+  async headers() {
+    const noCache = [{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" }];
+    return [
+      { source: "/sw.js", headers: noCache },
+      { source: "/push-sw.js", headers: noCache },
+      { source: "/workbox-:hash(.*)", headers: noCache },
+      { source: "/manifest.webmanifest", headers: noCache }
+    ];
   }
 };
 
