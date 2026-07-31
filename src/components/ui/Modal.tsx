@@ -35,11 +35,11 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
   // this z-index. Escaping via portal guarantees it always stacks highest.
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center overflow-hidden bg-black/40 sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/40 p-4"
       onClick={onClose}
     >
       <div
-        className="flex max-h-[85dvh] w-full max-w-md flex-col overflow-hidden rounded-t-[22px] bg-white shadow-2xl sm:max-h-[90dvh] sm:rounded-[22px]"
+        className="flex max-h-[85dvh] w-full max-w-md flex-col overflow-hidden rounded-[22px] bg-white shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex shrink-0 items-center justify-between px-5 pb-3 pt-5">
