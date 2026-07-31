@@ -39,22 +39,22 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
       onClick={onClose}
     >
       <div
-        className="flex max-h-[85dvh] w-full max-w-md flex-col overflow-hidden rounded-[22px] bg-white shadow-2xl"
+        className="flex max-h-[85dvh] w-full max-w-md flex-col overflow-hidden rounded-[22px] bg-white text-[15px] shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex shrink-0 items-center justify-between px-5 pb-3 pt-5">
-          {title ? <h2 className="font-display text-lg font-extrabold">{title}</h2> : <span />}
+        <div className="flex shrink-0 items-center justify-between bg-[#EAF5EC] px-5 py-4">
+          {title ? <h2 className="font-display text-lg font-extrabold text-mata">{title}</h2> : <span />}
           <button
             type="button"
             onClick={onClose}
             aria-label="Fechar"
-            className="rounded-full p-1 text-musgo hover:bg-areia"
+            className="rounded-full p-1 text-campo hover:bg-white/60"
           >
             <X size={20} />
           </button>
         </div>
         <div
-          className="min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+          className="min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
           style={{ WebkitOverflowScrolling: "touch" }}
         >
           {children}

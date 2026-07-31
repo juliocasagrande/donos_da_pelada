@@ -98,14 +98,26 @@ export function MatchForm({ action, match, defaults, submitLabel = "Criar pelada
           <p className="mt-1 text-xs text-musgo">Use quando o tipo for Amistoso.</p>
         </div>
       ) : null}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] gap-2">
         <div className="min-w-0">
           <Label>Data</Label>
-          <Input name="date" type="date" className="w-full min-w-0" defaultValue={match ? dateInputValue(match.date) : defaults?.date ?? today} required />
+          <Input
+            name="date"
+            type="date"
+            className="w-full min-w-0 px-2 text-sm"
+            defaultValue={match ? dateInputValue(match.date) : defaults?.date ?? today}
+            required
+          />
         </div>
         <div className="min-w-0">
           <Label>Horario</Label>
-          <Input name="time" type="time" className="w-full min-w-0" defaultValue={match ? timeInputValue(match.date) : defaults?.time ?? "19:00"} required />
+          <Input
+            name="time"
+            type="time"
+            className="w-full min-w-0 px-2 text-sm"
+            defaultValue={match ? timeInputValue(match.date) : defaults?.time ?? "19:00"}
+            required
+          />
         </div>
       </div>
       <div className="grid grid-cols-[minmax(0,1fr)_92px] gap-2">
