@@ -58,9 +58,9 @@ export function ConfirmSubmitButton({
       </button>
 
       {open ? (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-tinta/45 px-4 py-6" role="presentation">
+        <div className="fixed inset-0 z-[90] flex items-center justify-center overflow-hidden bg-tinta/45 px-4 py-6" role="presentation">
           <div
-            className="w-full max-w-sm rounded-[18px] border-[1.5px] border-linha bg-[#F6F8F3] p-4 shadow-[0_24px_70px_rgba(17,40,28,.28)]"
+            className="max-h-[85dvh] w-full max-w-sm min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain rounded-[18px] border-[1.5px] border-linha bg-[#F6F8F3] p-4 shadow-[0_24px_70px_rgba(17,40,28,.28)]"
             role="dialog"
             aria-modal="true"
             aria-labelledby="confirm-dialog-title"

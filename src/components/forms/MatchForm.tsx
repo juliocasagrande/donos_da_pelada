@@ -99,17 +99,17 @@ export function MatchForm({ action, match, defaults, submitLabel = "Criar pelada
         </div>
       ) : null}
       <div className="grid grid-cols-2 gap-2">
-        <div>
+        <div className="min-w-0">
           <Label>Data</Label>
-          <Input name="date" type="date" defaultValue={match ? dateInputValue(match.date) : defaults?.date ?? today} required />
+          <Input name="date" type="date" className="w-full min-w-0" defaultValue={match ? dateInputValue(match.date) : defaults?.date ?? today} required />
         </div>
-        <div>
+        <div className="min-w-0">
           <Label>Horario</Label>
-          <Input name="time" type="time" defaultValue={match ? timeInputValue(match.date) : defaults?.time ?? "19:00"} required />
+          <Input name="time" type="time" className="w-full min-w-0" defaultValue={match ? timeInputValue(match.date) : defaults?.time ?? "19:00"} required />
         </div>
       </div>
-      <div className="grid grid-cols-[1fr_92px] gap-2">
-        <div>
+      <div className="grid grid-cols-[minmax(0,1fr)_92px] gap-2">
+        <div className="min-w-0">
           <Label>Local</Label>
           <LocationAutocomplete
             name="locationStreet"
@@ -117,9 +117,9 @@ export function MatchForm({ action, match, defaults, submitLabel = "Criar pelada
             quickSuggestions={recentLocations}
           />
         </div>
-        <div>
+        <div className="min-w-0">
           <Label>Numero</Label>
-          <Input name="locationNumber" placeholder="123" />
+          <Input name="locationNumber" placeholder="123" className="w-full min-w-0" />
         </div>
       </div>
       <div>
