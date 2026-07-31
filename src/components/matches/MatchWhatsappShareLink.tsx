@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { WhatsappMark } from "@/components/ui/WhatsappMark";
+import { useToast } from "@/components/ui/ToastProvider";
 
 export function MatchWhatsappShareLink({
   matchId,
@@ -18,6 +19,7 @@ export function MatchWhatsappShareLink({
 }) {
   const [origin, setOrigin] = useState("");
   const [isOpening, setIsOpening] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -28,7 +30,6 @@ export function MatchWhatsappShareLink({
   async function openWhatsappInvite() {
     if (!origin || isOpening) return;
     setIsOpening(true);
-    const whatsappWindow = window.open("", "_blank", "noopener,noreferrer");
 
     try {
       const response = await fetch("/api/peladas/share-invite", {
@@ -55,14 +56,13 @@ export function MatchWhatsappShareLink({
       ].join("\n");
       const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
 
-      if (whatsappWindow) {
-        whatsappWindow.location.href = whatsappUrl;
-      } else {
-        window.location.href = whatsappUrl;
-      }
-    } catch (error) {
-      whatsappWindow?.close();
-      throw error;
+      // Navigating the current tab (instead of window.open'ing a new one)
+      // is what reliably works from an installed/standalone PWA on mobile -
+      // window.open there often returns a dead window handle that silently
+      // swallows the redirect, which is why the button looked broken.
+      window.location.href = whatsappUrl;
+    } catch {
+      toast.error("Nao foi possivel abrir o WhatsApp. Tente novamente.");
     } finally {
       setIsOpening(false);
     }
