@@ -14,16 +14,16 @@ type ModalProps = {
 export function Modal({ open, onClose, title, children }: ModalProps) {
   useEffect(() => {
     if (!open) return;
+    // Deliberately not locking body scroll here: toggling `overflow` on
+    // <body> is known to desync `position: fixed` elements from the visual
+    // viewport on iOS Safari (they can end up floating mid-page instead of
+    // pinned to the screen edge) - the fixed bottom nav was hit by exactly
+    // this. The portal below already makes the modal overlap it correctly.
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handleKeyDown);
-    const { overflow } = document.body.style;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = overflow;
-    };
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open, onClose]);
 
   if (!open) return null;
