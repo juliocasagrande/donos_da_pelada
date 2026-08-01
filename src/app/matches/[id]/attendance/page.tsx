@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { GuestForm } from "@/components/forms/GuestForm";
 import { GuestRemoveForm } from "@/components/matches/GuestRemoveForm";
+import { InviteRsvpModal } from "@/components/matches/InviteRsvpModal";
 import { LocationLinks } from "@/components/matches/LocationLinks";
 import { OpenToGuestsForm } from "@/components/forms/OpenToGuestsForm";
 import { toggleAttendance, toggleOwnAttendance } from "@/lib/actions";
@@ -36,11 +37,11 @@ export default async function AttendancePage({
   searchParams
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ radarErro?: string; radarAberto?: string }>;
+  searchParams: Promise<{ radarErro?: string; radarAberto?: string; rsvp?: string }>;
 }) {
   const user = await requireUser();
   const { id } = await params;
-  const { radarErro, radarAberto } = await searchParams;
+  const { radarErro, radarAberto, rsvp } = await searchParams;
   const [match, players, linkedPlayer] = await Promise.all([
     prisma.match.findFirst({ where: { id, peladaId: user.peladaId!, deletedAt: null } }),
     prisma.player.findMany({
@@ -110,8 +111,20 @@ export default async function AttendancePage({
     }
   ] as const;
 
+  const showRsvpModal =
+    rsvp === "1" && Boolean(match) && linkedPlayer?.membershipStatus === "MENSALISTA" && ownAttendanceStatus === "OUT";
+
   return (
     <AppShell>
+      {showRsvpModal && match ? (
+        <InviteRsvpModal
+          matchId={id}
+          title={match.title}
+          time={`${formatDate(match.date)} as ${formatTime(match.date)}`}
+          location={match.location}
+          initialOpen
+        />
+      ) : null}
       <div className="field-hero -mx-1 mb-4 rounded-card px-5 py-6 text-white">
         <div className="relative">
           <h1 className="font-display text-2xl font-extrabold">{match?.title}</h1>

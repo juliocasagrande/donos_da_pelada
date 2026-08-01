@@ -47,6 +47,7 @@ textarea {
   content: "";
   position: absolute;
   inset: 0;
+  pointer-events: none;
   background-image: repeating-linear-gradient(90deg, rgba(255,255,255,.055) 0 1px, transparent 1px 46px);
 }
 
@@ -57,6 +58,7 @@ textarea {
   height: 130px;
   right: -34px;
   top: -28px;
+  pointer-events: none;
   border: 2px solid rgba(255,255,255,.1);
   border-radius: 999px;
 }

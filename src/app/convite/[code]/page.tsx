@@ -4,8 +4,6 @@ import { ArrowLeft, Check } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Card } from "@/components/ui/Card";
 import { PeladaCrest } from "@/components/ui/PeladaCrest";
-import { SubmitButton } from "@/components/forms/SubmitButton";
-import { acceptInvite, resolvePostJoinPath } from "@/lib/peladaOnboardingActions";
 import { buildInvitePath, isInviteValid } from "@/lib/inviteValidity";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
@@ -22,7 +20,6 @@ export default async function ConviteCodePage({
   const user = await getCurrentUser();
   const invitePath = buildInvitePath(code, matchId);
   const loginHref = `/login?callbackUrl=${encodeURIComponent(invitePath)}`;
-  const logoutHref = `/logout?callbackUrl=${encodeURIComponent(invitePath)}`;
 
   const invite = await prisma.peladaInvite.findUnique({
     where: { code },
@@ -38,13 +35,13 @@ export default async function ConviteCodePage({
 
   const valid = isInviteValid(invite);
 
-  if (invite && user && user.active) {
-    const existingMembership = await prisma.peladaMembership.findUnique({
-      where: { userId_peladaId: { userId: user.id, peladaId: invite.peladaId } }
-    });
-    if (existingMembership) {
-      redirect(await resolvePostJoinPath(user.id, invite.peladaId, matchId));
-    }
+  // Already logged in with a valid invite: join (if not already a member) and
+  // land straight on the match/dashboard, no manual "Entrar" click needed.
+  // This has to happen in a Route Handler (not here) because cookies() can
+  // only be mutated in a Server Action or Route Handler, not during a Server
+  // Component render.
+  if (invite && valid && user && user.active) {
+    redirect(`/convite/${code}/entrar${matchId ? `?matchId=${encodeURIComponent(matchId)}` : ""}`);
   }
 
   const presidente = valid
@@ -84,33 +81,18 @@ export default async function ConviteCodePage({
                 </p>
               </div>
             </div>
-            {!user || !user.active ? (
-              <div className="space-y-3">
-                <p className="rounded-[13px] bg-areia p-3 text-sm font-semibold text-musgo">
-                  Para entrar, crie uma conta ou entre com a sua propria conta. O convite sera vinculado ao seu perfil.
-                </p>
-                <Link
-                  href={loginHref}
-                  className="flex w-full items-center justify-center rounded-[13px] bg-campo px-4 py-3 text-sm font-bold text-white shadow-button transition active:scale-[.98]"
-                >
-                    Criar conta ou entrar
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <p className="rounded-[13px] bg-areia p-3 text-sm font-semibold text-musgo">
-                  Voce esta conectado como <span className="font-bold text-tinta">{user.name || user.email}</span>. O convite sera vinculado a esta conta.
-                </p>
-                <form action={acceptInvite.bind(null, code, matchId)}>
-                  <SubmitButton className="w-full" pendingLabel="Entrando...">
-                    Entrar nesta pelada
-                  </SubmitButton>
-                </form>
-                <Link href={logoutHref} className="block text-center text-xs font-bold text-campo">
-                  Usar outra conta
-                </Link>
-              </div>
-            )}
+            {/* Logged-in users with an active session already redirected to /entrar above. */}
+            <div className="space-y-3">
+              <p className="rounded-[13px] bg-areia p-3 text-sm font-semibold text-musgo">
+                Para entrar, crie uma conta ou entre com a sua propria conta. O convite sera vinculado ao seu perfil.
+              </p>
+              <Link
+                href={loginHref}
+                className="flex w-full items-center justify-center rounded-[13px] bg-campo px-4 py-3 text-sm font-bold text-white shadow-button transition active:scale-[.98]"
+              >
+                  Criar conta ou entrar
+              </Link>
+            </div>
           </>
         )}
       </Card>

@@ -151,7 +151,7 @@ export async function resolvePostJoinPath(userId: string, peladaId: string, matc
     : null;
   const alreadyOnboarded = await autoCreatePlayerIfOnboarded(userId, peladaId);
   await setActivePeladaCookie(peladaId);
-  return alreadyOnboarded ? (targetMatch ? `/matches/${targetMatch.id}/attendance` : "/dashboard") : "/perfil/onboarding";
+  return alreadyOnboarded ? (targetMatch ? `/matches/${targetMatch.id}/attendance?rsvp=1` : "/dashboard") : "/perfil/onboarding";
 }
 
 export async function acceptInvite(code: string, matchId?: string) {
