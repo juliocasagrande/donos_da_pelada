@@ -47,8 +47,7 @@ export default async function FinancePage({
 }) {
   const admin = await requireAdmin();
   const peladaId = admin.peladaId!;
-  const isPro = await isPeladaIdPro(peladaId);
-  const query = await searchParams;
+  const [isPro, query] = await Promise.all([isPeladaIdPro(peladaId), searchParams]);
   const now = new Date();
   const { year, month } = parseMonthKey(query?.mes, { year: now.getFullYear(), month: now.getMonth() + 1 });
   const activeTab = (financeTabs.find((tab) => tab.key === query?.aba)?.key ?? "resumo") as FinanceTab;

@@ -1,10 +1,11 @@
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
+import { Prisma } from "@prisma/client";
 import { Crown, Minus, TrendingDown, TrendingUp } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PlayerAvatar } from "@/components/players/PlayerAvatar";
 import { RankingFilterSelect, RankingPeladaSelect } from "@/components/rankings/RankingPeladaSelect";
 import { Card } from "@/components/ui/Card";
-import { closeExpiredCraquePolls } from "@/lib/actions";
 import { prisma } from "@/lib/prisma";
 import { isPeladaAdmin, requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
@@ -83,6 +84,110 @@ function matchFilter(kind: RankingKind, season: number | "total") {
   return Object.keys(match).length ? { match } : {};
 }
 
+// Only the last ~10 rated matches per player ever feed the "Notas" ranking
+// (see ratingAverages below), so this windows to the 11 most recent distinct
+// match dates per player in SQL instead of pulling every PlayerRating row a
+// pelada has ever accumulated.
+async function fetchRatingWindow(playerIds: string[], kind: RankingKind, season: number | "total") {
+  if (!playerIds.length) return [] as { playerId: string; value: number; dateMs: number }[];
+  const dateRange = seasonDateRange(season);
+  const kindCondition = kind === "todos" ? Prisma.empty : Prisma.sql`AND m.kind = ${kind}::"MatchKind"`;
+  const dateCondition = dateRange.gte
+    ? Prisma.sql`AND m.date >= ${dateRange.gte} AND m.date < ${dateRange.lt}`
+    : Prisma.empty;
+
+  return prisma.$queryRaw<{ playerId: string; value: number; dateMs: number }[]>`
+    SELECT "playerId", value, "dateMs" FROM (
+      SELECT
+        pr."playerId" AS "playerId",
+        pr.value AS value,
+        (EXTRACT(EPOCH FROM m.date) * 1000)::double precision AS "dateMs",
+        DENSE_RANK() OVER (PARTITION BY pr."playerId" ORDER BY m.date DESC) AS date_rank
+      FROM "PlayerRating" pr
+      JOIN "Match" m ON m.id = pr."matchId"
+      WHERE pr."playerId" = ANY(${playerIds})
+        ${kindCondition}
+        ${dateCondition}
+    ) ranked
+    WHERE date_rank <= 11
+  `;
+}
+
+// Bundles every read this page needs (years, players, per-category totals, the
+// rating window, historical season stats) behind one cache entry per filter
+// combination, so switching back to a filter already visited this window skips
+// the database entirely. Values crossing this boundary must stay JSON-safe -
+// unstable_cache serializes results, which is why ratings carry "dateMs"
+// (a number) instead of a Date (see fetchRatingWindow/ratingAverages above).
+const getRankingsData = unstable_cache(
+  async (peladaIds: string[], kind: RankingKind, season: number | "total", field: RankingField) => {
+    const [matchYearRows, seasonStatYearRows] = await Promise.all([
+      prisma.$queryRaw<{ year: number }[]>`
+        SELECT DISTINCT EXTRACT(YEAR FROM date)::int AS year
+        FROM "Match"
+        WHERE "peladaId" = ANY(${peladaIds}) AND "deletedAt" IS NULL AND status = 'CLOSED'
+        ORDER BY year DESC
+      `,
+      prisma.seasonPlayerStat.findMany({
+        where: { peladaId: { in: peladaIds } },
+        select: { year: true },
+        distinct: ["year"],
+        orderBy: { year: "desc" }
+      })
+    ]);
+
+    const players = await prisma.player.findMany({
+      where: { peladaId: { in: peladaIds }, active: true, membershipStatus: "MENSALISTA" },
+      select: {
+        id: true,
+        userId: true,
+        nickname: true,
+        photoUrl: true,
+        position: true,
+        rating: true,
+        pelada: { select: { name: true } }
+      }
+    });
+    const playerIds = players.map((player) => player.id);
+
+    const [goalTotals, assistTotals, presenceTotals, craqueTotals, ratingRows, historicalStats] = playerIds.length
+      ? await Promise.all([
+          prisma.goal.groupBy({
+            by: ["playerId"],
+            where: { playerId: { in: playerIds }, ...matchFilter(kind, season) },
+            _sum: { quantity: true }
+          }),
+          prisma.assist.groupBy({
+            by: ["playerId"],
+            where: { playerId: { in: playerIds }, ...matchFilter(kind, season) },
+            _sum: { quantity: true }
+          }),
+          prisma.attendance.groupBy({
+            by: ["playerId"],
+            where: { playerId: { in: playerIds }, status: "CONFIRMED", ...matchFilter(kind, season) },
+            _count: true
+          }),
+          prisma.poll.groupBy({
+            by: ["winnerId"],
+            where: { winnerId: { in: playerIds }, ...matchFilter(kind, season) },
+            _count: { _all: true }
+          }),
+          field === "ratingAverage" ? fetchRatingWindow(playerIds, kind, season) : Promise.resolve([]),
+          kind === "todos"
+            ? prisma.seasonPlayerStat.findMany({
+                where: { playerId: { in: playerIds }, ...(season === "total" ? {} : { year: season }) },
+                select: { playerId: true, goals: true, assists: true, presence: true, craque: true, ratingAverage: true, ratingCount: true }
+              })
+            : Promise.resolve([])
+        ])
+      : [[], [], [], [], [], []];
+
+    return { matchYearRows, seasonStatYearRows, players, goalTotals, assistTotals, presenceTotals, craqueTotals, ratingRows, historicalStats };
+  },
+  ["rankings-data"],
+  { tags: ["rankings"], revalidate: 120 }
+);
+
 
 function sumRowsByPlayer(rows: { playerId: string; _sum: { quantity: number | null } }[]) {
   return new Map(rows.map((row) => [row.playerId, row._sum.quantity ?? 0]));
@@ -96,12 +201,11 @@ function countRowsByPlayer(rows: { playerId?: string; winnerId?: string | null; 
   );
 }
 
-function ratingAverages(rows: { playerId: string; value: number; match: { date: Date } }[]) {
+function ratingAverages(rows: { playerId: string; value: number; dateMs: number }[]) {
   const groupedByPlayer = new Map<string, Map<number, number[]>>();
   for (const row of rows) {
     const playerRatings = groupedByPlayer.get(row.playerId) ?? new Map<number, number[]>();
-    const key = row.match.date.getTime();
-    playerRatings.set(key, [...(playerRatings.get(key) ?? []), row.value]);
+    playerRatings.set(row.dateMs, [...(playerRatings.get(row.dateMs) ?? []), row.value]);
     groupedByPlayer.set(row.playerId, playerRatings);
   }
 
@@ -154,78 +258,12 @@ export default async function RankingsPage({
       ? "Todas as minhas peladas"
       : memberPeladas.find((pelada) => pelada.id === activeScope)?.name || "Pelada ativa";
 
-  const [matchYearRows, seasonStatYearRows] = await Promise.all([
-    prisma.match.findMany({
-      where: { peladaId: { in: selectedPeladaIds }, deletedAt: null, status: "CLOSED" },
-      select: { date: true },
-      orderBy: { date: "desc" }
-    }),
-    prisma.seasonPlayerStat.findMany({
-      where: { peladaId: { in: selectedPeladaIds } },
-      select: { year: true },
-      distinct: ["year"],
-      orderBy: { year: "desc" }
-    })
-  ]);
+  const { matchYearRows, seasonStatYearRows, players, goalTotals, assistTotals, presenceTotals, craqueTotals, ratingRows, historicalStats } =
+    await getRankingsData(selectedPeladaIds, activeKind.key, activeSeason, activeTab.field);
+
   const seasonYears = Array.from(
-    new Set([currentSaoPauloYear(), ...matchYearRows.map((row) => row.date.getFullYear()), ...seasonStatYearRows.map((row) => row.year)])
+    new Set([currentSaoPauloYear(), ...matchYearRows.map((row) => row.year), ...seasonStatYearRows.map((row) => row.year)])
   ).sort((a, b) => b - a);
-
-  await Promise.all(selectedPeladaIds.map((peladaId) => closeExpiredCraquePolls(peladaId)));
-
-  const players = await prisma.player.findMany({
-    where: { peladaId: { in: selectedPeladaIds }, active: true, membershipStatus: "MENSALISTA" },
-    select: {
-      id: true,
-      userId: true,
-      nickname: true,
-      photoUrl: true,
-      position: true,
-      rating: true,
-      pelada: { select: { name: true } }
-    }
-  });
-  const playerIds = players.map((player) => player.id);
-
-  const [goalTotals, assistTotals, presenceTotals, craqueTotals, ratingRows, historicalStats] = playerIds.length
-    ? await Promise.all([
-        prisma.goal.groupBy({
-          by: ["playerId"],
-          where: { playerId: { in: playerIds }, ...matchFilter(activeKind.key, activeSeason) },
-          _sum: { quantity: true }
-        }),
-        prisma.assist.groupBy({
-          by: ["playerId"],
-          where: { playerId: { in: playerIds }, ...matchFilter(activeKind.key, activeSeason) },
-          _sum: { quantity: true }
-        }),
-        prisma.attendance.groupBy({
-          by: ["playerId"],
-          where: { playerId: { in: playerIds }, status: "CONFIRMED", ...matchFilter(activeKind.key, activeSeason) },
-          _count: true
-        }),
-        prisma.poll.groupBy({
-          by: ["winnerId"],
-          where: { winnerId: { in: playerIds }, ...matchFilter(activeKind.key, activeSeason) },
-          _count: { _all: true }
-        }),
-        activeTab.field === "ratingAverage"
-          ? prisma.playerRating.findMany({
-              where: { playerId: { in: playerIds }, ...matchFilter(activeKind.key, activeSeason) },
-              select: { playerId: true, value: true, match: { select: { date: true } } },
-              orderBy: { match: { date: "desc" } }
-            })
-          : Promise.resolve([]),
-        activeKind.key === "todos"
-          ? prisma.seasonPlayerStat.findMany({
-              where: {
-                playerId: { in: playerIds },
-                ...(activeSeason === "total" ? {} : { year: activeSeason })
-              }
-            })
-          : Promise.resolve([])
-      ])
-    : [[], [], [], [], [], []];
 
   const goalsByPlayerId = sumRowsByPlayer(goalTotals);
   const assistsByPlayerId = sumRowsByPlayer(assistTotals);

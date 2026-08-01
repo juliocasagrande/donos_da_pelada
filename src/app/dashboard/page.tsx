@@ -27,7 +27,7 @@ import { SectionLabel } from "@/components/ui/SectionLabel";
 import { LocationLinks } from "@/components/matches/LocationLinks";
 import { MatchWhatsappShareLink } from "@/components/matches/MatchWhatsappShareLink";
 import { DeveloperCredit } from "@/components/layout/DeveloperCredit";
-import { closeExpiredCraquePolls, createMatch } from "@/lib/actions";
+import { createMatch } from "@/lib/actions";
 import { approveMatchGuestRequest, rejectMatchGuestRequest } from "@/lib/radarActions";
 import { voteDeletionRequest } from "@/lib/deletionVotingActions";
 import { haversineKm } from "@/lib/geo";
@@ -45,7 +45,25 @@ type DashboardStats = {
   craqueCount: number;
 };
 
+// Brazil has not observed DST since 2019, so America/Sao_Paulo is always UTC-3 -
+// safe to hardcode the offset when building month/season boundaries in SQL.
+function saoPauloNowParts() {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit" })
+      .formatToParts(new Date())
+      .map((part) => [part.type, part.value])
+  );
+  return { year: Number(parts.year), month: Number(parts.month) };
+}
+
 async function getDashboardStats(peladaId: string) {
+  const { year, month } = saoPauloNowParts();
+  const monthStart = new Date(`${year}-${String(month).padStart(2, "0")}-01T00:00:00-03:00`);
+  const nextMonth = month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 };
+  const monthEnd = new Date(`${nextMonth.year}-${String(nextMonth.month).padStart(2, "0")}-01T00:00:00-03:00`);
+  const seasonStart = new Date(`${year}-01-01T00:00:00-03:00`);
+  const seasonEnd = new Date(`${year + 1}-01-01T00:00:00-03:00`);
+
   const [stats] = await prisma.$queryRaw<DashboardStats[]>`
     SELECT
       (SELECT COUNT(*)::int FROM "Player" WHERE "peladaId" = ${peladaId} AND active = true AND "membershipStatus" = 'MENSALISTA') AS "players",
@@ -53,9 +71,17 @@ async function getDashboardStats(peladaId: string) {
         SELECT COALESCE(SUM(g.quantity), 0)::int
         FROM "Goal" g
         JOIN "Player" p ON p.id = g."playerId"
-        WHERE p."peladaId" = ${peladaId} AND p."membershipStatus" = 'MENSALISTA'
+        JOIN "Match" m ON m.id = g."matchId"
+        WHERE p."peladaId" = ${peladaId}
+          AND p."membershipStatus" = 'MENSALISTA'
+          AND m."deletedAt" IS NULL
+          AND m.date >= ${seasonStart} AND m.date < ${seasonEnd}
       ) AS "goals",
-      (SELECT COUNT(*)::int FROM "Match" WHERE "peladaId" = ${peladaId} AND "deletedAt" IS NULL) AS "monthMatches",
+      (
+        SELECT COUNT(*)::int FROM "Match"
+        WHERE "peladaId" = ${peladaId} AND "deletedAt" IS NULL
+          AND date >= ${monthStart} AND date < ${monthEnd}
+      ) AS "monthMatches",
       (
         SELECT COUNT(*)::int
         FROM "Poll" po
@@ -70,6 +96,59 @@ async function getDashboardStats(peladaId: string) {
   `;
 
   return stats ?? { players: 0, goals: 0, monthMatches: 0, craqueCount: 0 };
+}
+
+// Fixed-height placeholders for the Suspense boundaries below, sized to each
+// card's approximate real footprint so streaming content doesn't cause a
+// layout jump when it pops in (fallback={null} was the previous behavior).
+function DashboardCardSkeleton({ height }: { height: number }) {
+  return <div className="mb-4 animate-pulse rounded-card bg-linha/50" style={{ height }} aria-hidden="true" />;
+}
+
+function StatsGridSkeleton() {
+  return (
+    <div className="grid grid-cols-2 gap-3" aria-hidden="true">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <div key={index} className="h-[104px] animate-pulse rounded-card bg-linha/50" />
+      ))}
+    </div>
+  );
+}
+
+async function StatsGrid({ peladaId }: { peladaId: string }) {
+  const stats = await getDashboardStats(peladaId);
+  return (
+    <div className="stagger grid grid-cols-2 gap-3">
+      <Link href="/players" className="block transition hover:-translate-y-0.5 active:scale-95">
+        <StatTile icon={Users} value={stats.players} label="Jogadores" />
+      </Link>
+      <Link href="/rankings?tipo=artilharia" className="block transition hover:-translate-y-0.5 active:scale-95">
+        <StatTile icon={Target} value={stats.goals} label="Gols na temporada" accent="yellow" />
+      </Link>
+      <Link href="/matches" className="block transition hover:-translate-y-0.5 active:scale-95">
+        <StatTile icon={CalendarCheck} value={stats.monthMatches} label="Peladas no mes" />
+      </Link>
+      <Link href="/rankings?tipo=craque" className="block transition hover:-translate-y-0.5 active:scale-95">
+        <StatTile icon={Star} value={stats.craqueCount} label="Vezes craque" accent="yellow" />
+      </Link>
+    </div>
+  );
+}
+
+async function PeladaOwnerBadge({ peladaId }: { peladaId: string }) {
+  const peladaOwner = await prisma.peladaMembership.findFirst({
+    where: { peladaId, role: "PRESIDENTE" },
+    select: { user: { select: { name: true, email: true } } },
+    orderBy: { createdAt: "asc" }
+  });
+  const label = peladaOwner?.user.name || peladaOwner?.user.email;
+  if (!label) return null;
+
+  return (
+    <span className="flex items-center gap-1 text-[11px] font-medium text-green-200/80">
+      <ShieldCheck size={12} /> {label}
+    </span>
+  );
 }
 
 async function PendingRatingsCard({ peladaId }: { peladaId: string }) {
@@ -255,7 +334,6 @@ async function AdminDashboardBlocks({ userId, peladaId, role }: { userId: string
 }
 
 async function PollDashboardCard({ userId, peladaId }: { userId: string; peladaId: string }) {
-  await closeExpiredCraquePolls(peladaId);
   const recentClosedPollCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const visibleCraquePolls = await prisma.poll.findMany({
     where: {
@@ -416,25 +494,28 @@ export default async function DashboardPage() {
   const user = await requireUser();
   const isAdmin = isPeladaAdmin(user);
   const peladaId = user.peladaId!;
-  const [linkedPlayer, nextMatch, stats, peladaOwner, openCraquePoll] = await Promise.all([
+  const [linkedPlayer, nextMatch, openCraquePoll, newMatchAdminData] = await Promise.all([
     prisma.player.findFirst({ where: { userId: user.id, peladaId }, select: { id: true, nickname: true, membershipStatus: true } }),
     prisma.match.findFirst({
       where: { peladaId, status: "OPEN", deletedAt: null },
       include: { _count: { select: { attendances: { where: { status: "CONFIRMED" } } } } },
       orderBy: { date: "asc" }
     }),
-    getDashboardStats(peladaId),
-    prisma.peladaMembership.findFirst({
-      where: { peladaId, role: "PRESIDENTE" },
-      select: { user: { select: { name: true, email: true } } },
-      orderBy: { createdAt: "asc" }
-    }),
+    // stats and peladaOwner moved to their own Suspense boundaries below (StatsGrid,
+    // PeladaOwnerBadge) - neither is needed for the initial paint (hero card, actions),
+    // so they no longer hold up this page's loading.tsx boundary.
     prisma.poll.findFirst({
       where: { title: "Craque da pelada", status: "OPEN", match: { peladaId, deletedAt: null } },
       select: { matchId: true },
       orderBy: { updatedAt: "desc" }
-    })
+    }),
+    // Independent of everything else above - fold into the same wave instead of
+    // awaiting it afterwards, so admins don't pay for a second round-trip.
+    isAdmin
+      ? Promise.all([getMatchDefaults(peladaId), isPeladaIdPro(peladaId), getRecentLocations(peladaId)])
+      : Promise.resolve([null, false, [] as string[]] as const)
   ]);
+  const [newMatchDefaults, newMatchAllowAmistoso, newMatchRecentLocations] = newMatchAdminData;
 
   const myNextMatchAttendance =
     nextMatch && linkedPlayer
@@ -445,10 +526,6 @@ export default async function DashboardPage() {
       : null;
   const isGuest = linkedPlayer?.membershipStatus === "CONVIDADO";
   const displayName = linkedPlayer?.nickname || user.name?.split(" ")[0] || "Craque";
-
-  const [newMatchDefaults, newMatchAllowAmistoso, newMatchRecentLocations] = isAdmin
-    ? await Promise.all([getMatchDefaults(peladaId), isPeladaIdPro(peladaId), getRecentLocations(peladaId)])
-    : [null, false, [] as string[]];
 
   const otherShortcuts = [
     { href: "/matches", label: "Escalar times", icon: Target },
@@ -465,13 +542,13 @@ export default async function DashboardPage() {
       </div>
 
       {isAdmin ? (
-        <Suspense fallback={null}>
+        <Suspense fallback={<DashboardCardSkeleton height={150} />}>
           <PendingRatingsCard peladaId={peladaId} />
         </Suspense>
       ) : null}
 
       {!isAdmin ? (
-        <Suspense fallback={null}>
+        <Suspense fallback={<DashboardCardSkeleton height={84} />}>
           <NearbyRadarCard
             peladaId={peladaId}
             radarProfile={{
@@ -484,11 +561,11 @@ export default async function DashboardPage() {
         </Suspense>
       ) : null}
 
-      <Suspense fallback={null}>
+      <Suspense fallback={<DashboardCardSkeleton height={128} />}>
         <PollDashboardCard userId={user.id} peladaId={peladaId} />
       </Suspense>
 
-      <Suspense fallback={null}>
+      <Suspense fallback={<DashboardCardSkeleton height={148} />}>
         <CraqueDashboardCard peladaId={peladaId} linkedPlayerId={linkedPlayer?.id} />
       </Suspense>
 
@@ -504,11 +581,9 @@ export default async function DashboardPage() {
               <p className="flex items-center gap-2 font-jersey text-sm font-semibold uppercase tracking-[.12em] text-green-200">
                 <span className="pulse-dot h-2 w-2 rounded-full bg-craque" /> Proxima pelada
               </p>
-              {peladaOwner?.user.name || peladaOwner?.user.email ? (
-                <span className="flex items-center gap-1 text-[11px] font-medium text-green-200/80">
-                  <ShieldCheck size={12} /> {peladaOwner.user.name || peladaOwner.user.email}
-                </span>
-              ) : null}
+              <Suspense fallback={null}>
+                <PeladaOwnerBadge peladaId={peladaId} />
+              </Suspense>
             </div>
             <h2 className="mt-2 font-display text-2xl font-bold">{nextMatch.title}</h2>
             <div className="mt-2 flex flex-wrap gap-4 text-sm text-green-100">
@@ -541,20 +616,9 @@ export default async function DashboardPage() {
         </Card>
       ) : null}
 
-      <div className="stagger grid grid-cols-2 gap-3">
-        <Link href="/players" className="block transition hover:-translate-y-0.5 active:scale-95">
-          <StatTile icon={Users} value={stats.players} label="Jogadores" />
-        </Link>
-        <Link href="/rankings?tipo=artilharia" className="block transition hover:-translate-y-0.5 active:scale-95">
-          <StatTile icon={Target} value={stats.goals} label="Gols na temporada" accent="yellow" />
-        </Link>
-        <Link href="/matches" className="block transition hover:-translate-y-0.5 active:scale-95">
-          <StatTile icon={CalendarCheck} value={stats.monthMatches} label="Peladas no mes" />
-        </Link>
-        <Link href="/rankings?tipo=craque" className="block transition hover:-translate-y-0.5 active:scale-95">
-          <StatTile icon={Star} value={stats.craqueCount} label="Vezes craque" accent="yellow" />
-        </Link>
-      </div>
+      <Suspense fallback={<StatsGridSkeleton />}>
+        <StatsGrid peladaId={peladaId} />
+      </Suspense>
 
       <SectionLabel className="mb-2 mt-5">Atalhos de jogo</SectionLabel>
       <div className="stagger grid grid-cols-3 gap-2">
@@ -590,7 +654,10 @@ export default async function DashboardPage() {
       </div>
 
       {isAdmin ? (
-        <Suspense fallback={null}>
+        // Sized to the always-present "Gestao da pelada" management list only - the
+        // deletion-vote/guest-request cards above it are conditional and rarer, so a
+        // shorter placeholder undershoots less often than it overshoots.
+        <Suspense fallback={<DashboardCardSkeleton height={210} />}>
           <AdminDashboardBlocks userId={user.id} peladaId={peladaId} role={user.role} />
         </Suspense>
       ) : null}

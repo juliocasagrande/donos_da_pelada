@@ -19,7 +19,7 @@ export const getCurrentUser = cache(async () => {
   const cookieStore = await cookies();
   const requestedPeladaId = cookieStore.get(ACTIVE_PELADA_COOKIE)?.value;
 
-  const [dbUser, memberships] = await Promise.all([
+  const [dbUser, memberships, players] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id },
       select: {
@@ -45,6 +45,13 @@ export const getCurrentUser = cache(async () => {
         pelada: { select: { id: true, name: true, _count: { select: { memberships: true } } } }
       },
       orderBy: { createdAt: "asc" }
+    }),
+    // A user has at most one Player per pelada (@@unique([userId, peladaId])) and
+    // belongs to few peladas, so fetching all of them here and picking in memory
+    // saves a round-trip versus a second query gated on the chosen membership.
+    prisma.player.findMany({
+      where: { userId: session.user.id },
+      select: { id: true, peladaId: true, active: true, membershipStatus: true }
     })
   ]);
   if (!dbUser) return null;
@@ -52,10 +59,7 @@ export const getCurrentUser = cache(async () => {
   const membership = memberships.find((item) => item.peladaId === requestedPeladaId) ?? memberships[0] ?? null;
 
   const linkedPlayer = membership
-    ? await prisma.player.findFirst({
-        where: { userId: session.user.id, peladaId: membership.peladaId },
-        select: { id: true, active: true, membershipStatus: true }
-      })
+    ? (players.find((player) => player.peladaId === membership.peladaId) ?? null)
     : null;
   const hasPlayerProfile = Boolean(linkedPlayer);
   const effectivePeladaRole =

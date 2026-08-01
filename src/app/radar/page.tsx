@@ -24,12 +24,14 @@ export default async function RadarPage({
   const user = await requireUser();
   const { solicitado, radarErro } = await searchParams;
 
-  const profile = await prisma.user.findUnique({
-    where: { id: user.id },
-    select: { radarEnabled: true, radarRadiusKm: true, latitude: true, longitude: true }
-  });
+  const profile = {
+    radarEnabled: user.radarEnabled,
+    radarRadiusKm: user.radarRadiusKm,
+    latitude: user.latitude,
+    longitude: user.longitude
+  };
 
-  if (!profile?.radarEnabled || profile.latitude == null || profile.longitude == null) {
+  if (!profile.radarEnabled || profile.latitude == null || profile.longitude == null) {
     return (
       <AppShell>
         <div className="mb-5">

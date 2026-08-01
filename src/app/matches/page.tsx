@@ -97,26 +97,29 @@ export default async function MatchesPage({
   const query = await searchParams;
   const activeTab = query?.aba === "anteriores" ? "anteriores" : "proximas";
   const activeKind = kindTabs.find((tab) => tab.key === query?.tipo) ?? kindTabs[0];
-  const matches = await prisma.match.findMany({
-    where: {
-      peladaId: user.peladaId!,
-      deletedAt: null,
-      status: activeTab === "proximas" ? "OPEN" : "CLOSED",
-      ...(activeKind.key === "todos" ? {} : { kind: activeKind.key })
-    },
-    include: {
-      _count: { select: { attendances: { where: { status: "CONFIRMED" } } } }
-    },
-    orderBy: { date: activeTab === "proximas" ? "asc" : "desc" },
-    take: activeTab === "anteriores" ? 60 : undefined
-  });
+  const [matches, newMatchAdminData] = await Promise.all([
+    prisma.match.findMany({
+      where: {
+        peladaId: user.peladaId!,
+        deletedAt: null,
+        status: activeTab === "proximas" ? "OPEN" : "CLOSED",
+        ...(activeKind.key === "todos" ? {} : { kind: activeKind.key })
+      },
+      include: {
+        _count: { select: { attendances: { where: { status: "CONFIRMED" } } } }
+      },
+      orderBy: { date: activeTab === "proximas" ? "asc" : "desc" },
+      take: activeTab === "anteriores" ? 60 : undefined
+    }),
+    isAdmin
+      ? Promise.all([getMatchDefaults(user.peladaId!), isPeladaIdPro(user.peladaId!), getRecentLocations(user.peladaId!)])
+      : Promise.resolve([null, false, [] as string[]] as const)
+  ]);
 
   const featured = activeTab === "proximas" ? matches[0] : null;
   const others = featured ? matches.filter((match) => match.id !== featured.id) : matches;
 
-  const [newMatchDefaults, newMatchAllowAmistoso, newMatchRecentLocations] = isAdmin
-    ? await Promise.all([getMatchDefaults(user.peladaId!), isPeladaIdPro(user.peladaId!), getRecentLocations(user.peladaId!)])
-    : [null, false, [] as string[]];
+  const [newMatchDefaults, newMatchAllowAmistoso, newMatchRecentLocations] = newMatchAdminData;
 
   return (
     <AppShell>

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -209,12 +210,14 @@ export function LandingPage() {
       <section className="relative overflow-hidden">
         {/* Desktop/tablet: imagem inteira ocupando toda a largura + texto sobreposto */}
         <div className="relative hidden md:block">
-          <img
-            src="/hero-bg.png"
+          <Image
+            src="/hero-bg.webp"
             alt="Craques do futebol brasileiro ao lado do app Donos da Pelada"
             className="block h-auto w-full"
             width={1672}
             height={941}
+            priority
+            sizes="100vw"
           />
           {/* Clareia o lado esquerdo para leitura do texto, sem cobrir os craques */}
           <div
@@ -230,12 +233,14 @@ export function LandingPage() {
 
         {/* Mobile: imagem inteira full-width em cima, texto logo abaixo */}
         <div className="md:hidden">
-          <img
-            src="/hero-bg.png"
+          <Image
+            src="/hero-bg.webp"
             alt="Craques do futebol brasileiro ao lado do app Donos da Pelada"
             className="block h-auto w-full"
             width={1672}
             height={941}
+            priority
+            sizes="100vw"
           />
           <div className="px-5 pb-2 pt-7 text-center">
             <HeroCopy align="center" />

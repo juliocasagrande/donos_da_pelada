@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useOptimistic, useTransition } from "react";
 import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { useActionFeedback } from "@/hooks/useActionFeedback";
+import { useToast } from "@/components/ui/ToastProvider";
 import { updateOwnAttendanceStatus } from "@/lib/actions";
 import { cn } from "@/lib/utils";
 
@@ -16,58 +16,56 @@ export function DashboardAttendanceActions({
   matchId: string;
   attendanceStatus: AttendanceStatus;
 }) {
-  const [selectedStatus, setSelectedStatus] = useState<AttendanceStatus>(attendanceStatus);
-  const [confirmState, confirmAction, confirmPending] = useActionFeedback(
-    () => updateOwnAttendanceStatus(matchId, true),
-    { onSuccess: (result) => setSelectedStatus(result.status) }
-  );
-  const [declineState, declineAction, declinePending] = useActionFeedback(
-    () => updateOwnAttendanceStatus(matchId, false),
-    { onSuccess: (result) => setSelectedStatus(result.status) }
-  );
-  const isPending = confirmPending || declinePending;
-  const currentState = confirmState ?? declineState;
-  const isGoing = selectedStatus === "CONFIRMED" || selectedStatus === "WAITLIST";
-  const isOut = selectedStatus === "OUT";
-  const hasSelectedStatus = isGoing || isOut;
+  const toast = useToast();
+  const [isPending, startTransition] = useTransition();
+  // Flips the button to its target look the instant it's tapped instead of
+  // waiting on the round-trip; if the server disagrees (error, or the guest
+  // lands on the waitlist instead of confirmed), the next render reconciles
+  // to the real attendanceStatus prop once revalidatePath refreshes it.
+  const [optimisticStatus, setOptimisticStatus] = useOptimistic(attendanceStatus);
 
-  useEffect(() => {
-    setSelectedStatus(attendanceStatus);
-  }, [attendanceStatus]);
+  function respond(present: boolean) {
+    startTransition(async () => {
+      setOptimisticStatus(present ? "CONFIRMED" : "OUT");
+      const result = await updateOwnAttendanceStatus(matchId, present);
+      if (!result.ok) toast.error(result.error);
+    });
+  }
+
+  const isGoing = optimisticStatus === "CONFIRMED" || optimisticStatus === "WAITLIST";
+  const isOut = optimisticStatus === "OUT";
+  const hasSelectedStatus = isGoing || isOut;
 
   return (
     <div className="relative z-30 mt-4">
       <div className="flex gap-2">
-        <form action={confirmAction} className="flex-1">
-          <Button
-            type="submit"
-            className={cn(
-              "w-full gap-1.5 border uppercase shadow-none",
-              isGoing
-                ? "border-white bg-craque text-tinta ring-2 ring-white/80"
-                : cn("border-craque bg-craque text-tinta", hasSelectedStatus ? "opacity-55" : "opacity-90")
-            )}
-            disabled={isPending}
-          >
-            {isGoing ? <Check size={15} /> : null}
-            {confirmPending ? "Confirmando..." : selectedStatus === "WAITLIST" ? "Na espera" : "Vou jogar"}
-          </Button>
-        </form>
-        <form action={declineAction} className="flex-1">
-          <Button
-            type="submit"
-            className={cn(
-              "w-full gap-1.5 border bg-ausente uppercase text-white shadow-none",
-              isOut ? "border-white ring-2 ring-white/80" : cn("border-ausente", hasSelectedStatus ? "opacity-55" : "opacity-90")
-            )}
-            disabled={isPending}
-          >
-            {isOut ? <X size={15} /> : null}
-            {declinePending ? "Salvando..." : "NAO VOU"}
-          </Button>
-        </form>
+        <Button
+          type="button"
+          onClick={() => respond(true)}
+          disabled={isPending}
+          className={cn(
+            "w-full gap-1.5 border uppercase shadow-none",
+            isGoing
+              ? "border-white bg-craque text-tinta ring-2 ring-white/80"
+              : cn("border-craque bg-craque text-tinta", hasSelectedStatus ? "opacity-55" : "opacity-90")
+          )}
+        >
+          {isGoing ? <Check size={15} /> : null}
+          {optimisticStatus === "WAITLIST" ? "Na espera" : "Vou jogar"}
+        </Button>
+        <Button
+          type="button"
+          onClick={() => respond(false)}
+          disabled={isPending}
+          className={cn(
+            "w-full gap-1.5 border bg-ausente uppercase text-white shadow-none",
+            isOut ? "border-white ring-2 ring-white/80" : cn("border-ausente", hasSelectedStatus ? "opacity-55" : "opacity-90")
+          )}
+        >
+          {isOut ? <X size={15} /> : null}
+          NAO VOU
+        </Button>
       </div>
-      {currentState && !currentState.ok ? <p className="mt-2 text-xs font-semibold text-[#FBE9E6]">{currentState.error}</p> : null}
     </div>
   );
 }

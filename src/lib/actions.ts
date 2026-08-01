@@ -1,7 +1,7 @@
 "use server";
 
 import bcrypt from "bcryptjs";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { MatchKind, MatchStatus, PeladaRole, PollStatus, Prisma, UserRole } from "@prisma/client";
@@ -762,7 +762,13 @@ export async function autoCloseMatches(now = new Date()) {
     await closeMatchAndNotify(match.id);
   }
 
-  return { processed: matches.length };
+  // Craque polls expire on a fixed voting window regardless of match status,
+  // so this piggybacks on the same periodic cron instead of needing its own
+  // schedule - previously this ran inline on page renders (dashboard/rankings/
+  // stats), which meant every visit paid for a scan-and-maybe-publish query.
+  const { processed: pollsClosed } = await closeExpiredCraquePolls();
+
+  return { processed: matches.length, pollsClosed };
 }
 
 async function applyAttendanceChange(
@@ -1105,24 +1111,30 @@ export async function updateSeasonPlayerStats(year: number, formData: FormData) 
   });
   const allowedPlayerIds = new Set(players.map((player) => player.id));
 
-  for (const playerId of playerIds) {
-    if (!allowedPlayerIds.has(playerId)) continue;
-    const goals = nonNegativeIntFromForm(formData, `goals-${playerId}`);
-    const assists = nonNegativeIntFromForm(formData, `assists-${playerId}`);
-    const presence = nonNegativeIntFromForm(formData, `presence-${playerId}`);
-    const craque = nonNegativeIntFromForm(formData, `craque-${playerId}`);
-    const ratingAverage = ratingAverageFromForm(formData, `ratingAverage-${playerId}`);
-    const ratingCount = ratingAverage > 0 ? Math.max(1, nonNegativeIntFromForm(formData, `ratingCount-${playerId}`)) : 0;
-
-    await prisma.seasonPlayerStat.upsert({
-      where: { peladaId_playerId_year: { peladaId: admin.peladaId!, playerId, year: parsedYear } },
-      update: { goals, assists, presence, craque, ratingAverage, ratingCount },
-      create: { peladaId: admin.peladaId!, playerId, year: parsedYear, goals, assists, presence, craque, ratingAverage, ratingCount }
+  const updates = playerIds
+    .filter((playerId) => allowedPlayerIds.has(playerId))
+    .map((playerId) => {
+      const goals = nonNegativeIntFromForm(formData, `goals-${playerId}`);
+      const assists = nonNegativeIntFromForm(formData, `assists-${playerId}`);
+      const presence = nonNegativeIntFromForm(formData, `presence-${playerId}`);
+      const craque = nonNegativeIntFromForm(formData, `craque-${playerId}`);
+      const ratingAverage = ratingAverageFromForm(formData, `ratingAverage-${playerId}`);
+      const ratingCount = ratingAverage > 0 ? Math.max(1, nonNegativeIntFromForm(formData, `ratingCount-${playerId}`)) : 0;
+      return { playerId, goals, assists, presence, craque, ratingAverage, ratingCount };
     });
-  }
+
+  await prisma.$transaction(
+    updates.map(({ playerId, goals, assists, presence, craque, ratingAverage, ratingCount }) =>
+      prisma.seasonPlayerStat.upsert({
+        where: { peladaId_playerId_year: { peladaId: admin.peladaId!, playerId, year: parsedYear } },
+        update: { goals, assists, presence, craque, ratingAverage, ratingCount },
+        create: { peladaId: admin.peladaId!, playerId, year: parsedYear, goals, assists, presence, craque, ratingAverage, ratingCount }
+      })
+    )
+  );
 
   await logAudit(admin, "SEASON_STATS_UPDATED", { type: "SeasonPlayerStat", id: String(parsedYear) }, { year: parsedYear });
-  revalidatePath("/rankings");
+  revalidateTag("rankings");
   revalidatePath("/rankings/temporadas");
   redirect(`/rankings/temporadas?ano=${parsedYear}&salvo=1`);
 }
@@ -1164,7 +1176,7 @@ export async function createSeason(formData: FormData) {
   );
 
   await logAudit(admin, "SEASON_CREATED", { type: "SeasonPlayerStat", id: String(parsedYear) }, { year: parsedYear });
-  revalidatePath("/rankings");
+  revalidateTag("rankings");
   revalidatePath("/rankings/temporadas");
   redirect(`/rankings/temporadas?ano=${parsedYear}&editar=1&criada=1`);
 }
@@ -1189,7 +1201,7 @@ export async function deleteSeason(formData: FormData) {
   const nextYear = remainingSeasons[0]?.year;
 
   await logAudit(admin, "SEASON_DELETED", { type: "SeasonPlayerStat", id: String(parsedYear) }, { year: parsedYear });
-  revalidatePath("/rankings");
+  revalidateTag("rankings");
   revalidatePath("/rankings/temporadas");
   redirect(`/rankings/temporadas?editar=1&excluida=1${nextYear ? `&ano=${nextYear}` : ""}`);
 }
@@ -1237,7 +1249,7 @@ export async function updateStats(matchId: string, formData: FormData) {
   await Promise.all(operations);
 
   revalidatePath(`/matches/${matchId}/stats`);
-  revalidatePath("/rankings");
+  revalidateTag("rankings");
   revalidatePath("/dashboard");
   return { ok: true };
 }
@@ -1262,7 +1274,7 @@ export async function updateMatchScore(matchId: string, formData: FormData) {
   });
 
   revalidatePath(`/matches/${matchId}/stats`);
-  revalidatePath("/rankings");
+  revalidateTag("rankings");
   return { ok: true };
 }
 
@@ -1328,7 +1340,7 @@ export async function submitOwnMatchStats(matchId: string, formData: FormData) {
   ]);
 
   revalidatePath(`/matches/${matchId}/stats`);
-  revalidatePath("/rankings");
+  revalidateTag("rankings");
   revalidatePath(`/players/${linkedPlayer.id}`);
   return { ok: true };
 }
@@ -1551,7 +1563,7 @@ async function publishCraquePoll(pollId: string) {
   });
 
   revalidatePath(`/matches/${poll.matchId}/stats`);
-  revalidatePath("/rankings");
+  revalidateTag("rankings");
   revalidatePath("/dashboard");
 }
 
@@ -1566,18 +1578,18 @@ export async function closeCraquePoll(pollId: string) {
   if (poll) {
     revalidatePath(`/matches/${poll.matchId}/stats`);
   }
-  revalidatePath("/rankings");
+  revalidateTag("rankings");
   revalidatePath("/dashboard");
 }
 
-export async function closeExpiredCraquePolls(peladaId: string) {
+export async function closeExpiredCraquePolls(peladaId?: string) {
   const expiredBefore = new Date(Date.now() - VOTING_WINDOW_HOURS * 60 * 60 * 1000);
   const polls = await prisma.poll.findMany({
     where: {
       title: "Craque da pelada",
       status: PollStatus.OPEN,
       createdAt: { lt: expiredBefore },
-      match: { peladaId, deletedAt: null }
+      match: { ...(peladaId ? { peladaId } : {}), deletedAt: null }
     },
     select: { id: true }
   });
@@ -1585,6 +1597,8 @@ export async function closeExpiredCraquePolls(peladaId: string) {
   for (const poll of polls) {
     await publishCraquePoll(poll.id);
   }
+
+  return { processed: polls.length };
 }
 
 export async function sendCloseMatchReminders(now = new Date()) {

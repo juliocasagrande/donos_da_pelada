@@ -28,21 +28,23 @@ export async function getOwnerProPeladaIds(ownerId: string) {
 }
 
 export async function isPeladaIdPro(peladaId: string) {
-  const pelada = await prisma.pelada.findUnique({
-    where: { id: peladaId },
-    select: { trialEndsAt: true, createdByUserId: true }
-  });
-  if (!pelada) return false;
-  if (pelada.trialEndsAt && pelada.trialEndsAt.getTime() > Date.now()) return true;
-  if (!pelada.createdByUserId) return false;
+  // Pelada.createdByUserId has no Prisma relation to User (plain FK column), so a
+  // typed include isn't available - a raw join still collapses what would
+  // otherwise be two sequential round-trips (pelada, then its owner) into one.
+  const [row] = await prisma.$queryRaw<
+    { trialEndsAt: Date | null; createdByUserId: string | null; plan: string | null; proRenewsAt: Date | null }[]
+  >`
+    SELECT p."trialEndsAt", p."createdByUserId", u.plan::text AS plan, u."proRenewsAt"
+    FROM "Pelada" p
+    LEFT JOIN "User" u ON u.id = p."createdByUserId"
+    WHERE p.id = ${peladaId}
+  `;
+  if (!row) return false;
+  if (row.trialEndsAt && row.trialEndsAt.getTime() > Date.now()) return true;
+  if (!row.createdByUserId || !row.plan) return false;
+  if (!isUserPro({ plan: row.plan, proRenewsAt: row.proRenewsAt })) return false;
 
-  const owner = await prisma.user.findUnique({
-    where: { id: pelada.createdByUserId },
-    select: { plan: true, proRenewsAt: true }
-  });
-  if (!owner || !isUserPro(owner)) return false;
-
-  const proPeladaIds = await getOwnerProPeladaIds(pelada.createdByUserId);
+  const proPeladaIds = await getOwnerProPeladaIds(row.createdByUserId);
   return proPeladaIds.has(peladaId);
 }
 

@@ -294,6 +294,7 @@ model MonthlyPayment {
   createdAt DateTime @default(now())
 
   @@unique([peladaId, playerId, year, month])
+  @@index([peladaId, year, month])
 }
 
 model Transaction {

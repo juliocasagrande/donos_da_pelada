@@ -5,7 +5,6 @@ import { PlayerAvatar } from "@/components/players/PlayerAvatar";
 import { Card } from "@/components/ui/Card";
 import { RatePlayerForm } from "@/components/matches/RatePlayerForm";
 import { ShareMatchStoryButton } from "@/components/matches/ShareMatchStoryButton";
-import { closeExpiredCraquePolls } from "@/lib/actions";
 import { prisma } from "@/lib/prisma";
 import { isPeladaAdmin, requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
@@ -31,9 +30,8 @@ function votingEndsAt(createdAt?: Date) {
 
 export default async function StatsPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser();
-  await closeExpiredCraquePolls(user.peladaId!);
   const { id } = await params;
-  const [match, players, poll, linkedPlayer] = await Promise.all([
+  const [match, players, poll, linkedPlayer, viewerAttendance] = await Promise.all([
     prisma.match.findFirst({ where: { id, peladaId: user.peladaId!, deletedAt: null } }),
     prisma.player.findMany({
       where: {
@@ -55,13 +53,16 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
       orderBy: { createdAt: "desc" },
       include: { votes: { select: { userId: true, playerId: true } }, winner: true }
     }),
-    prisma.player.findFirst({ where: { userId: user.id, peladaId: user.peladaId! } })
+    prisma.player.findFirst({ where: { userId: user.id, peladaId: user.peladaId! } }),
+    // Filtered through the player relation instead of a matchId_playerId lookup so
+    // it doesn't need to wait on the linkedPlayer query above to get its id first.
+    prisma.attendance.findFirst({
+      where: { matchId: id, player: { userId: user.id, peladaId: user.peladaId! } },
+      select: { status: true }
+    })
   ]);
 
   const isAdmin = isPeladaAdmin(user);
-  const viewerAttendance = linkedPlayer
-    ? await prisma.attendance.findUnique({ where: { matchId_playerId: { matchId: id, playerId: linkedPlayer.id } } })
-    : null;
   const canVote =
     viewerAttendance?.status === "CONFIRMED" &&
     linkedPlayer?.active === true;
