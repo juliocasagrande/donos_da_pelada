@@ -1,7 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { cancelAuthorizedPayment } from "@/lib/mercadopago";
+import { cancelAuthorizedPayment, cancelSubscription } from "@/lib/mercadopago";
+import { syncSubscriptionFromMercadoPago } from "@/lib/mercadopagoSubscriptionSync";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -12,6 +13,21 @@ export async function cancelProPeriod() {
 
   const now = new Date();
   const inFreeCancellationPeriod = Boolean(user.proCancelUntil && user.proCancelUntil.getTime() > now.getTime());
+
+  if (user.mpSubscriptionId) {
+    try {
+      const remote = await cancelSubscription(user.mpSubscriptionId);
+      await syncSubscriptionFromMercadoPago(remote);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Nao foi possivel cancelar a assinatura.";
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { mpPaymentError: message, mpPaymentStatusDetail: message }
+      });
+      redirect("/pagamento?cancelado=erro");
+    }
+    redirect(inFreeCancellationPeriod ? "/pagamento?cancelado=gratis" : "/pagamento?cancelado=fim-do-periodo");
+  }
 
   if (inFreeCancellationPeriod) {
     if (user.plan === "PRO_IN_PROGRESS" && user.mpPaymentId) {

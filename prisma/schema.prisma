@@ -98,42 +98,42 @@ enum DeletionVoteValue {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  passwordHash  String?
-  role          UserRole  @default(PLAYER)
-  active        Boolean   @default(true)
-  onboarded     Boolean   @default(false)
-  players       Player[]
-  accounts      Account[]
-  sessions      Session[]
-  votes         PollVote[]
-  ratingsGiven  PlayerRating[] @relation("RatingsGiven")
-  matchSubmissions PlayerMatchSubmission[] @relation("MatchSubmissions")
-  pushSubscriptions PushSubscription[]
-  guestInvites Attendance[] @relation("GuestInvites")
-  auditLogs    AuditLog[]
-  transactions Transaction[]
-  peladaMemberships PeladaMembership[]
-  createdPeladaInvites PeladaInvite[]
-  createdDeletionRequests DeletionRequest[] @relation("CreatedDeletionRequests")
-  deletionVotes DeletionVote[]
-  peladaJoinRequests PeladaJoinRequest[]
-  matchGuestRequests MatchGuestRequest[]
-  careerStats   UserCareerStats?
-  whatsapp      String?
-  whatsappChatEnabled Boolean @default(false)
-  pushNotificationsEnabled Boolean @default(false)
-  pushPromptDismissed Boolean @default(false)
-  radarEnabled  Boolean   @default(false)
-  radarRadiusKm Int       @default(10)
-  address       String?
-  latitude      Float?
-  longitude     Float?
-  plan                     PeladaPlan @default(FREE)
+  id                       String                    @id @default(cuid())
+  name                     String?
+  email                    String?                   @unique
+  emailVerified            DateTime?
+  image                    String?
+  passwordHash             String?
+  role                     UserRole                  @default(PLAYER)
+  active                   Boolean                   @default(true)
+  onboarded                Boolean                   @default(false)
+  players                  Player[]
+  accounts                 Account[]
+  sessions                 Session[]
+  votes                    PollVote[]
+  ratingsGiven             PlayerRating[]            @relation("RatingsGiven")
+  matchSubmissions         PlayerMatchSubmission[]   @relation("MatchSubmissions")
+  pushSubscriptions        PushSubscription[]
+  guestInvites             Attendance[]              @relation("GuestInvites")
+  auditLogs                AuditLog[]
+  transactions             Transaction[]
+  peladaMemberships        PeladaMembership[]
+  createdPeladaInvites     PeladaInvite[]
+  createdDeletionRequests  DeletionRequest[]         @relation("CreatedDeletionRequests")
+  deletionVotes            DeletionVote[]
+  peladaJoinRequests       PeladaJoinRequest[]
+  matchGuestRequests       MatchGuestRequest[]
+  careerStats              UserCareerStats?
+  whatsapp                 String?
+  whatsappChatEnabled      Boolean                   @default(false)
+  pushNotificationsEnabled Boolean                   @default(false)
+  pushPromptDismissed      Boolean                   @default(false)
+  radarEnabled             Boolean                   @default(false)
+  radarRadiusKm            Int                       @default(10)
+  address                  String?
+  latitude                 Float?
+  longitude                Float?
+  plan                     PeladaPlan                @default(FREE)
   proRenewsAt              DateTime?
   proCancelUntil           DateTime?
   proCancelRollbackUntil   DateTime?
@@ -145,33 +145,81 @@ model User {
   mpPaymentError           String?
   mpAuthorizedAmount       Float?
   mpSubscriptionInterval   String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  mpSubscriptionId         String?                   @unique
+  mpSubscriptionStatus     String?
+  mercadoPagoSubscriptions MercadoPagoSubscription[]
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+}
+
+model MercadoPagoSubscription {
+  id                      String               @id @default(cuid())
+  userId                  String
+  user                    User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  externalId              String?              @unique
+  activeKey               String?              @unique
+  requestKey              String               @unique
+  payerEmail              String
+  interval                String
+  amount                  Float
+  status                  String               @default("creating")
+  nextPaymentAt           DateTime?
+  trialEndsAt             DateTime
+  previousProRenewsAt     DateTime?
+  lastPaymentId           String?
+  lastPaymentStatus       String?
+  lastPaymentStatusDetail String?
+  lastPaymentAt           DateTime?
+  error                   String?
+  cancelledAt             DateTime?
+  invoices                MercadoPagoInvoice[]
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status, nextPaymentAt])
+}
+
+model MercadoPagoInvoice {
+  id             String                  @id @default(cuid())
+  subscriptionId String
+  subscription   MercadoPagoSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  externalId     String                  @unique
+  paymentId      String?                 @unique
+  status         String
+  statusDetail   String?
+  amount         Float?
+  debitDate      DateTime?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  @@index([subscriptionId, debitDate])
+  @@index([status, updatedAt])
 }
 
 model Pelada {
-  id              String             @id @default(cuid())
-  name            String
-  slug            String             @unique
-  createdByUserId String?
-  trialEndsAt     DateTime?
-  maxLinePlayers   Int                @default(18)
-  maxGoalkeepers   Int                @default(2)
-  restrictGuestInviteTime  Boolean    @default(true)
-  guestInviteHour          Int        @default(14)
-  deprioritizeGuestsInDraw Boolean    @default(true)
-  memberships     PeladaMembership[]
-  invites         PeladaInvite[]
-  joinRequests    PeladaJoinRequest[]
-  players         Player[]
-  matches         Match[]
-  seasonStats     SeasonPlayerStat[]
-  transactions    Transaction[]
-  feeConfigs      MonthlyFeeConfig[]
-  payments        MonthlyPayment[]
-  deletionRequests DeletionRequest[]
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  id                       String              @id @default(cuid())
+  name                     String
+  slug                     String              @unique
+  createdByUserId          String?
+  trialEndsAt              DateTime?
+  maxLinePlayers           Int                 @default(18)
+  maxGoalkeepers           Int                 @default(2)
+  restrictGuestInviteTime  Boolean             @default(true)
+  guestInviteHour          Int                 @default(14)
+  deprioritizeGuestsInDraw Boolean             @default(true)
+  memberships              PeladaMembership[]
+  invites                  PeladaInvite[]
+  joinRequests             PeladaJoinRequest[]
+  players                  Player[]
+  matches                  Match[]
+  seasonStats              SeasonPlayerStat[]
+  transactions             Transaction[]
+  feeConfigs               MonthlyFeeConfig[]
+  payments                 MonthlyPayment[]
+  deletionRequests         DeletionRequest[]
+  createdAt                DateTime            @default(now())
+  updatedAt                DateTime            @updatedAt
 
   @@index([createdByUserId])
 }
@@ -183,7 +231,7 @@ model DeletionRequest {
   targetId        String
   targetName      String
   reason          String?
-  status          PollStatus             @default(OPEN)
+  status          PollStatus            @default(OPEN)
   createdByUserId String?
   createdByUser   User?                 @relation("CreatedDeletionRequests", fields: [createdByUserId], references: [id], onDelete: SetNull)
   pelada          Pelada                @relation(fields: [peladaId], references: [id], onDelete: Cascade)
@@ -197,14 +245,14 @@ model DeletionRequest {
 }
 
 model DeletionVote {
-  id        String              @id @default(cuid())
+  id        String            @id @default(cuid())
   requestId String
   userId    String
   vote      DeletionVoteValue
-  request   DeletionRequest     @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime            @default(now())
-  updatedAt DateTime            @updatedAt
+  request   DeletionRequest   @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
 
   @@unique([requestId, userId])
   @@index([userId])
@@ -331,7 +379,7 @@ model PushSubscription {
   id        String   @id @default(cuid())
   userId    String
   endpoint  String   @unique
-  p256dh     String
+  p256dh    String
   auth      String
   userAgent String?
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -376,31 +424,31 @@ model VerificationToken {
 }
 
 model Player {
-  id          String            @id @default(cuid())
-  userId      String?
-  user        User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
-  peladaId    String
-  pelada      Pelada            @relation(fields: [peladaId], references: [id], onDelete: Cascade)
-  nickname    String
-  photoUrl    String?
-  position    PlayerPosition
-  membershipStatus MembershipStatus @default(MENSALISTA)
-  rating      Float             @default(0)
-  ratingAssigned Boolean        @default(false)
-  active      Boolean           @default(true)
-  attendances Attendance[]
-  teamPlayers TeamPlayer[]
-  goals       Goal[]
-  assists     Assist[]
-  defenses    DifficultSave[]
-  seasonStats SeasonPlayerStat[]
-  ratings     PlayerRating[]   @relation("PlayerRatings")
+  id               String                  @id @default(cuid())
+  userId           String?
+  user             User?                   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  peladaId         String
+  pelada           Pelada                  @relation(fields: [peladaId], references: [id], onDelete: Cascade)
+  nickname         String
+  photoUrl         String?
+  position         PlayerPosition
+  membershipStatus MembershipStatus        @default(MENSALISTA)
+  rating           Float                   @default(0)
+  ratingAssigned   Boolean                 @default(false)
+  active           Boolean                 @default(true)
+  attendances      Attendance[]
+  teamPlayers      TeamPlayer[]
+  goals            Goal[]
+  assists          Assist[]
+  defenses         DifficultSave[]
+  seasonStats      SeasonPlayerStat[]
+  ratings          PlayerRating[]          @relation("PlayerRatings")
   matchSubmissions PlayerMatchSubmission[] @relation("PlayerSubmissions")
-  pollVotes   PollVote[]
-  pollWinners Poll[]            @relation("PollWinner")
-  payments    MonthlyPayment[]
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  pollVotes        PollVote[]
+  pollWinners      Poll[]                  @relation("PollWinner")
+  payments         MonthlyPayment[]
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
 
   @@unique([userId, peladaId])
   @@index([peladaId])
@@ -408,43 +456,43 @@ model Player {
 }
 
 model Match {
-  id          String            @id @default(cuid())
-  peladaId    String
-  pelada      Pelada            @relation(fields: [peladaId], references: [id], onDelete: Cascade)
-  date        DateTime
-  title       String
-  status      MatchStatus       @default(OPEN)
-  kind        MatchKind         @default(PELADA)
-  surface     MatchSurface      @default(SOCIETY)
-  location    String?
-  opponentName String?
-  homeScore   Int?
-  awayScore   Int?
-  closeReminderSentAt DateTime?
+  id                       String                  @id @default(cuid())
+  peladaId                 String
+  pelada                   Pelada                  @relation(fields: [peladaId], references: [id], onDelete: Cascade)
+  date                     DateTime
+  title                    String
+  status                   MatchStatus             @default(OPEN)
+  kind                     MatchKind               @default(PELADA)
+  surface                  MatchSurface            @default(SOCIETY)
+  location                 String?
+  opponentName             String?
+  homeScore                Int?
+  awayScore                Int?
+  closeReminderSentAt      DateTime?
   attendanceReminderSentAt DateTime?
-  deletedAt   DateTime?
-  openToGuests Boolean          @default(false)
-  guestLatitude  Float?
-  guestLongitude Float?
-  guestLineSlots Int?
-  guestGoalkeeperSlots Int?
-  guestLineFeeMode GuestFeeMode @default(FREE)
-  guestGoalkeeperFeeMode GuestFeeMode @default(FREE)
-  guestLineFeeAmount Float?
+  deletedAt                DateTime?
+  openToGuests             Boolean                 @default(false)
+  guestLatitude            Float?
+  guestLongitude           Float?
+  guestLineSlots           Int?
+  guestGoalkeeperSlots     Int?
+  guestLineFeeMode         GuestFeeMode            @default(FREE)
+  guestGoalkeeperFeeMode   GuestFeeMode            @default(FREE)
+  guestLineFeeAmount       Float?
   guestGoalkeeperFeeAmount Float?
-  guestMinRating Float?
-  guestMaxRating Float?
-  attendances Attendance[]
-  teams       Team[]
-  goals       Goal[]
-  assists     Assist[]
-  defenses    DifficultSave[]
-  ratings     PlayerRating[]
-  playerSubmissions PlayerMatchSubmission[]
-  polls       Poll[]
-  guestRequests MatchGuestRequest[]
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  guestMinRating           Float?
+  guestMaxRating           Float?
+  attendances              Attendance[]
+  teams                    Team[]
+  goals                    Goal[]
+  assists                  Assist[]
+  defenses                 DifficultSave[]
+  ratings                  PlayerRating[]
+  playerSubmissions        PlayerMatchSubmission[]
+  polls                    Poll[]
+  guestRequests            MatchGuestRequest[]
+  createdAt                DateTime                @default(now())
+  updatedAt                DateTime                @updatedAt
 
   @@index([peladaId])
   @@index([peladaId, status, date])
@@ -469,18 +517,18 @@ model MatchGuestRequest {
 }
 
 model Attendance {
-  id        String   @id @default(cuid())
-  matchId   String
-  playerId  String
-  present   Boolean  @default(false)
-  status    AttendanceStatus @default(OUT)
+  id              String           @id @default(cuid())
+  matchId         String
+  playerId        String
+  present         Boolean          @default(false)
+  status          AttendanceStatus @default(OUT)
   invitedByUserId String?
-  invitedByUser User? @relation("GuestInvites", fields: [invitedByUserId], references: [id], onDelete: SetNull)
-  confirmedAt DateTime?
-  match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  invitedByUser   User?            @relation("GuestInvites", fields: [invitedByUserId], references: [id], onDelete: SetNull)
+  confirmedAt     DateTime?
+  match           Match            @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  player          Player           @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   @@unique([matchId, playerId])
   @@index([playerId])
@@ -574,17 +622,18 @@ model SeasonPlayerStat {
   @@index([playerId])
   @@index([peladaId, year])
 }
+
 model Poll {
-  id          String     @id @default(cuid())
-  matchId     String
-  title       String
-  status      PollStatus @default(OPEN)
-  winnerId    String?
-  match       Match      @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  winner      Player?    @relation("PollWinner", fields: [winnerId], references: [id], onDelete: SetNull)
-  votes       PollVote[]
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id        String     @id @default(cuid())
+  matchId   String
+  title     String
+  status    PollStatus @default(OPEN)
+  winnerId  String?
+  match     Match      @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  winner    Player?    @relation("PollWinner", fields: [winnerId], references: [id], onDelete: SetNull)
+  votes     PollVote[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
   @@index([matchId, title, status])
   @@index([status, updatedAt])

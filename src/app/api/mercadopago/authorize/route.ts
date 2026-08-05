@@ -1,41 +1,47 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createAuthorizedPayment, formatMercadoPagoError } from "@/lib/mercadopago";
-import { syncUserFromPayment } from "@/lib/mercadopagoSync";
+import { createSubscription, formatMercadoPagoError, MercadoPagoApiError } from "@/lib/mercadopago";
+import { SUBSCRIPTION_TRIAL_DAYS, syncSubscriptionFromMercadoPago, syncSubscriptionById } from "@/lib/mercadopagoSubscriptionSync";
 import { PLAN_PRICES, type PlanInterval } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
 import { ApiAuthError, requireApiUser } from "@/lib/session";
+import { Prisma } from "@prisma/client";
 
 const requestSchema = z.object({
   interval: z.enum(["mensal", "trimestral", "anual"]),
   idempotencyKey: z.string().uuid(),
   formData: z.object({
     token: z.string().min(1),
-    payment_method_id: z.string().min(1),
-    issuer_id: z.string().optional(),
-    installments: z.coerce.number().int().min(1).max(5).optional(),
-    payer: z
-      .object({
-        email: z.string().email().optional(),
-        identification: z
-          .object({
-            type: z.string().optional(),
-            number: z.string().optional()
-          })
-          .optional()
-      })
-      .optional()
-  })
+    payer: z.object({ email: z.string().email().optional() }).optional()
+  }).passthrough()
 });
 
-function failedStatusMessage(status?: string, statusDetail?: string) {
-  if (status === "rejected") return statusDetail || "Pagamento recusado pelo Mercado Pago.";
-  if (status === "in_process") return "Pagamento em analise. Tente novamente em alguns instantes.";
-  if (status === "pending") return "Pagamento pendente. Confirme os dados e tente novamente.";
-  return statusDetail || "Nao foi possivel validar os dados de pagamento.";
+function addDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function publicOrigin(request: Request) {
+  const configured = process.env.NEXTAUTH_URL?.replace(/\/$/, "");
+  return configured || new URL(request.url).origin;
+}
+
+function subscriptionResponse(status: string, interval: PlanInterval) {
+  if (status === "authorized") {
+    return NextResponse.json({ ok: true, status, url: `/pagamento?flow=sucesso&plano=${interval}` });
+  }
+  if (status === "failed" || status === "cancelled") {
+    return NextResponse.json({ error: "A assinatura nao esta ativa.", status }, { status: 409 });
+  }
+  return NextResponse.json(
+    { ok: true, processing: true, status, url: `/pagamento?status=processando&plano=${interval}` },
+    { status: 202 }
+  );
 }
 
 export async function POST(request: Request) {
+  let localSubscriptionId: string | null = null;
   try {
     const currentUser = await requireApiUser();
     const payload = requestSchema.safeParse(await request.json());
@@ -45,47 +51,101 @@ export async function POST(request: Request) {
 
     const user = await prisma.user.findUnique({ where: { id: currentUser.id } });
     if (!user) return NextResponse.json({ error: "Usuario nao encontrado." }, { status: 404 });
-    if (user.plan === "PRO_IN_PROGRESS" && user.proCaptureAt && user.proCaptureAt > new Date()) {
-      return NextResponse.json({ error: "Ja existe um pagamento em validacao para sua conta." }, { status: 409 });
-    }
-
     const interval = payload.data.interval as PlanInterval;
-    const payment = await createAuthorizedPayment({
-      userId: user.id,
-      userName: user.name || user.email || "Usuario",
-      payerEmail: user.email || payload.data.formData.payer?.email || "",
-      interval,
-      formData: payload.data.formData,
-      idempotencyKey: payload.data.idempotencyKey
-    });
+    const payerEmail = payload.data.formData.payer?.email || user.email;
+    if (!payerEmail) {
+      return NextResponse.json({ error: "Informe um email valido para a assinatura." }, { status: 400 });
+    }
 
-    if (payment.status !== "authorized") {
-      const message = failedStatusMessage(payment.status, payment.status_detail);
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          mpPaymentStatus: payment.status,
-          mpPaymentStatusDetail: payment.status_detail || null,
-          mpPaymentError: message,
-          mpAuthorizedAmount: payment.transaction_amount || PLAN_PRICES[interval].amount,
-          mpSubscriptionInterval: interval
+    const repeated = await prisma.mercadoPagoSubscription.findUnique({ where: { requestKey: payload.data.idempotencyKey } });
+    if (repeated) {
+      if (repeated.userId !== user.id || repeated.interval !== interval) {
+        return NextResponse.json({ error: "Chave de requisicao invalida." }, { status: 409 });
+      }
+      if (repeated.externalId) await syncSubscriptionById(repeated.externalId);
+      const refreshed = await prisma.mercadoPagoSubscription.findUnique({ where: { id: repeated.id } });
+      return subscriptionResponse(refreshed?.status || repeated.status, interval);
+    }
+
+    const active = await prisma.mercadoPagoSubscription.findUnique({ where: { activeKey: user.id } });
+    if (active) {
+      if (active.externalId) await syncSubscriptionById(active.externalId);
+      const refreshed = await prisma.mercadoPagoSubscription.findUnique({ where: { id: active.id } });
+      if (refreshed?.activeKey) {
+        if (refreshed.status === "creating" || refreshed.status === "pending") {
+          return subscriptionResponse(refreshed.status, interval);
         }
-      });
-      return NextResponse.json({ error: message, status: payment.status, statusDetail: payment.status_detail }, { status: 402 });
+        return NextResponse.json({ error: "Ja existe uma assinatura ativa." }, { status: 409 });
+      }
+    }
+    if (user.proRenewsAt && user.proRenewsAt > new Date()) {
+      return NextResponse.json({ error: "Seu periodo Pro atual ainda esta vigente. Assine novamente apos o vencimento." }, { status: 409 });
     }
 
-    await syncUserFromPayment(payment, { allowNewPayment: true });
-    return NextResponse.json({
-      ok: true,
-      status: payment.status,
-      statusDetail: payment.status_detail,
-      url: `/pagamento?flow=sucesso&plano=${interval}`
+    const now = new Date();
+    const local = await prisma.mercadoPagoSubscription.create({
+      data: {
+        userId: user.id,
+        activeKey: user.id,
+        requestKey: payload.data.idempotencyKey,
+        payerEmail,
+        interval,
+        amount: PLAN_PRICES[interval].amount,
+        trialEndsAt: addDays(now, SUBSCRIPTION_TRIAL_DAYS),
+        previousProRenewsAt: user.proRenewsAt
+      }
     });
+    localSubscriptionId = local.id;
+
+    const remote = await createSubscription({
+      localSubscriptionId: local.id,
+      userName: user.name || user.email || "Usuario",
+      payerEmail,
+      interval,
+      cardTokenId: payload.data.formData.token,
+      backUrl: `${publicOrigin(request)}/pagamento?flow=retorno&plano=${interval}`
+    });
+    await syncSubscriptionFromMercadoPago(remote);
+    return subscriptionResponse(remote.status, interval);
   } catch (error) {
-    if (error instanceof ApiAuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    const message = formatMercadoPagoError(error, error instanceof Error ? error.message : "Falha ao validar pagamento.");
-    return NextResponse.json({ error: message }, { status: 500 });
+    return handleSubscriptionError(error, localSubscriptionId);
   }
+}
+
+async function handleSubscriptionError(error: unknown, localSubscriptionId: string | null) {
+  if (error instanceof ApiAuthError) {
+    return NextResponse.json({ error: error.message }, { status: error.status });
+  }
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    return NextResponse.json({ error: "Ja existe uma assinatura ativa ou em processamento." }, { status: 409 });
+  }
+  const message = formatMercadoPagoError(
+    error,
+    error instanceof Error ? error.message : "Falha ao criar assinatura."
+  );
+  if (localSubscriptionId) {
+    if (error instanceof MercadoPagoApiError) {
+      await prisma.mercadoPagoSubscription.update({
+        where: { id: localSubscriptionId },
+        data: { status: "failed", activeKey: null, error: message }
+      });
+      return NextResponse.json({ error: message }, { status: error.httpStatus >= 500 ? 502 : 402 });
+    }
+
+    await prisma.mercadoPagoSubscription.update({
+      where: { id: localSubscriptionId },
+      data: { error: message }
+    }).catch(() => null);
+    return NextResponse.json(
+      {
+        ok: true,
+        processing: true,
+        status: "creating",
+        message: "A confirmacao ainda esta sendo conciliada. Nao envie o cartao novamente.",
+        url: "/pagamento?status=processando"
+      },
+      { status: 202 }
+    );
+  }
+  return NextResponse.json({ error: message }, { status: 500 });
 }

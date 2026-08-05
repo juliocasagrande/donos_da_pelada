@@ -26,6 +26,39 @@ export type MpPayment = {
   };
 };
 
+export type MpSubscription = {
+  id: string;
+  status: "pending" | "authorized" | "paused" | "cancelled";
+  external_reference?: string | number;
+  next_payment_date?: string;
+  date_created?: string;
+  auto_recurring?: {
+    frequency?: number;
+    frequency_type?: string;
+    transaction_amount?: number | string;
+    currency_id?: string;
+    free_trial?: { frequency?: number; frequency_type?: string };
+  };
+};
+
+export type MpAuthorizedPayment = {
+  id: number | string;
+  preapproval_id: string;
+  external_reference?: string | number;
+  transaction_amount?: number | string;
+  currency_id?: string;
+  debit_date?: string;
+  status?: string;
+  payment?: { id?: number | string; status?: string; status_detail?: string };
+};
+
+export class MercadoPagoApiError extends Error {
+  constructor(message: string, public readonly httpStatus: number) {
+    super(message);
+    this.name = "MercadoPagoApiError";
+  }
+}
+
 export type MercadoPagoPaymentFormData = {
   token?: string;
   payment_method_id?: string;
@@ -39,6 +72,125 @@ export type MercadoPagoPaymentFormData = {
     };
   };
 };
+
+// Subscription API helpers are kept server-side.
+export async function createSubscription(params: {
+  localSubscriptionId: string;
+  userName: string;
+  payerEmail: string;
+  interval: PlanInterval;
+  cardTokenId: string;
+  backUrl: string;
+}): Promise<MpSubscription> {
+  const plan = PLAN_PRICES[params.interval];
+  const body = {
+    reason: `Dono da Pelada - Plano Pro ${plan.label} - ${params.userName}`,
+    external_reference: params.localSubscriptionId,
+    payer_email: params.payerEmail,
+    card_token_id: params.cardTokenId,
+    auto_recurring: {
+      frequency: plan.frequency,
+      frequency_type: "months",
+      transaction_amount: plan.amount,
+      currency_id: "BRL",
+      free_trial: { frequency: 4, frequency_type: "days" }
+    },
+    back_url: params.backUrl,
+    status: "authorized"
+  };
+  return postSubscription(body);
+}
+
+async function postSubscription(body: object): Promise<MpSubscription> {
+  const response = await fetch(`${MP_API}/preapproval`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken()}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message = formatMercadoPagoError(payload, "Mercado Pago rejeitou a assinatura.");
+    throw new MercadoPagoApiError(message, response.status);
+  }
+  return payload;
+}
+
+export async function getSubscription(subscriptionId: string): Promise<MpSubscription> {
+  const response = await fetch(`${MP_API}/preapproval/${encodeURIComponent(subscriptionId)}`, {
+    headers: { Authorization: `Bearer ${accessToken()}` }
+  });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message = formatMercadoPagoError(payload, "Nao foi possivel consultar a assinatura.");
+    throw new MercadoPagoApiError(message, response.status);
+  }
+  return payload;
+}
+
+export async function findSubscriptionByReference(payerEmail: string, externalReference: string): Promise<MpSubscription | null> {
+  const query = new URLSearchParams({ payer_email: payerEmail, limit: "100" });
+  const response = await fetch(`${MP_API}/preapproval/search?${query}`, {
+    headers: { Authorization: `Bearer ${accessToken()}` }
+  });
+  const payload = await response.json().catch(() => null) as { results?: MpSubscription[] } | null;
+  if (!response.ok) {
+    const message = formatMercadoPagoError(payload, "Nao foi possivel localizar a assinatura.");
+    throw new MercadoPagoApiError(message, response.status);
+  }
+  return payload?.results?.find((item) => String(item.external_reference || "") === externalReference) || null;
+}
+
+export async function cancelSubscription(subscriptionId: string): Promise<MpSubscription> {
+  const response = await fetch(`${MP_API}/preapproval/${encodeURIComponent(subscriptionId)}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${accessToken()}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ status: "cancelled" })
+  });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message = formatMercadoPagoError(payload, "Nao foi possivel cancelar a assinatura.");
+    throw new MercadoPagoApiError(message, response.status);
+  }
+  return payload;
+}
+
+export async function getAuthorizedPayment(invoiceId: string): Promise<MpAuthorizedPayment> {
+  const response = await fetch(`${MP_API}/authorized_payments/${encodeURIComponent(invoiceId)}`, {
+    headers: { Authorization: `Bearer ${accessToken()}` }
+  });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message = formatMercadoPagoError(payload, "Nao foi possivel consultar a fatura.");
+    throw new MercadoPagoApiError(message, response.status);
+  }
+  return payload;
+}
+
+export async function findAuthorizedPaymentByPaymentId(paymentId: string): Promise<MpAuthorizedPayment | null> {
+  const query = new URLSearchParams({ payment_id: paymentId, limit: "1" });
+  const response = await fetch(`${MP_API}/authorized_payments/search?${query}`, {
+    headers: { Authorization: `Bearer ${accessToken()}` }
+  });
+  const payload = await response.json().catch(() => null) as { results?: MpAuthorizedPayment[] } | null;
+  if (!response.ok) {
+    const message = formatMercadoPagoError(payload, "Nao foi possivel conciliar o pagamento.");
+    throw new MercadoPagoApiError(message, response.status);
+  }
+  return payload?.results?.[0] || null;
+}
+
+export async function findAuthorizedPaymentsBySubscriptionId(subscriptionId: string): Promise<MpAuthorizedPayment[]> {
+  const query = new URLSearchParams({ preapproval_id: subscriptionId, limit: "20" });
+  const response = await fetch(`${MP_API}/authorized_payments/search?${query}`, {
+    headers: { Authorization: `Bearer ${accessToken()}` }
+  });
+  const payload = await response.json().catch(() => null) as { results?: MpAuthorizedPayment[] } | null;
+  if (!response.ok) {
+    const message = formatMercadoPagoError(payload, "Nao foi possivel conciliar as faturas.");
+    throw new MercadoPagoApiError(message, response.status);
+  }
+  return payload?.results || [];
+}
 
 export async function createPaymentCheckout(params: {
   userId: string;
@@ -179,7 +331,7 @@ export async function cancelAuthorizedPayment(paymentId: string): Promise<MpPaym
       "Content-Type": "application/json",
       "X-Idempotency-Key": `cancel-${paymentId}`
     },
-    body: JSON.stringify({ status: "canceled" })
+    body: JSON.stringify({ status: "cancelled" })
   });
 
   const payload = await response.json().catch(() => null);

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { captureDueProPayments } from "@/lib/mercadopagoSync";
+import { reconcileActiveSubscriptions } from "@/lib/mercadopagoSubscriptionSync";
 
 function isAuthorized(request: Request) {
   const secret = process.env.CRON_SECRET;
@@ -12,8 +13,16 @@ async function handleCaptureDue(request: Request) {
     return NextResponse.json({ error: "Nao autorizado." }, { status: 401 });
   }
 
-  const results = await captureDueProPayments();
-  return NextResponse.json({ ok: true, processed: results.length });
+  const [legacyPayments, subscriptions] = await Promise.all([
+    captureDueProPayments(),
+    reconcileActiveSubscriptions()
+  ]);
+  return NextResponse.json({
+    ok: true,
+    processedLegacyPayments: legacyPayments.length,
+    reconciledSubscriptions: subscriptions.length,
+    subscriptionFailures: subscriptions.filter((item) => !item.ok).length
+  });
 }
 
 export async function GET(request: Request) {

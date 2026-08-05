@@ -134,6 +134,38 @@ npm run build
 npm start
 ```
 
+## Mercado Pago e renovacao automatica
+
+O Plano Pro usa a API de Assinaturas (`/preapproval`) com cartao, quatro dias de teste gratis e renovacao automatica conforme o plano mensal, trimestral ou anual.
+
+Configure no ambiente de deploy:
+
+```env
+MERCADOPAGO_ACCESS_TOKEN="SEU_ACCESS_TOKEN"
+NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY="SUA_PUBLIC_KEY"
+MERCADOPAGO_WEBHOOK_SECRET="..."
+CRON_SECRET="..."
+```
+
+No painel **Suas integracoes > Webhooks** do Mercado Pago, cadastre a URL publica abaixo e habilite obrigatoriamente os tres eventos:
+
+```text
+https://SEU_DOMINIO/api/mercadopago/webhook
+
+subscription_preapproval
+subscription_authorized_payment
+payment
+```
+
+Agende uma chamada pelo menos a cada hora para a rota de conciliacao. Ela recupera webhooks perdidos e continua liquidando autorizacoes criadas pela versao antiga do app:
+
+```http
+GET /api/mercadopago/capture-due
+Authorization: Bearer SEU_CRON_SECRET
+```
+
+Antes de liberar producao, aplique as migrations e execute uma assinatura completa com credenciais e cartao de teste: criacao, cancelamento durante o teste gratis, primeira cobranca e renovacao.
+
 ## Deploy Railway
 
 1. Crie o projeto no Railway.

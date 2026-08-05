@@ -87,7 +87,7 @@ export function MercadoPagoPaymentBrick({ interval }: { interval: PlanInterval }
               debitCard: "none",
               ticket: "none",
               bankTransfer: "none",
-              maxInstallments: 5
+              maxInstallments: 1
             },
             visual: {
               style: {
@@ -161,7 +161,7 @@ export function MercadoPagoPaymentBrick({ interval }: { interval: PlanInterval }
           <div className="flex items-center gap-2 font-display text-base font-extrabold text-tinta">
             <CreditCard size={18} className="text-campo" /> Dados de pagamento
           </div>
-          <p className="mt-1 text-xs text-musgo">Plano {plan.label} - ate 5x no cartao</p>
+          <p className="mt-1 text-xs text-musgo">Assinatura {plan.label} com renovacao automatica</p>
         </div>
         <div className="shrink-0 rounded-[10px] bg-[#EAF5EC] px-2.5 py-1 text-xs font-bold text-campo">
           {formatCurrencyBRL(plan.amount)}

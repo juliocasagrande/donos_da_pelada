@@ -125,6 +125,22 @@ export async function syncUserFromPayment(payment: MpPayment, options: { allowNe
     });
   }
 
+  if (isKnownPayment && (payment.status === "refunded" || payment.status === "charged_back")) {
+    return prisma.user.update({
+      where: { id: user.id },
+      data: {
+        plan: "FREE",
+        proRenewsAt: null,
+        proCancelUntil: null,
+        proCancelRollbackUntil: null,
+        proCaptureAt: null,
+        mpPaymentStatus: payment.status,
+        mpPaymentStatusDetail: payment.status_detail || null,
+        mpPaymentError: paymentFailureMessage(payment)
+      }
+    });
+  }
+
   if (isKnownPayment && user.plan === "PRO_IN_PROGRESS" && TERMINAL_FAILURE_STATUSES.has(payment.status)) {
     return revokePendingPayment(user, payment);
   }
@@ -142,7 +158,10 @@ export async function syncUserFromPayment(payment: MpPayment, options: { allowNe
 
 export async function syncUserPaymentByUserId(userId: string, paymentId?: string | null) {
   if (!paymentId) return prisma.user.findUnique({ where: { id: userId } });
-  return activateUserFromPayment(paymentId);
+  const payment = await getPayment(paymentId);
+  const paymentUserId = payment.metadata?.user_id || payment.external_reference;
+  if (paymentUserId !== userId) return null;
+  return syncUserFromPayment(payment);
 }
 
 export async function captureDueProPayments(now = new Date()) {

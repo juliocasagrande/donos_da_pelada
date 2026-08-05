@@ -10,8 +10,21 @@ import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
 import { requireUser } from "@/lib/session";
 import { syncUserPaymentByUserId } from "@/lib/mercadopagoSync";
+import { syncSubscriptionById } from "@/lib/mercadopagoSubscriptionSync";
 
 const planOrder: PlanInterval[] = ["anual", "trimestral", "mensal"];
+const paymentUserSelect = {
+  name: true,
+  plan: true,
+  proCancelUntil: true,
+  proRenewsAt: true,
+  subscriptionCancelledAt: true,
+  mpPaymentId: true,
+  mpPaymentError: true,
+  mpPaymentStatus: true,
+  mpSubscriptionId: true,
+  mpSubscriptionStatus: true
+} as const;
 
 const planCopy: Record<PlanInterval, { monthly: string; suffix: string; detail: string; description: string }> = {
   anual: {
@@ -215,12 +228,15 @@ function SubscriptionPanel({
     proRenewsAt: Date | null;
     subscriptionCancelledAt: Date | null;
     mpPaymentId: string | null;
+    mpSubscriptionId: string | null;
+    mpSubscriptionStatus: string | null;
   };
 }) {
   const now = Date.now();
   const pro = isUserPro(user);
   const inFreeCancellationPeriod = Boolean(user.proCancelUntil && user.proCancelUntil.getTime() > now);
   const alreadyCancelled = Boolean(user.subscriptionCancelledAt);
+  const recurring = Boolean(user.mpSubscriptionId && user.mpSubscriptionStatus !== "cancelled");
 
   if (!pro && !user.mpPaymentId && !alreadyCancelled) return null;
 
@@ -239,20 +255,22 @@ function SubscriptionPanel({
               ? "Periodo Pro cancelado dentro da janela gratuita."
               : inFreeCancellationPeriod
                 ? `Cancelamento gratuito disponivel ate ${formatDate(user.proCancelUntil!)}.`
-                : user.proRenewsAt
-                  ? `Fora do periodo gratuito. O Pro fica ativo ate ${formatDate(user.proRenewsAt)}.`
+                : user.proRenewsAt && recurring
+                  ? `Renovacao automatica em ${formatDate(user.proRenewsAt)}.`
+                  : user.proRenewsAt
+                  ? `O Pro fica ativo ate ${formatDate(user.proRenewsAt)}.`
                   : "Periodo Pro sem cobranca recorrente."}
           </p>
         </div>
       </div>
 
-      {!alreadyCancelled && pro && inFreeCancellationPeriod ? (
+      {!alreadyCancelled && pro && (inFreeCancellationPeriod || recurring) ? (
         <form action={cancelProPeriod} className="mt-3">
           <button
             type="submit"
             className="flex w-full items-center justify-center rounded-[13px] border-[1.5px] border-ausente/30 bg-white px-4 py-3 text-sm font-bold text-ausente transition active:scale-[.98]"
           >
-            Cancelar periodo Pro gratis
+            {inFreeCancellationPeriod ? "Cancelar assinatura gratis" : "Cancelar renovacao automatica"}
           </button>
         </form>
       ) : null}
@@ -276,6 +294,8 @@ function PlansScreen({
     proRenewsAt: Date | null;
     subscriptionCancelledAt: Date | null;
     mpPaymentId: string | null;
+    mpSubscriptionId: string | null;
+    mpSubscriptionStatus: string | null;
     mpPaymentError?: string | null;
   };
   status: string;
@@ -284,6 +304,7 @@ function PlansScreen({
   activeMensalistas: number;
   proCoverage?: string;
 }) {
+  const canSubscribe = !isUserPro(user) && (!user.mpSubscriptionId || user.mpSubscriptionStatus === "cancelled");
   return (
     <PaymentShell>
       <Header />
@@ -295,17 +316,21 @@ function PlansScreen({
               ? user.mpPaymentError || "Nao foi possivel cancelar no Mercado Pago. Tente novamente."
               : cancelado === "gratis"
               ? "Periodo Pro cancelado dentro da janela gratuita."
-              : "Fora do periodo gratuito. O Pro fica ativo ate o vencimento."}
+              : cancelado === "fim-do-periodo"
+                ? "Renovacao cancelada. O Pro fica ativo ate o fim do periodo pago."
+                : "Fora do periodo gratuito. O Pro fica ativo ate o vencimento."}
           </div>
         ) : null}
         <SubscriptionPanel user={user} />
-        <div className="mb-[11px] mt-[18px] px-0.5 font-jersey text-xs font-semibold uppercase tracking-[.1em] text-[#8a857a]">
-          Escolha o plano
-        </div>
-        <div className="space-y-[11px]">
-          {planOrder.map((plan) => <PlanCard key={plan} planKey={plan} selected={selectedPlan === plan} />)}
-        </div>
-        {selectedPlan ? (
+        {canSubscribe ? <>
+          <div className="mb-[11px] mt-[18px] px-0.5 font-jersey text-xs font-semibold uppercase tracking-[.1em] text-[#8a857a]">
+            Escolha o plano
+          </div>
+          <div className="space-y-[11px]">
+            {planOrder.map((plan) => <PlanCard key={plan} planKey={plan} selected={selectedPlan === plan} />)}
+          </div>
+        </> : null}
+        {selectedPlan && canSubscribe ? (
           <div className="mt-3">
             <MercadoPagoPaymentBrick interval={selectedPlan} />
           </div>
@@ -431,11 +456,11 @@ function SuccessScreen({
               <span className="font-jersey text-[17px] font-bold text-tinta">{formatCurrencyBRL(currentPlan.amount)}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-[13px] text-musgo">Valido ate</span>
+              <span className="text-[13px] text-musgo">Proxima cobranca</span>
               <span className="text-sm font-bold text-tinta">{formatDate(proRenewsAt)}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-[13px] text-musgo">Pagamento</span>
+              <span className="text-[13px] text-musgo">Assinatura</span>
               <span className="flex items-center gap-1 text-[13px] font-bold text-campo">
                 <Check size={13} strokeWidth={2.5} /> Mercado Pago
               </span>
@@ -474,6 +499,7 @@ export default async function PagamentoPage({
   const plan = normalizePlan(query?.plano);
   const paymentReturn =
     query?.flow === "sucesso" ||
+    query?.flow === "retorno" ||
     query?.status === "sucesso" ||
     query?.collection_status === "approved" ||
     Boolean(query?.payment_id || query?.collection_id);
@@ -482,19 +508,10 @@ export default async function PagamentoPage({
     await syncUserPaymentByUserId(currentUser.id, query?.payment_id || query?.collection_id);
   }
 
-  const [user, activePelada, activeMensalistas, ownedPeladasCount] = await Promise.all([
+  let [user, activePelada, activeMensalistas, ownedPeladasCount] = await Promise.all([
     prisma.user.findUnique({
       where: { id: currentUser.id },
-      select: {
-        name: true,
-        plan: true,
-        proCancelUntil: true,
-        proRenewsAt: true,
-        subscriptionCancelledAt: true,
-        mpPaymentId: true,
-        mpPaymentError: true,
-        mpPaymentStatus: true
-      }
+      select: paymentUserSelect
     }),
     currentUser.peladaId
       ? prisma.pelada.findUnique({ where: { id: currentUser.peladaId }, select: { name: true, trialEndsAt: true } })
@@ -504,6 +521,15 @@ export default async function PagamentoPage({
       : Promise.resolve(0),
     prisma.pelada.count({ where: { createdByUserId: currentUser.id } })
   ]);
+
+  if (user?.mpSubscriptionId) {
+    try {
+      await syncSubscriptionById(user.mpSubscriptionId);
+      user = await prisma.user.findUnique({ where: { id: currentUser.id }, select: paymentUserSelect });
+    } catch (error) {
+      console.error("Falha ao conciliar assinatura na pagina de pagamento:", error);
+    }
+  }
 
   if (!user) return null;
   const peladaName = activePelada?.name || user.name || "Sua pelada";
