@@ -35,6 +35,7 @@ async function compressImage(file: File): Promise<File> {
 
 export function PhotoUpload({ defaultUrl = "" }: { defaultUrl?: string | null }) {
   const [url, setUrl] = useState(defaultUrl || "");
+  const [temporaryUrl, setTemporaryUrl] = useState("");
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
 
@@ -46,6 +47,7 @@ export function PhotoUpload({ defaultUrl = "" }: { defaultUrl?: string | null })
         const compressed = await compressImage(file);
         const formData = new FormData();
         formData.append("file", compressed);
+        if (temporaryUrl) formData.append("temporaryUrl", temporaryUrl);
         const response = await fetch("/api/upload", { method: "POST", body: formData });
         const data = await response.json().catch(() => null);
 
@@ -55,6 +57,7 @@ export function PhotoUpload({ defaultUrl = "" }: { defaultUrl?: string | null })
         }
 
         setUrl(data.url);
+        setTemporaryUrl(data.url);
       } catch {
         setError("Nao foi possivel enviar a foto. Verifique sua conexao e tente novamente.");
       }

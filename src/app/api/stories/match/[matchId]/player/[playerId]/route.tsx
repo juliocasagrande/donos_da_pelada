@@ -3,7 +3,7 @@ import { Resvg } from "@resvg/resvg-js";
 import { NextResponse } from "next/server";
 import { ApiAuthError, isPeladaAdmin, requireApiUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { checkRateLimit } from "@/lib/rateLimit";
+import { checkRateLimit, rateLimitKey } from "@/lib/rateLimit";
 import { fetchStoryImageDataUrl } from "@/lib/remoteImage";
 
 export const dynamic = "force-dynamic";
@@ -753,7 +753,7 @@ function renderStorySvg({
 export async function GET(_request: Request, { params }: { params: Promise<{ matchId: string; playerId: string }> }) {
   try {
     const user = await requireApiUser();
-    if (!checkRateLimit(`story:${user.id}`, 6, 60_000).allowed) {
+    if (!(await checkRateLimit(rateLimitKey("story", user.id), 6, 60_000)).allowed) {
       return NextResponse.json({ error: "Muitas imagens geradas em pouco tempo." }, { status: 429 });
     }
     const { matchId, playerId } = await params;

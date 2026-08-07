@@ -42,20 +42,26 @@ export default async function AttendancePage({
   const user = await requireUser();
   const { id } = await params;
   const { radarErro, radarAberto, rsvp } = await searchParams;
+  const approvedGuestRequest = await prisma.matchGuestRequest.findUnique({
+    where: { matchId_userId: { matchId: id, userId: user.id } },
+    select: { status: true, match: { select: { peladaId: true } } }
+  });
+  const viewingAsApprovedGuest = approvedGuestRequest?.status === "APPROVED";
+  const viewedPeladaId = viewingAsApprovedGuest ? approvedGuestRequest.match.peladaId : user.peladaId!;
   const [match, players, linkedPlayer] = await Promise.all([
-    prisma.match.findFirst({ where: { id, peladaId: user.peladaId!, deletedAt: null } }),
+    prisma.match.findFirst({ where: { id, peladaId: viewedPeladaId, deletedAt: null } }),
     prisma.player.findMany({
-      where: { peladaId: user.peladaId!, active: true },
+      where: { peladaId: viewedPeladaId, active: true },
       include: { attendances: { where: { matchId: id } } },
       orderBy: { nickname: "asc" }
     }),
     prisma.player.findFirst({
-      where: { userId: user.id, peladaId: user.peladaId! },
+      where: { userId: user.id, peladaId: viewedPeladaId },
       include: { attendances: { where: { matchId: id } } }
     })
   ]);
 
-  const isAdmin = isPeladaAdmin(user);
+  const isAdmin = !viewingAsApprovedGuest && isPeladaAdmin(user);
   const canInviteGuest =
     isAdmin ||
     Boolean(
@@ -84,7 +90,7 @@ export default async function AttendancePage({
   const presentCount = groupedPlayers.CONFIRMED.length;
   const waitlistCount = groupedPlayers.WAITLIST.length;
   const ownAttendanceStatus = linkedPlayer?.attendances[0]?.status || "OUT";
-  const ownAttendanceAction = linkedPlayer
+  const ownAttendanceAction = linkedPlayer && !viewingAsApprovedGuest
     ? toggleOwnAttendance.bind(null, id, ownAttendanceStatus === "OUT")
     : null;
   const sections = [

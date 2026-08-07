@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
-import { PeladaRole } from "@prisma/client";
+import { PeladaRole, Prisma } from "@prisma/client";
 import { ACTIVE_PELADA_COOKIE, getCurrentUser, requireAdmin } from "@/lib/session";
 import { canAddMensalista, createPeladaWithTrial } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
@@ -168,12 +168,42 @@ export async function acceptInvite(code: string, matchId?: string) {
   });
 
   if (!existing) {
-    await prisma.$transaction([
-      prisma.peladaMembership.create({
-        data: { userId: user.id, peladaId: invite.peladaId, role: PeladaRole.JOGADOR }
-      }),
-      prisma.peladaInvite.update({ where: { id: invite.id }, data: { usedCount: { increment: 1 } } })
-    ]);
+    let accepted = false;
+    try {
+      accepted = await prisma.$transaction(async (tx) => {
+        const claimed = await tx.$queryRaw<Array<{ id: string }>>`
+          UPDATE "PeladaInvite"
+          SET "usedCount" = "usedCount" + 1
+          WHERE "id" = ${invite.id}
+            AND "revokedAt" IS NULL
+            AND ("expiresAt" IS NULL OR "expiresAt" > NOW())
+            AND ("maxUses" IS NULL OR "usedCount" < "maxUses")
+          RETURNING "id"
+        `;
+        if (!claimed.length) return false;
+
+        await tx.peladaMembership.create({
+          data: { userId: user.id, peladaId: invite.peladaId, role: PeladaRole.JOGADOR }
+        });
+        return true;
+      });
+    } catch (error) {
+      // A duplicated click from the same user may race the unique membership.
+      // The failed transaction rolls its invite increment back, so it is safe
+      // to continue when the other request already created the membership.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        accepted = Boolean(await prisma.peladaMembership.findUnique({
+          where: { userId_peladaId: { userId: user.id, peladaId: invite.peladaId } },
+          select: { id: true }
+        }));
+      } else {
+        throw error;
+      }
+    }
+
+    if (!accepted) {
+      redirect(`/convite/${code}?error=Convite%20invalido%20ou%20expirado`);
+    }
   }
 
   redirect(await resolvePostJoinPath(user.id, invite.peladaId, matchId));

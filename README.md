@@ -30,12 +30,22 @@ cp .env.example .env
 3. Configure pelo menos:
 
 ```env
-DATABASE_URL="postgresql://user:password@host/database?sslmode=require"
+DATABASE_URL="postgresql://user:password@host-pooler/database?sslmode=require&pgbouncer=true&connection_limit=3&connect_timeout=15&pool_timeout=15"
+DIRECT_URL="postgresql://user:password@host/database?sslmode=require&connect_timeout=15"
+PRISMA_CONNECTION_LIMIT="3"
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="gere-um-segredo-forte"
 MASTER_ADMIN_NAME="Administrador Master"
 MASTER_ADMIN_EMAIL="admin@donodapelada.com"
-MASTER_ADMIN_PASSWORD="admin123"
+MASTER_ADMIN_PASSWORD=""
+```
+
+Defina `MASTER_ADMIN_PASSWORD` localmente com pelo menos 12 caracteres, incluindo maiuscula, minuscula, numero e simbolo. Nao mantenha uma senha de exemplo em ambientes compartilhados.
+
+Valide a senha sem exibir seu valor:
+
+```bash
+npm run password:check
 ```
 
 Como voce nao tem PostgreSQL local, use um banco gratuito/remoto no Railway ou Neon. Depois, se quiser limpar dados de teste, rode deletes controlados pelo painel do banco ou recrie o banco.
@@ -118,14 +128,7 @@ http://localhost:3000
 
 Em redes corporativas no Windows, o Node pode nao confiar na cadeia TLS usada por proxy/inspecao HTTPS. Os scripts `dev`, `build` e `start` ja usam `node --use-system-ca` para aproveitar os certificados instalados no Windows.
 
-Admin master inicial:
-
-```text
-Email: admin@donodapelada.com
-Senha: admin123
-```
-
-Use os valores reais do seu `.env` caso tenha alterado.
+O login master usa exclusivamente os valores `MASTER_ADMIN_EMAIL` e `MASTER_ADMIN_PASSWORD` configurados no ambiente.
 
 ## Build
 
@@ -169,10 +172,18 @@ Antes de liberar producao, aplique as migrations e execute uma assinatura comple
 ## Deploy Railway
 
 1. Crie o projeto no Railway.
-2. Configure as variaveis de ambiente do `.env`.
-3. Aponte `DATABASE_URL` para PostgreSQL Railway ou Neon.
-4. Rode migrations no ambiente ou localmente contra o banco remoto.
-5. Faça deploy do app Next.js.
+2. Configure as variaveis do `.env` no servico, incluindo `NEXTAUTH_URL` com o dominio publico do Railway.
+3. Use o endpoint Neon com `-pooler` em `DATABASE_URL` e o endpoint direto em `DIRECT_URL`.
+4. Comece com `PRISMA_CONNECTION_LIMIT=3` por replica. O total maximo da aplicacao e replicas x processos Node x esse valor.
+5. Rode `npx prisma migrate deploy` e, quando necessario, `npx prisma db seed` contra o banco remoto.
+6. Faca deploy do app Next.js. A presenca de `RAILWAY_ENVIRONMENT_ID` ativa automaticamente a validacao das variaveis no build.
+
+### Dimensionamento do pool Neon
+
+- `3` conexoes por replica e um ponto inicial conservador para este app e permite paralelismo sem abrir um pool grande.
+- Aumente para `4` ou `5` somente se houver espera por conexao/P2024 com consultas rapidas e o banco estiver com CPU e latencia saudaveis.
+- Nao tente corrigir consultas lentas aumentando o pool: primeiro verifique duracao das queries, indices e o fluxo de pagamento.
+- No Neon Free, conexoes nao sao a unidade cobrada. O consumo relevante e tempo de compute (CU-hours), armazenamento e transferencia; jobs/health checks frequentes podem impedir o scale-to-zero.
 
 ## Fluxo recomendado
 

@@ -170,14 +170,16 @@ export async function captureDueProPayments(now = new Date()) {
       plan: "PRO_IN_PROGRESS",
       proCaptureAt: { lte: now },
       mpPaymentId: { not: null }
-    }
+    },
+    select: { id: true, mpPaymentId: true },
+    orderBy: [{ proCaptureAt: "asc" }, { id: "asc" }],
+    take: 50
   });
 
-  const results = [];
-  for (const user of dueUsers) {
+  const captureOne = async (user: (typeof dueUsers)[number]) => {
     try {
       const payment = await capturePayment(user.mpPaymentId!);
-      results.push(await syncUserFromPayment(payment));
+      return await syncUserFromPayment(payment);
     } catch (error) {
       // A timeout can mean that MP captured the card. Reconcile first and only
       // remove access when MP reports a terminal failure.
@@ -186,20 +188,25 @@ export async function captureDueProPayments(now = new Date()) {
         const payment = await getPayment(user.mpPaymentId!);
         const synced = await syncUserFromPayment(payment);
         if (payment.status === "authorized" || payment.status === "in_process" || payment.status === "pending") {
-          results.push(await prisma.user.update({
+          return await prisma.user.update({
             where: { id: user.id },
             data: { mpPaymentError: message, mpPaymentStatus: payment.status, mpPaymentStatusDetail: payment.status_detail || message }
-          }));
-        } else {
-          results.push(synced);
+          });
         }
+        return synced;
       } catch {
-        results.push(await prisma.user.update({
+        return await prisma.user.update({
           where: { id: user.id },
           data: { mpPaymentError: message, mpPaymentStatusDetail: message }
-        }));
+        });
       }
     }
+  };
+
+  const results = [];
+  const concurrency = 5;
+  for (let index = 0; index < dueUsers.length; index += concurrency) {
+    results.push(...await Promise.all(dueUsers.slice(index, index + concurrency).map(captureOne)));
   }
 
   return results;

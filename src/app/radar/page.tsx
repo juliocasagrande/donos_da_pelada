@@ -4,7 +4,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { RequestGuestSlotButton } from "@/components/matches/RequestGuestSlotButton";
 import { Card } from "@/components/ui/Card";
 import { PeladaCrest } from "@/components/ui/PeladaCrest";
-import { haversineKm } from "@/lib/geo";
+import { geographicBoundingBox, haversineKm } from "@/lib/geo";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { formatCurrencyBRL } from "@/lib/financeUtils";
@@ -49,34 +49,52 @@ export default async function RadarPage({
     );
   }
 
-  const [openMatches, myRequests] = await Promise.all([
-    prisma.match.findMany({
-      where: {
-        deletedAt: null,
-        status: "OPEN",
-        openToGuests: true,
-        peladaId: { not: user.peladaId! },
-        guestLatitude: { not: null },
-        guestLongitude: { not: null },
-        date: { gte: new Date() }
-      },
-      include: { pelada: { select: { name: true } } },
-      orderBy: { date: "asc" },
-      take: 200
-    }),
+  const bounds = geographicBoundingBox(profile.latitude, profile.longitude, profile.radarRadiusKm);
+  const openMatches = await prisma.match.findMany({
+    where: {
+      deletedAt: null,
+      status: "OPEN",
+      openToGuests: true,
+      peladaId: { not: user.peladaId! },
+      guestLatitude: { gte: bounds.minLatitude, lte: bounds.maxLatitude },
+      guestLongitude: { gte: bounds.minLongitude, lte: bounds.maxLongitude },
+      date: { gte: new Date() }
+    },
+    select: {
+      id: true,
+      title: true,
+      date: true,
+      surface: true,
+      location: true,
+      guestLatitude: true,
+      guestLongitude: true,
+      guestLineSlots: true,
+      guestGoalkeeperSlots: true,
+      guestLineFeeMode: true,
+      guestGoalkeeperFeeMode: true,
+      guestLineFeeAmount: true,
+      guestGoalkeeperFeeAmount: true,
+      guestMinRating: true,
+      guestMaxRating: true,
+      pelada: { select: { name: true } }
+    },
+    orderBy: { date: "asc" },
+    take: 100
+  });
+  const matchIds = openMatches.map((match) => match.id);
+  const [myRequests, approvedCounts] = await Promise.all([
     prisma.matchGuestRequest.findMany({
-      where: { userId: user.id },
+      where: { userId: user.id, matchId: { in: matchIds } },
       select: { matchId: true, status: true }
+    }),
+    prisma.matchGuestRequest.groupBy({
+      by: ["matchId", "position"],
+      where: { status: "APPROVED", matchId: { in: matchIds } },
+      _count: true
     })
   ]);
 
   const requestByMatchId = new Map(myRequests.map((request) => [request.matchId, request.status]));
-
-  const approvedCounts = await prisma.matchGuestRequest.groupBy({
-    by: ["matchId", "position"],
-    where: { status: "APPROVED", matchId: { in: openMatches.map((match) => match.id) } },
-    _count: true
-  });
   const approvedCountByKey = new Map(approvedCounts.map((row) => [`${row.matchId}:${row.position}`, row._count]));
 
   const nearby = openMatches

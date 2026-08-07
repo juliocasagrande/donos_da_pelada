@@ -1,5 +1,6 @@
 import { PrismaClient, UserRole, PlayerPosition, PeladaRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { getMasterPasswordIssues } from "../src/lib/passwordPolicy";
 
 const prisma = new PrismaClient();
 
@@ -11,13 +12,14 @@ async function main() {
   const email = process.env.MASTER_ADMIN_EMAIL || "admin@donodapelada.com";
   const password = process.env.MASTER_ADMIN_PASSWORD;
 
-  if (!password || password.length < 6) {
+  const passwordIssues = getMasterPasswordIssues(password);
+  if (passwordIssues.length) {
     throw new Error(
-      "Defina MASTER_ADMIN_PASSWORD (minimo 6 caracteres) no .env antes de rodar o seed."
+      `MASTER_ADMIN_PASSWORD inválida. Requisitos pendentes: ${passwordIssues.join(", ")}.`
     );
   }
 
-  const passwordHash = await bcrypt.hash(password, 12);
+  const passwordHash = await bcrypt.hash(password!, 12);
 
   const masterUser = await prisma.user.upsert({
     where: { email },

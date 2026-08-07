@@ -4,18 +4,19 @@ import bcrypt from "bcryptjs";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
-import { MatchKind, MatchStatus, PeladaRole, PollStatus, Prisma, UserRole } from "@prisma/client";
+import { MatchKind, MatchStatus, PeladaRole, PollStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, isPeladaAdmin, requireAdmin, requireUser } from "@/lib/session";
-import { drawSchema, matchSchema, passwordSchema, playerSchema, signupSchema } from "@/lib/validations";
+import { drawSchema, matchSchema, passwordSchema, playerSchema } from "@/lib/validations";
 import { balanceTeams } from "@/lib/balanceTeams";
 import { archiveUserPeladaStats } from "@/lib/careerStats";
 import { MENSALISTA_FREE_LIMIT, canAddMensalista, isPeladaIdPro } from "@/lib/plan";
 import { assertMatchInPelada, assertPlayerInPelada, assertPollInPelada } from "@/lib/peladaGuard";
-import { sendPushToAll, sendPushToUsers } from "@/lib/push";
+import { sendPushToUsers } from "@/lib/push";
 import { VOTING_WINDOW_HOURS, canConfirmPlayer, isWithinVotingWindow } from "@/lib/attendance";
 import { hasConflictingConfirmedMatch } from "@/lib/matchConflicts";
 import { logAudit } from "@/lib/audit";
+import { deleteUploadedAssetIfUnreferenced, markUploadedAssetAttached } from "@/lib/storage";
 
 function value(formData: FormData, key: string) {
   const raw = formData.get(key);
@@ -246,6 +247,13 @@ export async function saveOnboarding(formData: FormData) {
     }
   });
 
+  after(async () => {
+    await markUploadedAssetAttached(parsed.photoUrl);
+    if (currentPlayer?.photoUrl && currentPlayer.photoUrl !== parsed.photoUrl) {
+      await deleteUploadedAssetIfUnreferenced(currentPlayer.photoUrl);
+    }
+  });
+
   redirect("/dashboard");
 }
 
@@ -275,6 +283,13 @@ export async function updateOwnProfile(formData: FormData) {
       image: parsed.photoUrl || undefined,
       whatsapp: normalizeWhatsapp(value(formData, "whatsapp")),
       whatsappChatEnabled: value(formData, "whatsappChatEnabled") === "yes"
+    }
+  });
+
+  after(async () => {
+    await markUploadedAssetAttached(parsed.photoUrl);
+    if (currentPlayer?.photoUrl && currentPlayer.photoUrl !== parsed.photoUrl) {
+      await deleteUploadedAssetIfUnreferenced(currentPlayer.photoUrl);
     }
   });
 
@@ -336,38 +351,6 @@ export async function createLocalPassword(formData: FormData) {
   return { ok: true };
 }
 
-export async function createPlayerAccount(formData: FormData) {
-  const parsed = signupSchema.safeParse({
-    name: value(formData, "name").trim(),
-    email: value(formData, "email").trim().toLowerCase(),
-    password: value(formData, "password")
-  });
-
-  if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message || "Dados invalidos." };
-  }
-
-  const { name, email, password } = parsed.data;
-
-  const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) {
-    return { ok: false, error: "Ja existe uma conta com este e-mail." };
-  }
-
-  await prisma.user.create({
-    data: {
-      name,
-      email,
-      passwordHash: await bcrypt.hash(password, 12),
-      role: UserRole.PLAYER,
-      active: true,
-      onboarded: false
-    }
-  });
-
-  return { ok: true };
-}
-
 export async function toggleAdminRole(userId: string) {
   const current = await requireAdmin();
   if (current.id === userId) return;
@@ -423,6 +406,7 @@ export async function createPlayer(formData: FormData) {
   }
 
   const player = await prisma.player.create({ data: { ...parsed, peladaId: admin.peladaId!, ratingAssigned: true } });
+  after(() => markUploadedAssetAttached(parsed.photoUrl));
   await logAudit(admin, "PLAYER_CREATED", { type: "Player", id: player.id }, { name: player.nickname });
   redirect("/players");
 }
@@ -439,7 +423,7 @@ export async function updatePlayer(playerId: string, formData: FormData) {
 
   const existing = await prisma.player.findFirst({
     where: { id: playerId, peladaId: admin.peladaId! },
-    select: { membershipStatus: true, userId: true }
+    select: { membershipStatus: true, userId: true, photoUrl: true }
   });
   if (!existing) redirect("/players");
   const becomingMensalista = parsed.membershipStatus === "MENSALISTA" && existing.membershipStatus !== "MENSALISTA";
@@ -452,6 +436,12 @@ export async function updatePlayer(playerId: string, formData: FormData) {
   }
 
   await prisma.player.update({ where: { id: playerId }, data: { ...parsed, ratingAssigned: true } });
+  after(async () => {
+    await markUploadedAssetAttached(parsed.photoUrl);
+    if (existing.photoUrl && existing.photoUrl !== parsed.photoUrl) {
+      await deleteUploadedAssetIfUnreferenced(existing.photoUrl);
+    }
+  });
   if (parsed.membershipStatus !== "MENSALISTA") {
     await demotePeladaAdminIfNotActiveMensalista(existing.userId, admin.peladaId!);
   }
@@ -599,6 +589,14 @@ export async function getPeladaAdminUserIds(peladaId: string) {
   return [...new Set([...memberships.map((membership) => membership.userId), ...masters.map((master) => master.id)])];
 }
 
+async function getPeladaMemberUserIds(peladaId: string) {
+  const memberships = await prisma.peladaMembership.findMany({
+    where: { peladaId, user: { active: true } },
+    select: { userId: true }
+  });
+  return memberships.map(({ userId }) => userId);
+}
+
 async function getLatestClosedMatchId(peladaId: string) {
   const latest = await prisma.match.findFirst({
     where: { peladaId, status: MatchStatus.CLOSED, deletedAt: null },
@@ -635,8 +633,8 @@ export async function createMatch(formData: FormData) {
     }
   });
 
-  after(() =>
-    sendPushToAll({
+  after(async () =>
+    sendPushToUsers(await getPeladaMemberUserIds(admin.peladaId!), {
       title: parsed.kind === "AMISTOSO" ? "Novo amistoso criado" : "Nova pelada criada",
       body: `${match.title} ja esta aberta para confirmacao.`,
       url: `/matches/${match.id}/attendance`
@@ -1211,19 +1209,26 @@ export async function updateStats(matchId: string, formData: FormData) {
   if ((await getLatestClosedMatchId(admin.peladaId!)) !== matchId) {
     return { ok: false, error: "A sumula so pode ser editada na ultima pelada encerrada." };
   }
-  const playerIds = formData.getAll("playerId").filter((id): id is string => typeof id === "string");
+  const playerIds = [...new Set(formData.getAll("playerId").filter((id): id is string => typeof id === "string"))];
+  const allowedPlayers = await prisma.player.findMany({
+    where: { id: { in: playerIds }, peladaId: admin.peladaId! },
+    select: { id: true }
+  });
+  if (allowedPlayers.length !== playerIds.length) {
+    return { ok: false, error: "A sumula contem um jogador que nao pertence a esta pelada." };
+  }
 
-  const operations = [];
+  const operations: Prisma.PrismaPromise<unknown>[] = [];
   for (const playerId of playerIds) {
     const goals = Number(value(formData, `goals-${playerId}`) || 0);
     const assists = Number(value(formData, `assists-${playerId}`) || 0);
     const defenses = Number(value(formData, `defenses-${playerId}`) || 0);
     if (
-      !Number.isFinite(goals) ||
+      !Number.isInteger(goals) ||
       goals < 0 ||
-      !Number.isFinite(assists) ||
+      !Number.isInteger(assists) ||
       assists < 0 ||
-      !Number.isFinite(defenses) ||
+      !Number.isInteger(defenses) ||
       defenses < 0
     )
       continue;
@@ -1246,7 +1251,7 @@ export async function updateStats(matchId: string, formData: FormData) {
       })
     );
   }
-  await Promise.all(operations);
+  await prisma.$transaction(operations);
 
   revalidatePath(`/matches/${matchId}/stats`);
   revalidateTag("rankings");
@@ -1407,7 +1412,7 @@ export async function voteCraque(pollId: string, playerId: string) {
   if (!canVote) {
     return { ok: false, error: "Voce nao pode votar nesta pelada." };
   }
-  const linkedPlayer = await prisma.player.findFirst({ where: { userId: user.id, peladaId: user.peladaId! } });
+  const linkedPlayer = await prisma.player.findFirst({ where: { userId: user.id, peladaId: poll.match.peladaId } });
   if (linkedPlayer?.id === playerId) {
     return { ok: false, error: "Voce nao pode votar em si mesmo." };
   }

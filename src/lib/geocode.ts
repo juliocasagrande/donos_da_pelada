@@ -16,11 +16,18 @@ export async function searchAddress(query: string): Promise<GeocodeResult[]> {
     addressdetails: "1"
   });
 
-  const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
-    headers: {
-      "User-Agent": "DonoDaPelada/1.0 (app interno de organizacao de peladas)"
-    }
-  });
+  let response: Response;
+  try {
+    response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+      headers: {
+        "User-Agent": "DonoDaPelada/1.0 (app interno de organizacao de peladas)"
+      },
+      signal: AbortSignal.timeout(5_000),
+      next: { revalidate: 24 * 60 * 60 }
+    });
+  } catch {
+    return [];
+  }
 
   if (!response.ok) return [];
 

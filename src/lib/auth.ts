@@ -6,6 +6,9 @@ import FacebookProvider from "next-auth/providers/facebook";
 import GoogleProvider from "next-auth/providers/google";
 import InstagramProvider from "next-auth/providers/instagram";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit, rateLimitKey } from "@/lib/rateLimit";
+import { getClientIp } from "@/lib/requestIp";
+import { isStrongMasterPassword } from "@/lib/passwordPolicy";
 
 const TOKEN_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
@@ -17,15 +20,26 @@ function configuredProviders() {
         email: { label: "Email", type: "email" },
         password: { label: "Senha", type: "password" }
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         if (!credentials?.email || !credentials.password) return null;
 
         try {
+          const email = credentials.email.trim().toLowerCase();
+          const clientIp = getClientIp(request.headers);
+          const [ipLimit, accountLimit] = await Promise.all([
+            checkRateLimit(rateLimitKey("login-ip", clientIp), 20, 10 * 60 * 1000),
+            checkRateLimit(rateLimitKey("login-account", email), 5, 10 * 60 * 1000)
+          ]);
+          if (!ipLimit.allowed || !accountLimit.allowed) return null;
+
           const user = await prisma.user.findUnique({
-            where: { email: credentials.email.toLowerCase() }
+            where: { email }
           });
 
           if (!user?.passwordHash || !user.active) return null;
+          // Fail closed for master credentials created from an old/default seed.
+          // A strong password must be set and re-seeded before the account can log in.
+          if (user.role === "MASTER" && !isStrongMasterPassword(credentials.password)) return null;
 
           const passwordOk = await bcrypt.compare(credentials.password, user.passwordHash);
           if (!passwordOk) return null;

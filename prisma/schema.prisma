@@ -148,6 +148,7 @@ model User {
   mpSubscriptionId         String?                   @unique
   mpSubscriptionStatus     String?
   mercadoPagoSubscriptions MercadoPagoSubscription[]
+  uploadedAssets           UploadedAsset[]
   createdAt                DateTime                  @default(now())
   updatedAt                DateTime                  @updatedAt
 }
@@ -242,6 +243,7 @@ model DeletionRequest {
 
   @@index([peladaId, status])
   @@index([target, targetId, status])
+  @@index([createdByUserId])
 }
 
 model DeletionVote {
@@ -315,6 +317,7 @@ model PeladaInvite {
   createdAt       DateTime   @default(now())
 
   @@index([peladaId])
+  @@index([createdByUserId])
 }
 
 model MonthlyFeeConfig {
@@ -344,6 +347,7 @@ model MonthlyPayment {
 
   @@unique([peladaId, playerId, year, month])
   @@index([peladaId, year, month])
+  @@index([playerId])
 }
 
 model Transaction {
@@ -359,6 +363,7 @@ model Transaction {
   createdAt       DateTime        @default(now())
 
   @@index([peladaId, date])
+  @@index([createdByUserId])
 }
 
 model AuditLog {
@@ -374,6 +379,7 @@ model AuditLog {
 
   @@index([entityType, entityId])
   @@index([createdAt])
+  @@index([userId])
 }
 
 model PushSubscription {
@@ -406,6 +412,7 @@ model Account {
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model Session {
@@ -414,6 +421,31 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model RateLimitBucket {
+  key       String   @id
+  count     Int
+  resetAt   DateTime
+  updatedAt DateTime @updatedAt
+
+  @@index([resetAt])
+}
+
+model UploadedAsset {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bucket     String
+  path       String    @unique
+  publicUrl  String    @unique
+  attachedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, attachedAt, createdAt])
+  @@index([attachedAt, createdAt])
 }
 
 model VerificationToken {
@@ -535,6 +567,7 @@ model Attendance {
   @@unique([matchId, playerId])
   @@index([playerId])
   @@index([matchId, status])
+  @@index([invitedByUserId])
 }
 
 model Team {
@@ -654,6 +687,7 @@ model PollVote {
 
   @@unique([pollId, userId])
   @@index([playerId])
+  @@index([userId])
 }
 
 model PlayerRating {

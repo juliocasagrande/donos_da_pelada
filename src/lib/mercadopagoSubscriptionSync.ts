@@ -15,6 +15,22 @@ export const SUBSCRIPTION_TRIAL_DAYS = 4;
 const TERMINAL_PAYMENT_STATUSES = new Set(["cancelled", "canceled", "refunded", "charged_back"]);
 const REVOKED_PAYMENT_STATUSES = new Set(["refunded", "charged_back"]);
 
+export function paymentEventDecision(input: {
+  status: string;
+  debitDate: Date | null;
+  lastPaymentAt: Date | null;
+  cancelledAt: Date | null;
+  ownsActiveEntitlement: boolean;
+}) {
+  if (REVOKED_PAYMENT_STATUSES.has(input.status)) {
+    return input.ownsActiveEntitlement ? "revoke" : "audit";
+  }
+  if (input.cancelledAt) return "audit";
+  return !input.lastPaymentAt || (input.debitDate !== null && input.debitDate >= input.lastPaymentAt)
+    ? "apply"
+    : "audit";
+}
+
 function isPlanInterval(value: unknown): value is PlanInterval {
   return value === "mensal" || value === "trimestral" || value === "anual";
 }
@@ -172,8 +188,56 @@ export async function syncAuthorizedPaymentFromMercadoPago(invoice: MpAuthorized
       update: { paymentId, status: paymentStatus, statusDetail, amount, debitDate }
     });
 
-    const isNewest = !current.lastPaymentAt || (debitDate !== null && debitDate >= current.lastPaymentAt);
-    if (!isNewest || current.cancelledAt) return invoice;
+    let ownsActiveEntitlement = current.activeKey === current.userId;
+    if (REVOKED_PAYMENT_STATUSES.has(paymentStatus) && !ownsActiveEntitlement && current.externalId) {
+      const entitlementOwner = await tx.user.findUnique({
+        where: { id: current.userId },
+        select: { plan: true, mpSubscriptionId: true }
+      });
+      ownsActiveEntitlement = entitlementOwner?.plan !== "FREE" && entitlementOwner?.mpSubscriptionId === current.externalId;
+    }
+
+    const decision = paymentEventDecision({
+      status: paymentStatus,
+      debitDate,
+      lastPaymentAt: current.lastPaymentAt,
+      cancelledAt: current.cancelledAt,
+      ownsActiveEntitlement
+    });
+    const message = statusDetail || paymentStatus;
+
+    if (REVOKED_PAYMENT_STATUSES.has(paymentStatus)) {
+      const now = new Date();
+      await tx.mercadoPagoSubscription.update({
+        where: { id: current.id },
+        data: {
+          status: "cancelled",
+          activeKey: null,
+          cancelledAt: current.cancelledAt || now,
+          error: message
+        }
+      });
+
+      if (decision === "revoke") {
+        await tx.user.update({
+          where: { id: current.userId },
+          data: {
+            plan: "FREE",
+            proRenewsAt: null,
+            proCancelUntil: null,
+            subscriptionCancelledAt: current.cancelledAt || now,
+            mpSubscriptionStatus: "cancelled",
+            mpPaymentId: paymentId,
+            mpPaymentStatus: paymentStatus,
+            mpPaymentStatusDetail: statusDetail,
+            mpPaymentError: message
+          }
+        });
+      }
+      return invoice;
+    }
+
+    if (decision !== "apply") return invoice;
 
     await tx.mercadoPagoSubscription.update({
       where: { id: current.id },
@@ -202,30 +266,6 @@ export async function syncAuthorizedPaymentFromMercadoPago(invoice: MpAuthorized
           mpPaymentStatus: paymentStatus,
           mpPaymentStatusDetail: statusDetail,
           mpPaymentError: null
-        }
-      });
-      return invoice;
-    }
-
-    const message = statusDetail || paymentStatus;
-    if (REVOKED_PAYMENT_STATUSES.has(paymentStatus)) {
-      const now = new Date();
-      await tx.mercadoPagoSubscription.update({
-        where: { id: current.id },
-        data: { status: "cancelled", activeKey: null, cancelledAt: now, error: message }
-      });
-      await tx.user.update({
-        where: { id: current.userId },
-        data: {
-          plan: "FREE",
-          proRenewsAt: null,
-          proCancelUntil: null,
-          subscriptionCancelledAt: now,
-          mpSubscriptionStatus: "cancelled",
-          mpPaymentId: paymentId,
-          mpPaymentStatus: paymentStatus,
-          mpPaymentStatusDetail: statusDetail,
-          mpPaymentError: message
         }
       });
       return invoice;
