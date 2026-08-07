@@ -1,6 +1,7 @@
 "use client";
 
 import { WhatsappMark } from "@/components/ui/WhatsappMark";
+import { SITE_URL } from "@/lib/siteUrl";
 
 export function InviteExternalPlayerLink({
   code,
@@ -13,7 +14,7 @@ export function InviteExternalPlayerLink({
   playerName: string;
   whatsapp: string;
 }) {
-  const url = typeof window !== "undefined" ? `${window.location.origin}/convite/${code}` : `/convite/${code}`;
+  const url = `${SITE_URL}/convite/${code}`;
   const message = `Fala, ${playerName}! Quero te convidar para jogar na pelada ${peladaName} no Donos da Pelada. Entra por aqui: ${url}`;
   const whatsappUrl = `https://wa.me/${whatsapp}?text=${encodeURIComponent(message)}`;
 

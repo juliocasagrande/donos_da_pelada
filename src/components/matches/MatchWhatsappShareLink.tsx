@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { WhatsappMark } from "@/components/ui/WhatsappMark";
 import { useToast } from "@/components/ui/ToastProvider";
+import { SITE_URL } from "@/lib/siteUrl";
 
 export function MatchWhatsappShareLink({
   matchId,
@@ -17,18 +18,13 @@ export function MatchWhatsappShareLink({
   location?: string | null;
   className?: string;
 }) {
-  const [origin, setOrigin] = useState("");
   const [isOpening, setIsOpening] = useState(false);
   const toast = useToast();
-
-  useEffect(() => {
-    setOrigin(window.location.origin);
-  }, []);
 
   const locationLabel = useMemo(() => location?.trim() || "Local a definir", [location]);
 
   async function openWhatsappInvite() {
-    if (!origin || isOpening) return;
+    if (isOpening) return;
     setIsOpening(true);
 
     try {
@@ -43,7 +39,7 @@ export function MatchWhatsappShareLink({
       }
 
       const data = (await response.json()) as { code: string };
-      const inviteUrl = `${origin}/convite/${data.code}?matchId=${encodeURIComponent(matchId)}`;
+      const inviteUrl = `${SITE_URL}/convite/${data.code}?matchId=${encodeURIComponent(matchId)}`;
       const message = [
         "⚽ Bora pra pelada?",
         "",
@@ -72,7 +68,7 @@ export function MatchWhatsappShareLink({
     <button
       type="button"
       onClick={openWhatsappInvite}
-      disabled={!origin || isOpening}
+      disabled={isOpening}
       className={`flex min-h-10 w-full items-center justify-center gap-2 rounded-[11px] bg-[#25D366] px-3 py-2.5 text-center text-sm font-bold text-white shadow-button transition active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-70 ${className}`}
     >
       <WhatsappMark size={18} /> {isOpening ? "Abrindo..." : "Enviar no WhatsApp"}
