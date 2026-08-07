@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { useState, useTransition } from "react";
 import { Camera, Upload } from "lucide-react";
-import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
 const MAX_DIMENSION = 1280;

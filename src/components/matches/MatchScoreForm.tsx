@@ -18,7 +18,7 @@ export function MatchScoreForm({
   homeScore: number | null;
   awayScore: number | null;
 }) {
-  const [state, formAction, isPending] = useActionFeedback(
+  const [, formAction, isPending] = useActionFeedback(
     (_prevState, formData: FormData) => updateMatchScore(matchId, formData),
     { successMessage: "Placar salvo." }
   );

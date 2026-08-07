@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createSubscription, formatMercadoPagoError, MercadoPagoApiError } from "@/lib/mercadopago";
+import { createSubscription, formatMercadoPagoError, isCancelledSubscriptionStatus, MercadoPagoApiError } from "@/lib/mercadopago";
 import { SUBSCRIPTION_TRIAL_DAYS, syncSubscriptionFromMercadoPago, syncSubscriptionById } from "@/lib/mercadopagoSubscriptionSync";
 import { PLAN_PRICES, type PlanInterval } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
@@ -31,7 +31,7 @@ function subscriptionResponse(status: string, interval: PlanInterval) {
   if (status === "authorized") {
     return NextResponse.json({ ok: true, status, url: `/pagamento?flow=sucesso&plano=${interval}` });
   }
-  if (status === "failed" || status === "cancelled") {
+  if (status === "failed" || isCancelledSubscriptionStatus(status)) {
     return NextResponse.json({ error: "A assinatura nao esta ativa.", status }, { status: 409 });
   }
   return NextResponse.json(

@@ -30,7 +30,7 @@ export function OwnMatchStatsForm({
   const [savedGoals, setSavedGoals] = useState(goals);
   const [savedAssists, setSavedAssists] = useState(assists);
   const [savedDefenses, setSavedDefenses] = useState(defenses);
-  const [state, formAction, isPending] = useActionFeedback(
+  const [, formAction, isPending] = useActionFeedback(
     (_prevState, formData: FormData) => {
       setSavedGoals(Number(formData.get("goals") || 0));
       setSavedAssists(Number(formData.get("assists") || 0));

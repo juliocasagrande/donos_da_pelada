@@ -1,6 +1,14 @@
 import { PLAN_PRICES, type PlanInterval } from "@/lib/plan";
 
 const MP_API = "https://api.mercadopago.com";
+const MP_REQUEST_TIMEOUT_MS = 10_000;
+
+function mercadoPagoFetch(input: string, init: RequestInit = {}) {
+  return fetch(input, {
+    ...init,
+    signal: init.signal ?? AbortSignal.timeout(MP_REQUEST_TIMEOUT_MS)
+  });
+}
 
 function accessToken() {
   const token = process.env.MERCADOPAGO_ACCESS_TOKEN;
@@ -28,7 +36,7 @@ export type MpPayment = {
 
 export type MpSubscription = {
   id: string;
-  status: "pending" | "authorized" | "paused" | "cancelled";
+  status: "pending" | "authorized" | "paused" | "canceled" | "cancelled";
   external_reference?: string | number;
   next_payment_date?: string;
   date_created?: string;
@@ -40,6 +48,10 @@ export type MpSubscription = {
     free_trial?: { frequency?: number; frequency_type?: string };
   };
 };
+
+export function isCancelledSubscriptionStatus(status?: string | null) {
+  return status === "canceled" || status === "cancelled";
+}
 
 export type MpAuthorizedPayment = {
   id: number | string;
@@ -102,7 +114,7 @@ export async function createSubscription(params: {
 }
 
 async function postSubscription(body: object): Promise<MpSubscription> {
-  const response = await fetch(`${MP_API}/preapproval`, {
+  const response = await mercadoPagoFetch(`${MP_API}/preapproval`, {
     method: "POST",
     headers: { Authorization: `Bearer ${accessToken()}`, "Content-Type": "application/json" },
     body: JSON.stringify(body)
@@ -116,7 +128,7 @@ async function postSubscription(body: object): Promise<MpSubscription> {
 }
 
 export async function getSubscription(subscriptionId: string): Promise<MpSubscription> {
-  const response = await fetch(`${MP_API}/preapproval/${encodeURIComponent(subscriptionId)}`, {
+  const response = await mercadoPagoFetch(`${MP_API}/preapproval/${encodeURIComponent(subscriptionId)}`, {
     headers: { Authorization: `Bearer ${accessToken()}` }
   });
   const payload = await response.json().catch(() => null);
@@ -129,7 +141,7 @@ export async function getSubscription(subscriptionId: string): Promise<MpSubscri
 
 export async function findSubscriptionByReference(payerEmail: string, externalReference: string): Promise<MpSubscription | null> {
   const query = new URLSearchParams({ payer_email: payerEmail, limit: "100" });
-  const response = await fetch(`${MP_API}/preapproval/search?${query}`, {
+  const response = await mercadoPagoFetch(`${MP_API}/preapproval/search?${query}`, {
     headers: { Authorization: `Bearer ${accessToken()}` }
   });
   const payload = await response.json().catch(() => null) as { results?: MpSubscription[] } | null;
@@ -141,10 +153,12 @@ export async function findSubscriptionByReference(payerEmail: string, externalRe
 }
 
 export async function cancelSubscription(subscriptionId: string): Promise<MpSubscription> {
-  const response = await fetch(`${MP_API}/preapproval/${encodeURIComponent(subscriptionId)}`, {
+  const response = await mercadoPagoFetch(`${MP_API}/preapproval/${encodeURIComponent(subscriptionId)}`, {
     method: "PUT",
     headers: { Authorization: `Bearer ${accessToken()}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ status: "cancelled" })
+    // Subscription preapprovals use the American-English status spelling.
+    // Legacy /v1/payments cancellations below use "cancelled" instead.
+    body: JSON.stringify({ status: "canceled" })
   });
   const payload = await response.json().catch(() => null);
   if (!response.ok) {
@@ -155,7 +169,7 @@ export async function cancelSubscription(subscriptionId: string): Promise<MpSubs
 }
 
 export async function getAuthorizedPayment(invoiceId: string): Promise<MpAuthorizedPayment> {
-  const response = await fetch(`${MP_API}/authorized_payments/${encodeURIComponent(invoiceId)}`, {
+  const response = await mercadoPagoFetch(`${MP_API}/authorized_payments/${encodeURIComponent(invoiceId)}`, {
     headers: { Authorization: `Bearer ${accessToken()}` }
   });
   const payload = await response.json().catch(() => null);
@@ -168,7 +182,7 @@ export async function getAuthorizedPayment(invoiceId: string): Promise<MpAuthori
 
 export async function findAuthorizedPaymentByPaymentId(paymentId: string): Promise<MpAuthorizedPayment | null> {
   const query = new URLSearchParams({ payment_id: paymentId, limit: "1" });
-  const response = await fetch(`${MP_API}/authorized_payments/search?${query}`, {
+  const response = await mercadoPagoFetch(`${MP_API}/authorized_payments/search?${query}`, {
     headers: { Authorization: `Bearer ${accessToken()}` }
   });
   const payload = await response.json().catch(() => null) as { results?: MpAuthorizedPayment[] } | null;
@@ -181,7 +195,7 @@ export async function findAuthorizedPaymentByPaymentId(paymentId: string): Promi
 
 export async function findAuthorizedPaymentsBySubscriptionId(subscriptionId: string): Promise<MpAuthorizedPayment[]> {
   const query = new URLSearchParams({ preapproval_id: subscriptionId, limit: "20" });
-  const response = await fetch(`${MP_API}/authorized_payments/search?${query}`, {
+  const response = await mercadoPagoFetch(`${MP_API}/authorized_payments/search?${query}`, {
     headers: { Authorization: `Bearer ${accessToken()}` }
   });
   const payload = await response.json().catch(() => null) as { results?: MpAuthorizedPayment[] } | null;
@@ -202,7 +216,7 @@ export async function createPaymentCheckout(params: {
 }): Promise<MpPreference> {
   const plan = PLAN_PRICES[params.interval];
 
-  const response = await fetch(`${MP_API}/checkout/preferences`, {
+  const response = await mercadoPagoFetch(`${MP_API}/checkout/preferences`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken()}`,
@@ -245,7 +259,7 @@ export async function createPaymentCheckout(params: {
 }
 
 export async function getPayment(paymentId: string): Promise<MpPayment> {
-  const response = await fetch(`${MP_API}/v1/payments/${paymentId}`, {
+  const response = await mercadoPagoFetch(`${MP_API}/v1/payments/${paymentId}`, {
     headers: { Authorization: `Bearer ${accessToken()}` }
   });
 
@@ -268,7 +282,7 @@ export async function createAuthorizedPayment(params: {
   const plan = PLAN_PRICES[params.interval];
   const payerEmail = params.formData.payer?.email || params.payerEmail;
 
-  const response = await fetch(`${MP_API}/v1/payments`, {
+  const response = await mercadoPagoFetch(`${MP_API}/v1/payments`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken()}`,
@@ -305,7 +319,7 @@ export async function createAuthorizedPayment(params: {
 }
 
 export async function capturePayment(paymentId: string): Promise<MpPayment> {
-  const response = await fetch(`${MP_API}/v1/payments/${paymentId}`, {
+  const response = await mercadoPagoFetch(`${MP_API}/v1/payments/${paymentId}`, {
     method: "PUT",
     headers: {
       Authorization: `Bearer ${accessToken()}`,
@@ -324,7 +338,7 @@ export async function capturePayment(paymentId: string): Promise<MpPayment> {
 }
 
 export async function cancelAuthorizedPayment(paymentId: string): Promise<MpPayment> {
-  const response = await fetch(`${MP_API}/v1/payments/${paymentId}`, {
+  const response = await mercadoPagoFetch(`${MP_API}/v1/payments/${paymentId}`, {
     method: "PUT",
     headers: {
       Authorization: `Bearer ${accessToken()}`,

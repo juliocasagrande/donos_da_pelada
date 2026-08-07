@@ -13,8 +13,22 @@ import { searchAddress } from "@/lib/geocode";
 import { getUserGlobalRating } from "@/lib/rating";
 import { hasConflictingConfirmedMatch } from "@/lib/matchConflicts";
 
-async function getApprovedGuestCount(matchId: string, position: GuestPosition) {
-  return prisma.matchGuestRequest.count({ where: { matchId, status: "APPROVED", position } });
+type DbClient = typeof prisma | Prisma.TransactionClient;
+
+async function getApprovedGuestCount(matchId: string, position: GuestPosition, db: DbClient = prisma) {
+  return db.matchGuestRequest.count({ where: { matchId, status: "APPROVED", position } });
+}
+
+async function serializableWithRetry<T>(work: (tx: Prisma.TransactionClient) => Promise<T>) {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      return await prisma.$transaction(work, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    } catch (error) {
+      const retryable = error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034";
+      if (!retryable || attempt === 3) throw error;
+    }
+  }
+  throw new Error("Falha ao concluir transacao serializavel.");
 }
 
 function value(formData: FormData, key: string) {
@@ -188,14 +202,6 @@ export async function approveMatchGuestRequest(requestId: string) {
     return;
   }
 
-  const slotLimit = request.position === "GOLEIRO" ? request.match.guestGoalkeeperSlots : request.match.guestLineSlots;
-  if (slotLimit != null) {
-    const approvedCount = await getApprovedGuestCount(request.matchId, request.position);
-    if (approvedCount >= slotLimit) {
-      redirect(`/admins/radar?radarErro=${encodeURIComponent("Vagas esgotadas para essa posicao nessa pelada.")}`);
-    }
-  }
-
   if (await hasConflictingConfirmedMatch(request.userId, request.match.date, request.matchId, request.match.peladaId)) {
     redirect(
       `/admins/radar?radarErro=${encodeURIComponent("Esse jogador ja tem outra pelada confirmada com menos de 30 min de diferenca.")}`
@@ -212,8 +218,16 @@ export async function approveMatchGuestRequest(requestId: string) {
   }
   const position = request.position === "GOLEIRO" ? PlayerPosition.GOLEIRO : PlayerPosition.MEIA;
 
-  await prisma.$transaction(
-    async (tx) => {
+  const approval = await serializableWithRetry(async (tx) => {
+      const currentRequest = await tx.matchGuestRequest.findUnique({ where: { id: requestId }, select: { status: true } });
+      if (currentRequest?.status !== "PENDING") return { approved: false, full: false };
+
+      const slotLimit = request.position === "GOLEIRO" ? request.match.guestGoalkeeperSlots : request.match.guestLineSlots;
+      if (slotLimit != null) {
+        const approvedCount = await getApprovedGuestCount(request.matchId, request.position, tx);
+        if (approvedCount >= slotLimit) return { approved: false, full: true };
+      }
+
       const player = await tx.player.upsert({
         where: { userId_peladaId: { userId: request.userId, peladaId: request.match.peladaId } },
         update: { active: true },
@@ -246,9 +260,16 @@ export async function approveMatchGuestRequest(requestId: string) {
         where: { id: requestId },
         data: { status: "APPROVED", playerId: player.id }
       });
-    },
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
-  );
+      return { approved: true, full: false };
+    });
+
+  if (approval.full) {
+    redirect(`/admins/radar?radarErro=${encodeURIComponent("Vagas esgotadas para essa posicao nessa pelada.")}`);
+  }
+  if (!approval.approved) {
+    revalidatePath("/admins/radar");
+    return;
+  }
 
   after(() =>
     sendPushToUsers([request.userId], {

@@ -4,12 +4,12 @@ import {
   findSubscriptionByReference,
   getAuthorizedPayment,
   getSubscription,
+  isCancelledSubscriptionStatus,
   type MpAuthorizedPayment,
   type MpSubscription
 } from "@/lib/mercadopago";
 import { PLAN_PRICES, type PlanInterval } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
-import type { MercadoPagoSubscription } from "@prisma/client";
 
 export const SUBSCRIPTION_TRIAL_DAYS = 4;
 const TERMINAL_PAYMENT_STATUSES = new Set(["cancelled", "canceled", "refunded", "charged_back"]);
@@ -31,7 +31,7 @@ function addMonths(date: Date, months: number) {
   return next;
 }
 
-function matchesLocalContract(remote: MpSubscription, local: { id: string; interval: string; amount: number }) {
+function matchesLocalContract(remote: MpSubscription, local: { id: string; interval: string; amount: unknown }) {
   if (!isPlanInterval(local.interval)) return false;
   const recurring = remote.auto_recurring;
   const amount = Number(recurring?.transaction_amount);
@@ -39,7 +39,7 @@ function matchesLocalContract(remote: MpSubscription, local: { id: string; inter
     recurring?.frequency === PLAN_PRICES[local.interval].frequency &&
     recurring?.frequency_type === "months" &&
     recurring?.currency_id === "BRL" &&
-    Number.isFinite(amount) && Math.abs(amount - local.amount) < 0.001;
+    Number.isFinite(amount) && Math.abs(amount - Number(local.amount)) < 0.001;
 }
 
 export async function syncSubscriptionById(subscriptionId: string) {
@@ -56,9 +56,10 @@ export async function syncSubscriptionFromMercadoPago(remote: MpSubscription) {
   if (local.externalId && local.externalId !== remote.id) return null;
 
   const nextPaymentAt = asDate(remote.next_payment_date);
+  const normalizedStatus = isCancelledSubscriptionStatus(remote.status) ? "cancelled" : remote.status;
   const statusData = {
     externalId: remote.id,
-    status: remote.status,
+    status: normalizedStatus,
     nextPaymentAt,
     error: null
   };
@@ -69,7 +70,7 @@ export async function syncSubscriptionFromMercadoPago(remote: MpSubscription) {
     return prisma.mercadoPagoSubscription.update({ where: { id: local.id }, data: statusData });
   }
 
-  if (remote.status === "cancelled" || local.cancelledAt) {
+  if (isCancelledSubscriptionStatus(remote.status) || local.cancelledAt) {
     const now = new Date();
     const paidUntil = local.lastPaymentStatus === "approved" ? local.nextPaymentAt : local.previousProRenewsAt;
     const keepPro = Boolean(paidUntil && paidUntil > now);
@@ -127,94 +128,94 @@ export async function syncAuthorizedPaymentFromMercadoPago(invoice: MpAuthorized
   if (!local || !isPlanInterval(local.interval)) return null;
   if (invoice.external_reference && String(invoice.external_reference) !== local.id) return null;
   const amount = invoice.transaction_amount === undefined ? null : Number(invoice.transaction_amount);
-  if (amount !== null && (!Number.isFinite(amount) || Math.abs(amount - local.amount) >= 0.001)) return null;
+  if (amount !== null && (!Number.isFinite(amount) || Math.abs(amount - Number(local.amount)) >= 0.001)) return null;
   if (invoice.currency_id && invoice.currency_id !== "BRL") return null;
 
   const paymentId = invoice.payment?.id === undefined ? null : String(invoice.payment.id);
   const paymentStatus = invoice.payment?.status || invoice.status || "unknown";
   const debitDate = asDate(invoice.debit_date);
-  const isNewest = !local.lastPaymentAt || !debitDate || debitDate >= local.lastPaymentAt;
+  const statusDetail = invoice.payment?.status_detail || null;
+  const remote = paymentStatus === "approved" && local.externalId
+    ? await getSubscription(local.externalId)
+    : null;
+  if (remote && !matchesLocalContract(remote, local)) return null;
 
-  await prisma.mercadoPagoInvoice.upsert({
-    where: { externalId: String(invoice.id) },
-    create: {
-      subscriptionId: local.id,
-      externalId: String(invoice.id),
-      paymentId,
-      status: paymentStatus,
-      statusDetail: invoice.payment?.status_detail || null,
-      amount,
-      debitDate
-    },
-    update: {
-      paymentId,
-      status: paymentStatus,
-      statusDetail: invoice.payment?.status_detail || null,
-      amount,
-      debitDate
-    }
-  });
-
-  if (isNewest) {
-    await prisma.mercadoPagoSubscription.update({
-      where: { id: local.id },
-      data: {
-        lastPaymentId: paymentId,
-        lastPaymentStatus: paymentStatus,
-        lastPaymentStatusDetail: invoice.payment?.status_detail || null,
-        lastPaymentAt: debitDate || new Date(),
-        error: paymentStatus === "approved" ? null : invoice.payment?.status_detail || paymentStatus
-      }
-    });
-  }
-
-  // Historical or late events are recorded for audit, but must not replace a
-  // newer entitlement or reactivate a subscription cancelled by the user.
-  if (!isNewest || local.cancelledAt) return invoice;
-
-  if (paymentStatus === "approved") {
-    const remote = await getSubscription(local.externalId!);
-    const synced = await syncSubscriptionFromMercadoPago(remote);
-    const renewsAt = asDate(remote.next_payment_date) || addMonths(debitDate || new Date(), PLAN_PRICES[local.interval].frequency);
-    await prisma.user.update({
-      where: { id: local.userId },
-      data: {
-        plan: "PRO",
-        proRenewsAt: renewsAt,
-        proCancelUntil: null,
-        mpPaymentId: paymentId,
-        mpPaymentStatus: paymentStatus,
-        mpPaymentStatusDetail: invoice.payment?.status_detail || null,
-        mpPaymentError: null
-      }
-    });
-    return synced;
-  }
-
-  return applyFailedInvoice(local, paymentStatus, invoice.payment?.status_detail, paymentId);
-}
-
-async function applyFailedInvoice(
-  local: MercadoPagoSubscription,
-  paymentStatus: string,
-  statusDetail?: string,
-  paymentId?: string | null
-) {
-  const message = statusDetail || paymentStatus;
-  if (REVOKED_PAYMENT_STATUSES.has(paymentStatus)) {
+  // Cancel remotely before entering the short database transaction. The local
+  // entitlement update below remains authoritative even if MP is temporarily
+  // unavailable; the cron will retry remote reconciliation later.
+  if (REVOKED_PAYMENT_STATUSES.has(paymentStatus) && local.externalId) {
     try {
-      if (local.externalId) await cancelSubscription(local.externalId);
+      await cancelSubscription(local.externalId);
     } catch (error) {
       console.error("Falha ao cancelar assinatura apos estorno:", error);
     }
-    const now = new Date();
-    return prisma.$transaction([
-      prisma.mercadoPagoSubscription.update({
-        where: { id: local.id },
+  }
+
+  return prisma.$transaction(async (tx) => {
+    // Serialize webhook/cron updates for this subscription. This prevents an
+    // older event that finishes later from replacing the newest entitlement.
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${local.id}))`;
+    const current = await tx.mercadoPagoSubscription.findUnique({ where: { id: local.id } });
+    if (!current) return null;
+
+    await tx.mercadoPagoInvoice.upsert({
+      where: { externalId: String(invoice.id) },
+      create: {
+        subscriptionId: current.id,
+        externalId: String(invoice.id),
+        paymentId,
+        status: paymentStatus,
+        statusDetail,
+        amount,
+        debitDate
+      },
+      update: { paymentId, status: paymentStatus, statusDetail, amount, debitDate }
+    });
+
+    const isNewest = !current.lastPaymentAt || (debitDate !== null && debitDate >= current.lastPaymentAt);
+    if (!isNewest || current.cancelledAt) return invoice;
+
+    await tx.mercadoPagoSubscription.update({
+      where: { id: current.id },
+      data: {
+        ...(remote ? {
+          status: isCancelledSubscriptionStatus(remote.status) ? "cancelled" : remote.status,
+          nextPaymentAt: asDate(remote.next_payment_date)
+        } : {}),
+        lastPaymentId: paymentId,
+        lastPaymentStatus: paymentStatus,
+        lastPaymentStatusDetail: statusDetail,
+        lastPaymentAt: debitDate || new Date(),
+        error: paymentStatus === "approved" ? null : statusDetail || paymentStatus
+      }
+    });
+
+    if (paymentStatus === "approved") {
+      const renewsAt = asDate(remote?.next_payment_date) || addMonths(debitDate || new Date(), PLAN_PRICES[current.interval as PlanInterval].frequency);
+      await tx.user.update({
+        where: { id: current.userId },
+        data: {
+          plan: "PRO",
+          proRenewsAt: renewsAt,
+          proCancelUntil: null,
+          mpPaymentId: paymentId,
+          mpPaymentStatus: paymentStatus,
+          mpPaymentStatusDetail: statusDetail,
+          mpPaymentError: null
+        }
+      });
+      return invoice;
+    }
+
+    const message = statusDetail || paymentStatus;
+    if (REVOKED_PAYMENT_STATUSES.has(paymentStatus)) {
+      const now = new Date();
+      await tx.mercadoPagoSubscription.update({
+        where: { id: current.id },
         data: { status: "cancelled", activeKey: null, cancelledAt: now, error: message }
-      }),
-      prisma.user.update({
-        where: { id: local.userId },
+      });
+      await tx.user.update({
+        where: { id: current.userId },
         data: {
           plan: "FREE",
           proRenewsAt: null,
@@ -223,35 +224,49 @@ async function applyFailedInvoice(
           mpSubscriptionStatus: "cancelled",
           mpPaymentId: paymentId,
           mpPaymentStatus: paymentStatus,
-          mpPaymentStatusDetail: statusDetail || null,
+          mpPaymentStatusDetail: statusDetail,
           mpPaymentError: message
         }
-      })
-    ]);
-  }
-
-  const user = await prisma.user.findUnique({ where: { id: local.userId }, select: { proRenewsAt: true } });
-  const expired = !user?.proRenewsAt || user.proRenewsAt <= new Date();
-  return prisma.user.update({
-    where: { id: local.userId },
-    data: {
-      plan: expired && (paymentStatus === "rejected" || TERMINAL_PAYMENT_STATUSES.has(paymentStatus)) ? "FREE" : undefined,
-      proRenewsAt: expired ? null : undefined,
-      mpPaymentId: paymentId,
-      mpPaymentStatus: paymentStatus,
-      mpPaymentStatusDetail: statusDetail || null,
-      mpPaymentError: message
+      });
+      return invoice;
     }
+
+    const user = await tx.user.findUnique({ where: { id: current.userId }, select: { proRenewsAt: true } });
+    const expired = !user?.proRenewsAt || user.proRenewsAt <= new Date();
+    await tx.user.update({
+      where: { id: current.userId },
+      data: {
+        plan: expired && (paymentStatus === "rejected" || TERMINAL_PAYMENT_STATUSES.has(paymentStatus)) ? "FREE" : undefined,
+        proRenewsAt: expired ? null : undefined,
+        mpPaymentId: paymentId,
+        mpPaymentStatus: paymentStatus,
+        mpPaymentStatusDetail: statusDetail,
+        mpPaymentError: message
+      }
+    });
+    return invoice;
   });
 }
 
 export async function reconcileActiveSubscriptions() {
+  const now = new Date();
+  const staleBefore = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const dueBefore = new Date(now.getTime() + 48 * 60 * 60 * 1000);
   const active = await prisma.mercadoPagoSubscription.findMany({
-    where: { activeKey: { not: null } },
-    select: { id: true, externalId: true, payerEmail: true, createdAt: true }
+    where: {
+      activeKey: { not: null },
+      OR: [
+        { externalId: null },
+        { error: { not: null } },
+        { updatedAt: { lt: staleBefore } },
+        { nextPaymentAt: { lte: dueBefore } }
+      ]
+    },
+    select: { id: true, externalId: true, payerEmail: true, createdAt: true },
+    orderBy: { updatedAt: "asc" },
+    take: 100
   });
-  const results = [];
-  for (const item of active) {
+  const reconcileOne = async (item: (typeof active)[number]) => {
     try {
       let subscriptionId = item.externalId;
       if (!subscriptionId) {
@@ -264,8 +279,7 @@ export async function reconcileActiveSubscriptions() {
               data: { status: "failed", activeKey: null, error: "Assinatura nao encontrada no Mercado Pago." }
             });
           }
-          results.push({ subscriptionId: item.id, ok: !stale });
-          continue;
+          return { subscriptionId: item.id, ok: !stale };
         }
         await syncSubscriptionFromMercadoPago(recovered);
         subscriptionId = recovered.id;
@@ -275,11 +289,17 @@ export async function reconcileActiveSubscriptions() {
       const invoices = await findAuthorizedPaymentsBySubscriptionId(subscriptionId);
       invoices.sort((a, b) => String(a.debit_date || "").localeCompare(String(b.debit_date || "")));
       for (const invoice of invoices) await syncAuthorizedPaymentFromMercadoPago(invoice);
-      results.push({ subscriptionId, ok: true });
+      return { subscriptionId, ok: true };
     } catch (error) {
       console.error("Falha ao conciliar assinatura Mercado Pago:", error);
-      results.push({ subscriptionId: item.externalId, ok: false });
+      return { subscriptionId: item.externalId, ok: false };
     }
+  };
+
+  const results: Array<{ subscriptionId: string | null; ok: boolean }> = [];
+  const concurrency = 5;
+  for (let index = 0; index < active.length; index += concurrency) {
+    results.push(...await Promise.all(active.slice(index, index + concurrency).map(reconcileOne)));
   }
   return results;
 }

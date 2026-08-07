@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, Check, DollarSign, Lock, Shield, ShieldCheck, Star, Users, Wallet } from "lucide-react";
 import { MercadoPagoPaymentBrick } from "@/components/payment/MercadoPagoPaymentBrick";
+import { isCancelledSubscriptionStatus } from "@/lib/mercadopago";
 import { Button } from "@/components/ui/Button";
 import { PeladaCrest } from "@/components/ui/PeladaCrest";
 import { formatCurrencyBRL } from "@/lib/financeUtils";
@@ -236,7 +237,7 @@ function SubscriptionPanel({
   const pro = isUserPro(user);
   const inFreeCancellationPeriod = Boolean(user.proCancelUntil && user.proCancelUntil.getTime() > now);
   const alreadyCancelled = Boolean(user.subscriptionCancelledAt);
-  const recurring = Boolean(user.mpSubscriptionId && user.mpSubscriptionStatus !== "cancelled");
+  const recurring = Boolean(user.mpSubscriptionId && !isCancelledSubscriptionStatus(user.mpSubscriptionStatus));
 
   if (!pro && !user.mpPaymentId && !alreadyCancelled) return null;
 
@@ -304,7 +305,7 @@ function PlansScreen({
   activeMensalistas: number;
   proCoverage?: string;
 }) {
-  const canSubscribe = !isUserPro(user) && (!user.mpSubscriptionId || user.mpSubscriptionStatus === "cancelled");
+  const canSubscribe = !isUserPro(user) && (!user.mpSubscriptionId || isCancelledSubscriptionStatus(user.mpSubscriptionStatus));
   return (
     <PaymentShell>
       <Header />
@@ -508,7 +509,7 @@ export default async function PagamentoPage({
     await syncUserPaymentByUserId(currentUser.id, query?.payment_id || query?.collection_id);
   }
 
-  let [user, activePelada, activeMensalistas, ownedPeladasCount] = await Promise.all([
+  const [initialUser, activePelada, activeMensalistas, ownedPeladasCount] = await Promise.all([
     prisma.user.findUnique({
       where: { id: currentUser.id },
       select: paymentUserSelect
@@ -521,8 +522,11 @@ export default async function PagamentoPage({
       : Promise.resolve(0),
     prisma.pelada.count({ where: { createdByUserId: currentUser.id } })
   ]);
+  let user = initialUser;
 
-  if (user?.mpSubscriptionId) {
+  // Webhooks and the reconciliation cron keep normal visits fast. Only the
+  // provider return path performs a synchronous read-after-write check.
+  if (paymentReturn && user?.mpSubscriptionId) {
     try {
       await syncSubscriptionById(user.mpSubscriptionId);
       user = await prisma.user.findUnique({ where: { id: currentUser.id }, select: paymentUserSelect });

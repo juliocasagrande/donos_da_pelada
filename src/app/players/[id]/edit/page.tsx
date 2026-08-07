@@ -14,10 +14,20 @@ export default async function EditPlayerPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ error?: string }>;
 }) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const { id } = await params;
   const { error } = await searchParams;
-  const player = await prisma.player.findUnique({ where: { id } });
+  const player = await prisma.player.findFirst({
+    where: { id, peladaId: admin.peladaId! },
+    select: {
+      id: true,
+      nickname: true,
+      photoUrl: true,
+      position: true,
+      membershipStatus: true,
+      rating: true
+    }
+  });
   if (!player) notFound();
   return (
     <AppShell>

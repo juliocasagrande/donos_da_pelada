@@ -17,7 +17,7 @@ type MatchStatsPlayer = {
 };
 
 export function MatchStatsForm({ matchId, players }: { matchId: string; players: MatchStatsPlayer[] }) {
-  const [state, formAction, isPending] = useActionFeedback(
+  const [, formAction, isPending] = useActionFeedback(
     (_prevState, formData: FormData) => updateStats(matchId, formData),
     { successMessage: "Estatisticas salvas." }
   );

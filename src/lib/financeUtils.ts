@@ -35,6 +35,6 @@ export function monthLabel(year: number, month: number) {
   return `${MONTH_LABELS[month - 1]} ${year}`;
 }
 
-export function formatCurrencyBRL(value: number) {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+export function formatCurrencyBRL(value: number | string | { toString(): string }) {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value));
 }

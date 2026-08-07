@@ -25,7 +25,7 @@ if (!url || !key) {
 
 console.log(`Testando Supabase Storage em ${url}`);
 console.log(`Bucket configurado: ${bucket}`);
-console.log(`Chave carregada: ${key.slice(0, 10)}...${key.slice(-4)}`);
+console.log("Chave de servico carregada: sim (valor omitido)");
 
 const response = await fetch(`${url}/storage/v1/bucket`, {
   headers: {

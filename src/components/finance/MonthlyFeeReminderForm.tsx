@@ -14,7 +14,7 @@ export function MonthlyFeeReminderForm({
   month: number;
   pendingCount: number;
 }) {
-  const [state, formAction, isPending] = useActionFeedback(
+  const [, formAction, isPending] = useActionFeedback(
     () => sendMonthlyFeeReminder(year, month),
     {
       successMessage: (result) =>

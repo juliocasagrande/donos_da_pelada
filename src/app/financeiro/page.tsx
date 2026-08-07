@@ -98,13 +98,13 @@ export default async function FinancePage({
   const paidPlayerIds = new Set(currentPayments.map((payment) => payment.playerId));
   const pendingPaymentCount = Math.max(0, players.length - paidPlayerIds.size);
 
-  const receivedFromFees = currentPayments.reduce((sum, payment) => sum + payment.amount, 0);
+  const receivedFromFees = currentPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
   const incomeFromTransactions = currentTransactions
     .filter((transaction) => transaction.type === "INCOME")
-    .reduce((sum, transaction) => sum + transaction.amount, 0);
+    .reduce((sum, transaction) => sum + Number(transaction.amount), 0);
   const expenses = currentTransactions
     .filter((transaction) => transaction.type === "EXPENSE")
-    .reduce((sum, transaction) => sum + transaction.amount, 0);
+    .reduce((sum, transaction) => sum + Number(transaction.amount), 0);
   const totalReceived = receivedFromFees + incomeFromTransactions;
   const balance = totalReceived - expenses;
   const paidPercent = players.length ? Math.round((paidPlayerIds.size / players.length) * 100) : 0;
@@ -113,7 +113,7 @@ export default async function FinancePage({
   for (const payment of historyPayments) {
     const key = monthKey(payment.year, payment.month);
     const entry = history.get(key) ?? { label: monthLabel(payment.year, payment.month), received: 0, spent: 0 };
-    entry.received += payment.amount;
+    entry.received += Number(payment.amount);
     history.set(key, entry);
   }
   for (const transaction of historyTransactions) {
@@ -123,8 +123,8 @@ export default async function FinancePage({
       received: 0,
       spent: 0
     };
-    if (transaction.type === "INCOME") entry.received += transaction.amount;
-    else entry.spent += transaction.amount;
+    if (transaction.type === "INCOME") entry.received += Number(transaction.amount);
+    else entry.spent += Number(transaction.amount);
     history.set(key, entry);
   }
 
@@ -225,7 +225,7 @@ export default async function FinancePage({
             <form action={setMonthlyFee.bind(null, year, month)} className="flex items-end gap-2">
               <div className="flex-1">
                 <Label>Valor para {monthLabel(year, month)}</Label>
-                <Input name="amount" type="number" min={0} step={0.01} defaultValue={feeConfig?.amount ?? ""} placeholder="0,00" />
+                <Input name="amount" type="number" min={0} step={0.01} defaultValue={feeConfig ? Number(feeConfig.amount) : ""} placeholder="0,00" />
               </div>
               <Button type="submit">Salvar</Button>
             </form>

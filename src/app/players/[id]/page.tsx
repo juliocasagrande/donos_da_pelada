@@ -17,18 +17,6 @@ function positionLabel(position: string) {
   return labels[position] || position;
 }
 
-function matchAverages(ratings: { value: number; match: { date: Date } }[]) {
-  const grouped = new Map<number, number[]>();
-  for (const rating of ratings) {
-    const key = rating.match.date.getTime();
-    grouped.set(key, [...(grouped.get(key) ?? []), rating.value]);
-  }
-
-  return [...grouped.entries()]
-    .sort(([left], [right]) => right - left)
-    .map(([, values]) => values.reduce((sum, value) => sum + value, 0) / values.length);
-}
-
 function average(values: number[]) {
   return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
 }
@@ -37,51 +25,60 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
   const user = await requireUser();
   const isAdmin = isPeladaAdmin(user);
   const { id } = await params;
-  const [player, activePlayers] = await Promise.all([
-    prisma.player.findFirst({
-      where: { id, peladaId: user.peladaId! },
-      select: {
-        id: true,
-        nickname: true,
-        photoUrl: true,
-        position: true,
-        membershipStatus: true,
-        goals: { select: { quantity: true } },
-        assists: { select: { quantity: true } },
-        defenses: { select: { quantity: true } },
-        attendances: { select: { status: true } },
-        pollWinners: { select: { id: true } },
-        ratings: { select: { value: true, match: { select: { date: true } } }, orderBy: { match: { date: "desc" } } }
-      }
-    }),
-    prisma.player.findMany({
-      where: { peladaId: user.peladaId!, active: true },
-      select: {
-        id: true,
-        membershipStatus: true,
-        ratings: { select: { value: true, match: { select: { date: true } } } }
-      }
-    })
-  ]);
+  const player = await prisma.player.findFirst({
+    where: { id, peladaId: user.peladaId! },
+    select: { id: true, nickname: true, photoUrl: true, position: true, membershipStatus: true }
+  });
 
   if (!player) notFound();
 
   const isGuest = player.membershipStatus === "CONVIDADO";
-  const goals = isGuest ? 0 : player.goals.reduce((sum, item) => sum + item.quantity, 0);
-  const assists = isGuest ? 0 : player.assists.reduce((sum, item) => sum + item.quantity, 0);
-  const saves = isGuest ? 0 : player.defenses.reduce((sum, item) => sum + item.quantity, 0);
-  const presences = isGuest ? 0 : player.attendances.filter((attendance) => attendance.status === "CONFIRMED").length;
-  const craque = isGuest ? 0 : player.pollWinners.length;
-  const form = isGuest ? [] : matchAverages(player.ratings).slice(0, 5);
+  const [goalTotals, assistTotals, saveTotals, presences, craque, formRows, noteRanking] = isGuest
+    ? [{ _sum: { quantity: 0 } }, { _sum: { quantity: 0 } }, { _sum: { quantity: 0 } }, 0, 0, [], []]
+    : await Promise.all([
+        prisma.goal.aggregate({ where: { playerId: player.id }, _sum: { quantity: true } }),
+        prisma.assist.aggregate({ where: { playerId: player.id }, _sum: { quantity: true } }),
+        prisma.difficultSave.aggregate({ where: { playerId: player.id }, _sum: { quantity: true } }),
+        prisma.attendance.count({ where: { playerId: player.id, status: "CONFIRMED" } }),
+        prisma.poll.count({ where: { winnerId: player.id } }),
+        prisma.$queryRaw<{ value: number }[]>`
+          SELECT AVG(pr.value)::double precision AS value
+          FROM "PlayerRating" pr
+          JOIN "Match" m ON m.id = pr."matchId"
+          WHERE pr."playerId" = ${player.id}
+          GROUP BY pr."matchId", m.date
+          ORDER BY m.date DESC
+          LIMIT 5
+        `,
+        prisma.$queryRaw<{ id: string; value: number }[]>`
+          WITH match_ratings AS (
+            SELECT
+              pr."playerId" AS id,
+              m.date,
+              AVG(pr.value)::double precision AS value
+            FROM "PlayerRating" pr
+            JOIN "Match" m ON m.id = pr."matchId"
+            JOIN "Player" p ON p.id = pr."playerId"
+            WHERE p."peladaId" = ${user.peladaId!}
+              AND p.active = true
+              AND p."membershipStatus" = 'MENSALISTA'
+            GROUP BY pr."playerId", pr."matchId", m.date
+          ), ranked AS (
+            SELECT id, value, ROW_NUMBER() OVER (PARTITION BY id ORDER BY date DESC) AS position
+            FROM match_ratings
+          )
+          SELECT id, AVG(value)::double precision AS value
+          FROM ranked
+          WHERE position <= 10
+          GROUP BY id
+          ORDER BY value DESC, id ASC
+        `
+      ]);
+  const goals = goalTotals._sum.quantity ?? 0;
+  const assists = assistTotals._sum.quantity ?? 0;
+  const saves = saveTotals._sum.quantity ?? 0;
+  const form = formRows.map((row) => row.value);
   const averageForm = average(form);
-  const noteRanking = activePlayers
-    .filter((item) => item.membershipStatus === "MENSALISTA")
-    .map((item) => ({
-      id: item.id,
-      value: average(matchAverages(item.ratings).slice(0, 10)) ?? 0
-    }))
-    .filter((item) => item.value > 0)
-    .sort((a, b) => b.value - a.value);
   const noteRankPosition = noteRanking.findIndex((item) => item.id === player.id) + 1;
 
   return (

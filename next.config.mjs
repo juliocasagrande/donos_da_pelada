@@ -12,7 +12,9 @@ const runtimeCaching = defaultRuntimeCaching.filter((rule) => !staleProneCaches.
 const withPWA = withPWAInit({
   dest: "public",
   disable: process.env.NODE_ENV === "development",
-  register: true,
+  // Registration is handled by ServiceWorkerRegister so the app can control
+  // update cadence and show an update toast without a second registration.
+  register: false,
   skipWaiting: true,
   importScripts: ["push-sw.js"],
   runtimeCaching

@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { MatchKind, MatchStatus, PeladaRole, PollStatus, Prisma, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser, isPeladaAdmin, requireAdmin, requireMaster, requireUser } from "@/lib/session";
+import { getCurrentUser, isPeladaAdmin, requireAdmin, requireUser } from "@/lib/session";
 import { drawSchema, matchSchema, passwordSchema, playerSchema, signupSchema } from "@/lib/validations";
 import { balanceTeams } from "@/lib/balanceTeams";
 import { archiveUserPeladaStats } from "@/lib/careerStats";

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useToast } from "@/components/ui/ToastProvider";
 
 const UPDATE_FLAG_KEY = "pwa-update-reloaded";
+const UPDATE_INTERVAL_MS = 60 * 60 * 1000;
 
 export function ServiceWorkerRegister() {
   const toast = useToast();
@@ -36,21 +37,26 @@ export function ServiceWorkerRegister() {
     navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
 
     let registration: ServiceWorkerRegistration | null = null;
+    let lastUpdateAt = 0;
+    const updateRegistration = () => {
+      if (!registration || Date.now() - lastUpdateAt < UPDATE_INTERVAL_MS) return;
+      lastUpdateAt = Date.now();
+      registration.update().catch(() => undefined);
+    };
+
     navigator.serviceWorker
       .register("/sw.js")
       .then((reg) => {
         registration = reg;
-        reg.update().catch(() => undefined);
+        updateRegistration();
       })
       .catch(() => undefined);
 
-    const interval = setInterval(() => {
-      registration?.update().catch(() => undefined);
-    }, 60 * 1000);
+    const interval = setInterval(updateRegistration, UPDATE_INTERVAL_MS);
 
     const onVisible = () => {
       if (document.visibilityState === "visible") {
-        registration?.update().catch(() => undefined);
+        updateRegistration();
       }
     };
     document.addEventListener("visibilitychange", onVisible);

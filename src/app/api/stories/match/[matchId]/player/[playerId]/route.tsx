@@ -3,6 +3,8 @@ import { Resvg } from "@resvg/resvg-js";
 import { NextResponse } from "next/server";
 import { ApiAuthError, isPeladaAdmin, requireApiUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit } from "@/lib/rateLimit";
+import { fetchStoryImageDataUrl } from "@/lib/remoteImage";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -70,39 +72,6 @@ function formatShortDate(date: Date) {
     .formatToParts(date)
     .reduce<Record<string, string>>((acc, part) => ({ ...acc, [part.type]: part.value }), {});
   return `${parts.day} ${MONTHS[Number(parts.month) - 1]} ${parts.year}`;
-}
-
-async function getImageDataUrl(url: string | null) {
-  if (!url) return null;
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
-
-  try {
-    const response = await fetch(url, { signal: controller.signal });
-    if (!response.ok) {
-      console.error(`Falha ao buscar foto do story (status ${response.status}): ${url}`);
-      return null;
-    }
-
-    const contentType = response.headers.get("content-type") || "";
-    if (!contentType.startsWith("image/")) {
-      console.error(`Falha ao buscar foto do story (content-type "${contentType}"): ${url}`);
-      return null;
-    }
-
-    const buffer = Buffer.from(await response.arrayBuffer());
-    if (buffer.length === 0) {
-      console.error(`Falha ao buscar foto do story (arquivo vazio): ${url}`);
-      return null;
-    }
-    return `data:${contentType};base64,${buffer.toString("base64")}`;
-  } catch (error) {
-    console.error(`Falha ao buscar foto do story: ${url}`, error);
-    return null;
-  } finally {
-    clearTimeout(timeout);
-  }
 }
 
 function ratingStar(cx: number, cy: number, size: number, filled: boolean) {
@@ -784,6 +753,9 @@ function renderStorySvg({
 export async function GET(_request: Request, { params }: { params: Promise<{ matchId: string; playerId: string }> }) {
   try {
     const user = await requireApiUser();
+    if (!checkRateLimit(`story:${user.id}`, 6, 60_000).allowed) {
+      return NextResponse.json({ error: "Muitas imagens geradas em pouco tempo." }, { status: 429 });
+    }
     const { matchId, playerId } = await params;
 
     const [match, player] = await Promise.all([
@@ -830,7 +802,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ mat
     const isCraqueDaPelada = topVoteCount > 0 && voteCounts.get(player.id) === topVoteCount;
     const isGold = isCraqueDaPelada;
     const showVoteRank = isGold && voteRank != null;
-    const photoSrc = await getImageDataUrl(player.photoUrl ?? player.user?.image ?? null);
+    const photoSrc = await fetchStoryImageDataUrl(player.photoUrl ?? player.user?.image ?? null);
 
     const svg =
       match.kind === "AMISTOSO"

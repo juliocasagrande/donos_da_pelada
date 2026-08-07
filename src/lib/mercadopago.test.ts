@@ -1,6 +1,11 @@
 import crypto from "crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cancelAuthorizedPayment, cancelSubscription, createSubscription } from "./mercadopago";
+import {
+  cancelAuthorizedPayment,
+  cancelSubscription,
+  createSubscription,
+  isCancelledSubscriptionStatus
+} from "./mercadopago";
 import { isValidMercadoPagoSignature } from "./mercadopagoWebhook";
 
 function response(body: object, status = 200) {
@@ -18,6 +23,12 @@ describe("Mercado Pago subscriptions", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     delete process.env.MERCADOPAGO_ACCESS_TOKEN;
+  });
+
+  it("accepts both spellings of a cancelled subscription status", () => {
+    expect(isCancelledSubscriptionStatus("canceled")).toBe(true);
+    expect(isCancelledSubscriptionStatus("cancelled")).toBe(true);
+    expect(isCancelledSubscriptionStatus("authorized")).toBe(false);
   });
 
   it("creates an annual recurring subscription with a four-day free trial", async () => {
@@ -47,11 +58,11 @@ describe("Mercado Pago subscriptions", () => {
     });
   });
 
-  it("cancels subscriptions with the official cancelled status", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(response({ id: "sub-1", status: "cancelled" }));
+  it("cancels subscriptions with the preapproval API canceled status", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(response({ id: "sub-1", status: "canceled" }));
     vi.stubGlobal("fetch", fetchMock);
     await cancelSubscription("sub-1");
-    expect(JSON.parse(String(fetchMock.mock.calls[0][1].body))).toEqual({ status: "cancelled" });
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1].body))).toEqual({ status: "canceled" });
   });
 
   it("also fixes cancellation for legacy authorized payments", async () => {

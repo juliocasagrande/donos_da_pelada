@@ -325,8 +325,8 @@ export default async function AttendancePage({
             guestGoalkeeperSlots={match.guestGoalkeeperSlots}
             guestLineFeeMode={match.guestLineFeeMode}
             guestGoalkeeperFeeMode={match.guestGoalkeeperFeeMode}
-            guestLineFeeAmount={match.guestLineFeeAmount}
-            guestGoalkeeperFeeAmount={match.guestGoalkeeperFeeAmount}
+            guestLineFeeAmount={match.guestLineFeeAmount == null ? null : Number(match.guestLineFeeAmount)}
+            guestGoalkeeperFeeAmount={match.guestGoalkeeperFeeAmount == null ? null : Number(match.guestGoalkeeperFeeAmount)}
             guestMinRating={match.guestMinRating}
             guestMaxRating={match.guestMaxRating}
             approvedLineCount={approvedLineCount}

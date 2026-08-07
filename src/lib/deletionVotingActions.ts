@@ -58,7 +58,7 @@ function targetLabel(target: DeletionRequestTarget) {
   return target === DeletionRequestTarget.PELADA ? "pelada" : "jogador";
 }
 
-async function refreshDeletionPaths(peladaId: string) {
+async function refreshDeletionPaths() {
   revalidatePath("/dashboard");
   revalidatePath("/players");
   revalidatePath("/admins");
@@ -108,7 +108,7 @@ async function evaluateDeletionRequest(requestId: string) {
     return request;
   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
-  if (result) await refreshDeletionPaths(result.peladaId);
+  if (result) await refreshDeletionPaths();
   return result;
 }
 
@@ -166,7 +166,7 @@ export async function requestPeladaDeletion(peladaId: string) {
 
   if (user.role === "MASTER") {
     await prisma.$transaction((tx) => executePeladaDeletion(peladaId, tx));
-    await refreshDeletionPaths(peladaId);
+    await refreshDeletionPaths();
     redirect("/admins/peladas");
   }
 
@@ -235,7 +235,7 @@ async function createDeletionRequest({
     })
   );
 
-  await refreshDeletionPaths(peladaId);
+  await refreshDeletionPaths();
   return request;
 }
 
